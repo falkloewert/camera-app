@@ -59,6 +59,11 @@ Projektmanager-Chat):
   das ihm zugewiesene Feature, trifft keine Entscheidungen über andere Features,
   die Gesamt-Reihenfolge oder die Projektausrichtung – das bleibt dem
   Projektmanager-Chat vorbehalten.
+- **Session-Titel:** Der Feature-Chat benennt sich zu Beginn selbst um (Tool
+  `set_session_title`, `session_id: "self"`) nach dem Schema
+  `camera-app – Feature: <Name>` (z. B. `camera-app – Feature: Panorama-Weitwinkel`).
+  Grund: Falk öffnet für jedes Feature einen neuen Chat, die Session-Liste soll
+  trotzdem übersichtlich bleiben, ohne dass er das manuell nachpflegen muss.
 - **Vorgehen:** Vor Codeänderungen den relevanten Code identifizieren und Falk
   erklären, wie es aktuell funktioniert und was geändert werden soll. Änderungen in
   überschaubaren, erklärten Schritten umsetzen. Nach Änderungen von Falk auf dem
