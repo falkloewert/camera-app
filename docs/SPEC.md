@@ -101,7 +101,7 @@ Projektmanager-Chat):
 | 5 | Kamera während Videoaufnahme umdrehen | Idee / Notiz (nice-to-have) | Niedrig |
 | 6 | Modernes Kamera-UI (Zoom-Stufen-Buttons + Moduswahl-Leiste) | Idee / Konzept (Vorschlag von Falk, 2026-08-27, aus Panorama-Feature-Chat) | Mittel (app-weit, viele Dateien betroffen) |
 
-### 3.1 Vereinbarte Reihenfolge (festgelegt am 2026-08-27, Feature 6 vorläufig eingeordnet)
+### 3.1 Vereinbarte Reihenfolge (festgelegt am 2026-08-27, Feature 6 final bestätigt)
 
 Kompromiss aus "Einfaches zuerst" (zum Kennenlernen von Workflow/Codebasis als
 Programmier-Einsteiger) und "Riskantes früh klären" (Dual-Kamera hängt von
@@ -109,8 +109,7 @@ Tensor-Chip-Unterstützung ab, siehe Abschnitt 5):
 
 1. **Feature 4** – Panorama mit Weitwinkel-Option
 2. **Feature 5** – Kamera während Videoaufnahme umdrehen
-3. **Feature 6** – Modernes Kamera-UI (Zoom-Stufen-Buttons + Moduswahl-Leiste) –
-   *Platzierung noch mit Falk zu bestätigen, siehe Begründung in Abschnitt 4.5.*
+3. **Feature 6** – Modernes Kamera-UI (Zoom-Stufen-Buttons + Moduswahl-Leiste)
 4. **Machbarkeits-Spike Dual-Kamera** – kein volles Feature, nur klären: unterstützt
    der Pixel 9 Pro zuverlässig gleichzeitigen Zugriff auf Front- und Rückkamera
    ("Concurrent Camera")?
@@ -284,6 +283,14 @@ für Panorama selbst wurde eine kleine, lokale Lösung gebaut (siehe Feature 4).
    antippbare Zoomstufen (z. B. "0.5x", "1x", "2x", je nach verfügbaren Linsen/Zoomstufen
    des Geräts) statt nur eines stufenlosen Reglers, die direkt auf die passende Linse
    bzw. den passenden Zoom-Faktor umschalten.
+   **Konkretisierung von Falk (2026-08-27):** Das gilt explizit auch für den normalen
+   Foto-/Video-Modus – dort ersetzt Open Camera die Linsenauswahl aktuell durch einen
+   generischen Kamera-Wechsel-Button (Umschalt-Icon, zyklisch), den Falk nicht mag.
+   Er soll sich **exakt so verhalten wie das für Panorama gebaute Button-Paar** (siehe
+   4.4/Änderungsprotokoll): direkt antippbare Buttons pro Linse statt Umschalt-Zyklus,
+   Wide-Faktor live aus dem tatsächlichen Sichtwinkel-Verhältnis berechnet (nicht fest
+   hinterlegt), Position folgt dem Auslöser-Button bei Drehung. Die Panorama-Umsetzung
+   dient als Referenzimplementierung, die auf die anderen Modi übertragen wird.
 2. **Modus-Auswahl** (Foto, Video, Panorama, künftige Modi) als horizontale
    Scroll-Leiste am unteren Bildschirmrand statt über das bestehende Drei-Punkte-Menü,
    das Falk als unschön empfindet.
@@ -297,24 +304,22 @@ denkbar und überlässt die Detailentscheidung dem Feature-Chat.
 App-UI (alle Kameramodi), nicht nur einen. Laut Projektregel (Abschnitt 2.1) nicht
 Aufgabe eines einzelnen Feature-Chats, app-weite Entscheidungen zu treffen.
 
-**Einordnung in die Reihenfolge (Vorschlag des Projektmanager-Chats, siehe 3.1):**
-direkt nach Feature 5, vor dem Dual-Kamera-Spike. Begründung: Die Zoom-Stufen-Buttons
-sind konzeptionell eng mit Feature 3 (Dual-Kamera) verwandt – deren zentrale
-Anforderung ist ja "unabhängiger Zoom je Kamera". Wird die Zoom-Stufen-UI hier zuerst
-sauber gebaut, lässt sie sich für Dual-Kamera vermutlich wiederverwenden/anpassen,
-statt sie zweimal zu entwerfen. Ebenso würde Feature 2 (Filmchen-Modus) von einer
-bereits vorhandenen Moduswahl-Leiste profitieren, statt erst ins alte Drei-Punkte-Menü
-eingebaut und später migriert zu werden. **Noch mit Falk zu bestätigen.**
+**Einordnung in die Reihenfolge (siehe 3.1):** direkt nach Feature 5, vor dem
+Dual-Kamera-Spike – von Falk am 2026-08-27 bestätigt. Begründung: Die
+Zoom-Stufen-Buttons sind konzeptionell eng mit Feature 3 (Dual-Kamera) verwandt –
+deren zentrale Anforderung ist ja "unabhängiger Zoom je Kamera". Wird die
+Zoom-Stufen-UI hier zuerst sauber gebaut, lässt sie sich für Dual-Kamera vermutlich
+wiederverwenden/anpassen, statt sie zweimal zu entwerfen. Ebenso würde Feature 2
+(Filmchen-Modus) von einer bereits vorhandenen Moduswahl-Leiste profitieren, statt
+erst ins alte Drei-Punkte-Menü eingebaut und später migriert zu werden.
 
 **Komplexität/Risiko:** Mittel – kein Hardware-Risiko wie Dual-Kamera/360°, aber
 betrifft laut Entwurf viele Dateien app-weit (`MainUI.java`, `activity_main.xml`,
 Layout- und Klick-Logik für praktisch jeden Modus).
 
-**Start dieses Feature-Chats:** bewusst noch nicht – der Panorama-Feature-Chat läuft
-aktuell noch (offene, unfertige Änderung in `MainActivity.java`). Zwei Sitzungen
-gleichzeitig im selben Arbeitsverzeichnis sind ein bekanntes Risiko (siehe Abschnitt
-2.1) – dieser Feature-Chat wird erst gestartet, nachdem Panorama sein
-Abschlussprotokoll durchlaufen hat.
+**Start dieses Feature-Chats:** laut Reihenfolge (3.1) nach Feature 5
+(Video-Kameraflip). Panorama-Feature-Chat ist inzwischen abgeschlossen, das ursprüngliche
+Parallel-Sitzungs-Risiko (Abschnitt 2.1) besteht für dieses Feature aktuell nicht mehr.
 
 ---
 
@@ -385,3 +390,10 @@ Abschlussprotokoll durchlaufen hat.
   offene Fragen in 4.4. App-Name testweise auf "Falks Kamera" geändert.
   Diagnose-Logging (`MyDebug.LOG`), das während der Fehlersuche temporär aktiviert war,
   wieder deaktiviert. Panorama-Feature-Chat damit abgeschlossen.
+- **2026-08-27:** Feature 6 konkretisiert: Die Zoom-Stufen-Buttons sollen sich nicht nur
+  auf Panorama beschränken, sondern den generischen Kamera-Wechsel-Button im normalen
+  Foto-/Video-Modus ersetzen – mit exakt demselben Verhalten wie das für Panorama
+  gebaute Button-Paar (direktes Antippen statt Umschalt-Zyklus, live berechneter
+  Wide-Faktor, auslöser-relative Position). Reihenfolge-Platzierung von Feature 6
+  (direkt nach Feature 5) von Falk final bestätigt. Kickoff-Kontext für Feature 5
+  (Video-Kameraflip) erstellt (`docs/kickoff/video-kameraflip.md`).
