@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Open Camera</string> <!-- shouldn't be translated -->
+    <string name="app_name">Falks Kamera</string> <!-- shouldn't be translated -->
     <string name="action_settings">Einstellungen</string>
     <string name="action_popup">Popup-Einstellungen</string>
     <string name="intro_ok">OK (Diese Nachricht wird nicht wieder angezeigt.)</string>
@@ -935,6 +935,8 @@
     <string name="switch_to_external_camera">Zu externer Kamera wechseln</string>
     <string name="switch_to_unknown_camera">Kamera wechseln</string>
     <string name="switch_multi_camera">Zwischen mehreren Kameras wechseln</string>
+    <string name="panorama_lens_main">1x</string>
+    <string name="panorama_lens_wide">Weitwinkel</string>
     <string name="preference_multi_cam_button">Tasten für mehrere Kameras</string>
     <string name="preference_multi_cam_button_summary">Falls aktiviert, werden verschiedene Tasten verwendet, um zwischen (mehreren) Front- und Rück-Kameras zu wechseln. Falls deaktiviert, rotiert die Taste zum Wechsel der Kamera durch alle Kameras hindurch.</string>
 

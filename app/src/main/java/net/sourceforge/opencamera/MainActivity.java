@@ -2327,10 +2327,100 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         return dialog;
     }
 
-    /** User can long-click on switch multi cam icon to bring up a menu to switch to any camera.
-     *  Update: from v1.53 onwards with support for exposing physical lens, we always call this with
-     *  a regular click on the switch multi cam icon.
+    /** In Panorama mode, switch_multi_camera is hidden and replaced by two dedicated buttons
+     *  (panorama_lens_1x / panorama_lens_wide, see activity_main.xml and MainUI.showGUI()) so
+     *  the user can directly pick "1x" or the wide-angle lens, rather than opening a dialog or
+     *  cycling through a toggle. This is only offered for Panorama because zoom is disabled
+     *  there (see MyApplicationInterface.allowZoom() - the stitching algorithm isn't set up to
+     *  support it), so a simple two-lens choice is all that's needed.
+     *
+     *  These fields cache the widest physical camera ID (the wide-angle lens) and a Google
+     *  Camera-style zoom factor label for it (e.g. "0.5x"), computed from the ratio of the
+     *  field of view of the widest lens vs. the main lens. The cache is keyed by camera ID so
+     *  it's only recomputed (which requires querying camera characteristics) when the user
+     *  switches between front/back cameras, not on every UI refresh.
      */
+    private int panorama_lens_cache_for_camera_id = -1;
+    private String panorama_widest_physical_id;
+    private String panorama_wide_lens_label;
+
+    private void updatePanoramaLensCache() {
+        int camera_id = getActualCameraId();
+        if( camera_id == panorama_lens_cache_for_camera_id )
+            return;
+        panorama_lens_cache_for_camera_id = camera_id;
+        panorama_widest_physical_id = null;
+        panorama_wide_lens_label = getResources().getString(R.string.panorama_lens_wide);
+        if( !preview.hasPhysicalCameras() )
+            return;
+        float widest_angle = -1.0f;
+        for(String physical_id : preview.getPhysicalCameras()) {
+            CameraControllerManager.CameraInfo info = new CameraControllerManager.CameraInfo();
+            preview.getCameraControllerManager().getDescription(info, this, physical_id, false, true);
+            if( info.view_angle != null && info.view_angle.getWidth() > widest_angle ) {
+                widest_angle = info.view_angle.getWidth();
+                panorama_widest_physical_id = physical_id;
+            }
+        }
+        if( panorama_widest_physical_id != null ) {
+            CameraControllerManager.CameraInfo main_info = new CameraControllerManager.CameraInfo();
+            preview.getCameraControllerManager().getDescription(main_info, this, String.valueOf(camera_id), false, true);
+            if( main_info.view_angle != null ) {
+                double main_half_angle = Math.toRadians(main_info.view_angle.getWidth() / 2.0);
+                double wide_half_angle = Math.toRadians(widest_angle / 2.0);
+                float zoom_factor = (float)(Math.tan(main_half_angle) / Math.tan(wide_half_angle));
+                panorama_wide_lens_label = String.format(Locale.getDefault(), "%.1fx", zoom_factor);
+            }
+        }
+    }
+
+    /** Returns the physical camera ID of the widest (e.g. ultra-wide) lens belonging to the
+     *  current logical camera, or null if this camera doesn't expose physical cameras.
+     */
+    public String getPanoramaWidestPhysicalCameraId() {
+        updatePanoramaLensCache();
+        return panorama_widest_physical_id;
+    }
+
+    /** Returns a short label for the wide lens button, e.g. "0.5x" if we could compute the
+     *  zoom factor, otherwise falls back to the localised word for "Wide".
+     */
+    public String getPanoramaWideLensLabel() {
+        updatePanoramaLensCache();
+        return panorama_wide_lens_label;
+    }
+
+    public void clickedPanoramaLens1x(View view) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "clickedPanoramaLens1x");
+        switchPanoramaLens(null);
+    }
+
+    public void clickedPanoramaLensWide(View view) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "clickedPanoramaLensWide");
+        String widest_physical_id = getPanoramaWidestPhysicalCameraId();
+        if( widest_physical_id != null )
+            switchPanoramaLens(widest_physical_id);
+    }
+
+    private void switchPanoramaLens(String target_physical_id) {
+        if( preview.isOpeningCamera() ) {
+            if( MyDebug.LOG )
+                Log.d(TAG, "already opening camera in background thread");
+            return;
+        }
+        if( !preview.canSwitchCamera() )
+            return;
+        String curr_physical_camera_id = applicationInterface.getCameraIdSPhysicalPref();
+        boolean already_selected = curr_physical_camera_id == null ? target_physical_id == null : curr_physical_camera_id.equals(target_physical_id);
+        if( already_selected )
+            return;
+        int curr_camera_id = getActualCameraId();
+        pushCameraIdToast(curr_camera_id, target_physical_id);
+        userSwitchToCamera(curr_camera_id, target_physical_id);
+    }
+
     public void clickedSwitchMultiCamera(View view) {
         if( MyDebug.LOG )
             Log.d(TAG, "clickedSwitchMultiCamera");

@@ -641,6 +641,59 @@ public class MainUI {
             view.setLayoutParams(layoutParams);
             setViewRotation(view, ui_rotation);
 
+            // panorama_lens_row (containing the "wide" and "1x" buttons) is positioned as a
+            // single centred unit above take_photo, using the same rotation-aware approach as
+            // every other button here (so it moves together with take_photo between portrait and
+            // landscape, rather than floating at a fixed screen spot disconnected from the
+            // shutter - Falk confirmed this is what he wants after comparing both):
+            // - center_vertical is the same rule take_photo itself uses to centre on the cross
+            //   axis, so the row lines up centred on take_photo in both portrait and landscape.
+            // - ui_independent_left_of maps to real ABOVE in portrait (and real LEFT_OF in
+            //   landscape) - see the comment on the "above"/"left_of" variables near the top of
+            //   this method - which is what puts it really above the shutter button in portrait,
+            //   as opposed to ui_independent_above, which maps to RIGHT_OF in portrait (that's
+            //   the relation switch_camera/switch_multi_camera use, placing them beside
+            //   take_photo rather than above it).
+            view = main_activity.findViewById(R.id.panorama_lens_row);
+            // The row itself is a horizontal pair of buttons in portrait, but a vertical stack in
+            // landscape - matching how the pair would look if it simply rotated by 90 degrees
+            // together with the rest of the (also rotation-aware) UI. The gap between the two
+            // buttons is set to match: a horizontal gap (marginEnd) in portrait, a vertical one
+            // (marginBottom) in landscape.
+            ((LinearLayout)view).setOrientation(system_orientation_portrait ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+            {
+                View panoramaLensWideButton = main_activity.findViewById(R.id.panorama_lens_wide);
+                LinearLayout.LayoutParams wideParams = (LinearLayout.LayoutParams)panoramaLensWideButton.getLayoutParams();
+                int inner_gap = (int) (14 * scale + 0.5f); // convert dps to pixels
+                if( system_orientation_portrait )
+                    wideParams.setMargins(0, 0, inner_gap, 0);
+                else
+                    wideParams.setMargins(0, 0, 0, inner_gap);
+                panoramaLensWideButton.setLayoutParams(wideParams);
+            }
+            layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
+            layoutParams.addRule(align_parent_left, 0);
+            layoutParams.addRule(align_parent_right, 0);
+            layoutParams.addRule(align_parent_top, 0);
+            layoutParams.addRule(align_parent_bottom, 0);
+            layoutParams.addRule(center_vertical, RelativeLayout.TRUE);
+            layoutParams.addRule(center_horizontal, 0);
+            layoutParams.addRule(ui_independent_left_of, R.id.take_photo);
+            layoutParams.addRule(ui_independent_right_of, 0);
+            layoutParams.addRule(ui_independent_above, 0);
+            layoutParams.addRule(ui_independent_below, 0);
+            layoutParams.addRule(align_top, 0);
+            layoutParams.addRule(align_bottom, 0);
+            layoutParams.addRule(align_left, 0);
+            layoutParams.addRule(align_right, 0);
+            {
+                // gap between the button row and the shutter button, so they don't visually merge
+                int margin = (int) (16 * scale + 0.5f); // convert dps to pixels
+                setMarginsForSystemUI(layoutParams, 0, 0, margin, 0);
+            }
+            view.setLayoutParams(layoutParams);
+            setViewRotation(view, ui_rotation);
+
             view = main_activity.findViewById(R.id.pause_video);
             layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
             layoutParams.addRule(align_parent_left, 0);
@@ -1251,8 +1304,14 @@ public class MainUI {
                 View focusBracketingTargetSeekBar = main_activity.findViewById(R.id.focus_bracketing_target_seekbar);
                 if( main_activity.getPreview().getCameraControllerManager().getNumberOfCameras() > 1 )
                     switchCameraButton.setVisibility(visibility);
-                if( main_activity.showSwitchMultiCamIcon() )
+                final boolean panorama_lens_buttons_shown = main_activity.getApplicationInterface().getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama
+                        && main_activity.getPreview().hasPhysicalCameras();
+                if( !panorama_lens_buttons_shown && main_activity.showSwitchMultiCamIcon() )
                     switchMultiCameraButton.setVisibility(visibility);
+                View panoramaLensRow = main_activity.findViewById(R.id.panorama_lens_row);
+                if( panorama_lens_buttons_shown ) {
+                    panoramaLensRow.setVisibility(visibility);
+                }
                 switchVideoButton.setVisibility(visibility);
                 if( main_activity.supportsExposureButton() )
                     exposureButton.setVisibility(visibility);
@@ -1339,8 +1398,30 @@ public class MainUI {
                 settingsButton.setVisibility(visibility_video); // still allow settings when recording video - arguably we shouldn't, but looks wierd given that the other default icons aren't hidden when recording video
                 if( main_activity.getPreview().getCameraControllerManager().getNumberOfCameras() > 1 )
                     switchCameraButton.setVisibility(visibility);
-                if( main_activity.showSwitchMultiCamIcon() )
+                // In Panorama mode, panorama_lens_1x/panorama_lens_wide (direct-tap lens choice)
+                // replace switch_multi_camera (icon that opens a dialog / cycles lenses) - see
+                // MainActivity.clickedPanoramaLens1x/clickedPanoramaLensWide for why.
+                final boolean panorama_lens_buttons_shown = main_activity.getApplicationInterface().getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama
+                        && main_activity.getPreview().hasPhysicalCameras();
+                if( panorama_lens_buttons_shown ) {
+                    switchMultiCameraButton.setVisibility(View.GONE);
+                }
+                else if( main_activity.showSwitchMultiCamIcon() ) {
                     switchMultiCameraButton.setVisibility(visibility);
+                }
+                View panoramaLensRow = main_activity.findViewById(R.id.panorama_lens_row);
+                if( panorama_lens_buttons_shown ) {
+                    Button panoramaLens1xButton = main_activity.findViewById(R.id.panorama_lens_1x);
+                    Button panoramaLensWideButton = main_activity.findViewById(R.id.panorama_lens_wide);
+                    boolean is_wide = main_activity.getApplicationInterface().getCameraIdSPhysicalPref() != null;
+                    panoramaLensWideButton.setText(main_activity.getPanoramaWideLensLabel());
+                    panoramaLens1xButton.setAlpha(is_wide ? 0.5f : 1.0f);
+                    panoramaLensWideButton.setAlpha(is_wide ? 1.0f : 0.5f);
+                    panoramaLensRow.setVisibility(visibility);
+                }
+                else {
+                    panoramaLensRow.setVisibility(View.GONE);
+                }
                 switchVideoButton.setVisibility(visibility);
                 if( main_activity.supportsExposureButton() )
                     exposureButton.setVisibility(visibility_video); // still allow exposure when recording video

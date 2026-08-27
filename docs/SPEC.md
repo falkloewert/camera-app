@@ -97,7 +97,7 @@ Projektmanager-Chat):
 | 1 | 360°-Foto-Stitching + interaktive Ansicht | Idee / Konzept | Hoch |
 | 2 | Filmchen-Modus (Snapchat-Style Clip-Tagebuch) | Idee / Konzept | Mittel-Hoch |
 | 3 | Dual-Kamera (Selfie-Bubble, unabhängiger Zoom) | Idee / Konzept | Hoch (geräteabhängig) |
-| 4 | Panorama mit Weitwinkel-Option | **Als Nächstes** | Niedrig-Mittel |
+| 4 | Panorama mit Weitwinkel-Option | **Fertig** | Niedrig-Mittel |
 | 5 | Kamera während Videoaufnahme umdrehen | Idee / Notiz (nice-to-have) | Niedrig |
 | 6 | Modernes Kamera-UI (Zoom-Stufen-Buttons + Moduswahl-Leiste) | Idee / Konzept (Vorschlag von Falk, 2026-08-27, aus Panorama-Feature-Chat) | Mittel (app-weit, viele Dateien betroffen) |
 
@@ -234,18 +234,40 @@ gleich zu Beginn des Feature-Chats.
 
 ---
 
-### 4.4 Panorama mit Weitwinkel-Option
+### 4.4 Panorama mit Weitwinkel-Option — Status: Fertig (2026-08-27)
 
 **Ziel:** Bei der normalen Pixel-Kamera ist im Panorama-Modus nur 1x-Zoom (Standardlinse)
 wählbar, nicht die Weitwinkellinse. Das soll in der eigenen App möglich sein.
 
-**Anforderungen:**
-- Weitwinkel-Kamera als Option im (normalen, nicht 360°-) Panorama-Modus auswählbar machen
+**Umgesetzt:**
+- Im Panorama-Modus ersetzt ein Button-Paar ("1x" / berechneter Weitwinkel-Faktor, z. B.
+  "0,5x") das normale Kamera-Wechsel-Icon (`switch_multi_camera`). Direktes Antippen
+  wählt die Linse direkt, kein Umschalt-Zyklus/Dialog wie sonst in der App.
+- Der Weitwinkel-Faktor wird nicht geraten, sondern aus dem tatsächlichen
+  Sichtwinkel-Verhältnis der beiden physischen Linsen berechnet (`MainActivity.
+  updatePanoramaLensCache()`), pro Gerät automatisch korrekt (auf dem Pixel 9 Pro: ~0,5x).
+- Stufenloser Zoom bleibt im Panorama-Modus wie zuvor deaktiviert (bestehendes Verhalten,
+  `MyApplicationInterface.allowZoom()` – der Stitching-Algorithmus unterstützt das nicht).
+- Button-Paar folgt in Position/Ausrichtung dem Auslöser-Button (wie der Rest der App
+  zwischen Hoch-/Querformat neu anordnet): im Hochformat nebeneinander über dem Auslöser
+  zentriert, im Querformat übereinander links daneben – jeweils mit sichtbarem Abstand.
+  Bewusste Entscheidung nach Vergleich mit einer Variante, bei der die Buttons unabhängig
+  von der Ausrichtung an einer fixen Bildschirmstelle bleiben (im Querformat dann aber
+  losgelöst vom Auslöser mitten im Bild) – Falk hat sich für die auslöser-relative
+  Variante entschieden.
 
-**Offene Fragen:** Noch keine vertieft besprochen – vergleichsweise kleines,
-klar umrissenes Feature.
+**Entscheidungen:**
+- App-Name testweise auf "Falks Kamera" geändert (statt "Open Camera"), damit die eigene
+  App beim Testen eindeutig von einer eventuell zusätzlich installierten offiziellen
+  Open-Camera-App unterscheidbar ist. Siehe offene Frage unten.
 
-**Komplexität/Risiko:** Niedrig-Mittel.
+**Offene Fragen für später:**
+- Soll der App-Name dauerhaft "Falks Kamera" bleiben oder wieder zurück/auf einen anderen
+  Namen geändert werden? Aktuell nur als Übergangslösung zur Testzeit gedacht.
+- Zwei App-weite UI-Wünsche, die während dieses Feature-Chats aufkamen, aber bewusst
+  nicht hier umgesetzt wurden, sind bereits als Feature 6 aufgenommen (siehe 4.5).
+
+**Komplexität/Risiko:** Niedrig-Mittel – wie eingeschätzt.
 
 ---
 
@@ -311,8 +333,8 @@ Abschlussprotokoll durchlaufen hat.
   `app/build.gradle`, `package net.sourceforge.opencamera;` in allen Java-Dateien) wurde
   bewusst NICHT mit umbenannt – rein kosmetisch, hätte Merge-Konflikte mit `upstream`
   erhöht, kein funktionaler Nutzen. Bei Bedarf später nachholbar.
-- **App-Name/Icon:** zeigen aktuell noch "Open Camera" (aus `AndroidManifest.xml`
-  `android:label` bzw. Mipmap-Icons) – noch nicht angepasst, rein kosmetisch, folgt bei
+- **App-Name/Icon:** App-Name zeigt seit 2026-08-27 testweise "Falks Kamera" (zuvor
+  "Open Camera", siehe 4.4) – Icon (Mipmap) noch unverändert, rein kosmetisch, folgt bei
   Bedarf später.
 - **Lokale Entwicklungsumgebung:** Zorin OS 18.1 (Ubuntu-basiert), Android Studio
   installiert (Snap, `--classic`), Build+Run auf echtem Pixel 9 Pro per USB-Debugging
@@ -357,3 +379,9 @@ Abschlussprotokoll durchlaufen hat.
   aufgenommen (siehe 4.5, 3.1), nicht im Panorama-Chat umgesetzt. Dabei aufgefallen und
   hier korrigiert: zwei frühere Änderungsprotokoll-Einträge waren durch einen falschen
   Bearbeitungs-Ankerpunkt versehentlich in Abschnitt 4.1 statt hier gelandet.
+- **2026-08-27:** Feature 4 (Panorama mit Weitwinkel-Option) fertiggestellt und von Falk
+  bestätigt. Umsetzung: direktes Linsen-Wahl-Button-Paar ("1x" / berechneter
+  Weitwinkel-Faktor) im Panorama-Modus statt Dialog/Umschalt-Button, siehe Details und
+  offene Fragen in 4.4. App-Name testweise auf "Falks Kamera" geändert.
+  Diagnose-Logging (`MyDebug.LOG`), das während der Fehlersuche temporär aktiviert war,
+  wieder deaktiviert. Panorama-Feature-Chat damit abgeschlossen.

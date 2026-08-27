@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Open Camera</string> <!-- shouldn't be translated, unless deemed appropriate e.g. alternative alphabets -->
+    <string name="app_name">Falks Kamera</string> <!-- shouldn't be translated, unless deemed appropriate e.g. alternative alphabets -->
     <string name="action_settings">Settings</string>
     <string name="action_popup">Popup settings</string>
     <string name="intro_ok">OK (This message won\'t show again)</string>
@@ -1025,6 +1025,8 @@
     <string name="telephoto">Telephoto</string>
     <string name="auto_lens">Auto Lens</string>
     <string name="lens">Lens</string>
+    <string name="panorama_lens_main">1x</string>
+    <string name="panorama_lens_wide">Wide</string>
     <string name="physical_cameras_info">&#9432; By default, a camera uses Auto Lens selection, which means the zoom level controls which lens is used. However this menu also allows you to explicitly choose which lens is being used.</string>
 
     <string name="focus_bracketing_auto_source_distance">Auto source</string>

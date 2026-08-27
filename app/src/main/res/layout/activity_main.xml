@@ -59,6 +59,55 @@
         android:visibility="gone"
         />
 
+    <!-- In Panorama mode, this row replaces switch_multi_camera: instead of one icon that
+         toggles/opens a dialog, the user directly taps "1x" or the wide-angle lens - since
+         Panorama only ever needs those two lenses (zoom is disabled in Panorama, see
+         MyApplicationInterface.allowZoom()). The two buttons are grouped in one LinearLayout so
+         they can be positioned as a single centred unit (see MainUI.java) - centering two
+         independent RelativeLayout siblings on a third view isn't straightforward, but a wrapping
+         LinearLayout sidesteps that. -->
+    <LinearLayout
+        android:id="@+id/panorama_lens_row"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/panorama_lens_wide"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:textColor="@android:color/white"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:contentDescription="@string/panorama_lens_wide"
+            android:text="@string/panorama_lens_wide"
+            android:onClick="clickedPanoramaLensWide"
+            android:stateListAnimator="@animator/button_animation"
+            android:background="@drawable/circle_background"
+            android:backgroundTint="@color/icons_background_tint"
+            android:backgroundTintMode="src_in"
+            />
+
+        <Button
+            android:id="@+id/panorama_lens_1x"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:textColor="@android:color/white"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:contentDescription="@string/panorama_lens_main"
+            android:text="@string/panorama_lens_main"
+            android:onClick="clickedPanoramaLens1x"
+            android:stateListAnimator="@animator/button_animation"
+            android:background="@drawable/circle_background"
+            android:backgroundTint="@color/icons_background_tint"
+            android:backgroundTintMode="src_in"
+            />
+    </LinearLayout>
+
     <ImageButton
         android:id="@+id/pause_video"
         android:layout_width="70dp"
