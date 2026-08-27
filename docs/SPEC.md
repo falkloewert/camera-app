@@ -59,8 +59,23 @@ jedem Schritt erklärt bekommen, was passiert und warum.
 | 1 | 360°-Foto-Stitching + interaktive Ansicht | Idee / Konzept | Hoch |
 | 2 | Filmchen-Modus (Snapchat-Style Clip-Tagebuch) | Idee / Konzept | Mittel-Hoch |
 | 3 | Dual-Kamera (Selfie-Bubble, unabhängiger Zoom) | Idee / Konzept | Hoch (geräteabhängig) |
-| 4 | Panorama mit Weitwinkel-Option | Idee / Konzept | Niedrig-Mittel |
+| 4 | Panorama mit Weitwinkel-Option | **Als Nächstes** | Niedrig-Mittel |
 | 5 | Kamera während Videoaufnahme umdrehen | Idee / Notiz (nice-to-have) | Niedrig |
+
+### 3.1 Vereinbarte Reihenfolge (festgelegt am 2026-08-27)
+
+Kompromiss aus "Einfaches zuerst" (zum Kennenlernen von Workflow/Codebasis als
+Programmier-Einsteiger) und "Riskantes früh klären" (Dual-Kamera hängt von
+Tensor-Chip-Unterstützung ab, siehe Abschnitt 5):
+
+1. **Feature 4** – Panorama mit Weitwinkel-Option
+2. **Feature 5** – Kamera während Videoaufnahme umdrehen
+3. **Machbarkeits-Spike Dual-Kamera** – kein volles Feature, nur klären: unterstützt
+   der Pixel 9 Pro zuverlässig gleichzeitigen Zugriff auf Front- und Rückkamera
+   ("Concurrent Camera")?
+4. **Feature 2** – Filmchen-Modus
+5. **Feature 3** – Dual-Kamera (voller Ausbau, nach positivem Spike-Ergebnis)
+6. **Feature 1** – 360°-Foto-Stitching (inkl. Immich-Kompatibilität, siehe 4.1)
 
 ---
 
@@ -98,6 +113,10 @@ das bei Pixel 9 nicht mehr existiert.
   ggf. installierten offiziellen Open-Camera-App zu vermeiden – zweiter Testlauf danach
   ohne Deinstallations-Dialog erfolgreich. Damit ist die technische Basis vollständig
   funktionsfähig; nächster Schritt: Feature-Reihenfolge mit Falk festlegen.
+- **2026-08-27:** Feature-Reihenfolge gemeinsam festgelegt (siehe Abschnitt 3.1):
+  Panorama-Weitwinkel → Kamera-Flip bei Video → Dual-Kamera-Machbarkeits-Spike →
+  Filmchen-Modus → Dual-Kamera voll → 360°-Stitching. Kickoff-Kontext für den ersten
+  Feature-Chat (Panorama mit Weitwinkel-Option) erstellt.
 - Viewer: eigene Implementierung oder bestehende Bibliothek nutzen?
 
 **Komplexität/Risiko:** Hoch – eigenständiges technisches Teilprojekt, ressourcenintensiv.
