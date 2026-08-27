@@ -50,6 +50,29 @@ jedem Schritt erklärt bekommen, was passiert und warum.
   Projektmanager-Instanz (Claude, ob hier oder in Claude Code) strukturiert,
   stellt Rückfragen und leitet zur Umsetzung an. Commits/Pushes übernimmt Claude.
 
+### 2.1 Rolle & Abschlussprotokoll für Feature-Chats
+
+Gilt für jeden neuen, feature-spezifischen Claude-Code-Chat (nicht für diesen
+Projektmanager-Chat):
+
+- **Rolle:** Der Feature-Chat ist NICHT der Projektmanager. Er implementiert genau
+  das ihm zugewiesene Feature, trifft keine Entscheidungen über andere Features,
+  die Gesamt-Reihenfolge oder die Projektausrichtung – das bleibt dem
+  Projektmanager-Chat vorbehalten.
+- **Vorgehen:** Vor Codeänderungen den relevanten Code identifizieren und Falk
+  erklären, wie es aktuell funktioniert und was geändert werden soll. Änderungen in
+  überschaubaren, erklärten Schritten umsetzen. Nach Änderungen von Falk auf dem
+  echten Pixel 9 Pro testen lassen, bevor committet wird.
+- **Abschlussprotokoll**, sobald das Feature fertig und von Falk bestätigt ist:
+  1. `docs/SPEC.md` aktualisieren: Status des Features setzen, Änderungsprotokoll-
+     Eintrag mit Datum ergänzen (was gebaut wurde, Entscheidungen, neue offene
+     Fragen für später).
+  2. Finalen Commit + Push.
+  3. Falk eine kurze Zusammenfassung geben, die er in den Projektmanager-Chat
+     mitnehmen kann.
+  4. NICHT eigenständig das nächste Feature beginnen – Reihenfolge-Entscheidungen
+     laufen über den Projektmanager-Chat.
+
 ---
 
 ## 3. Feature-Übersicht (Status)
