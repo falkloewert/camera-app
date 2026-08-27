@@ -5,12 +5,12 @@ android {
     compileOptions.encoding = 'UTF-8'
 
     defaultConfig {
-        applicationId "net.sourceforge.opencamera"
+        applicationId "de.falkloewert.cameraapp"
         minSdkVersion 23
         targetSdkVersion 36
         //compileSdkVersion 31 // needed to support appcompat:1.4.0 (which we need for emoji policy support, and not yet ready to target SDK 30)
 
-        testApplicationId "net.sourceforge.opencamera.test"
+        testApplicationId "de.falkloewert.cameraapp.test"
         //testInstrumentationRunner "android.test.InstrumentationTestRunner"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

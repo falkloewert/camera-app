@@ -90,6 +90,14 @@ das bei Pixel 9 nicht mehr existiert.
   Immichs 360°-Anzeige getestet werden, da dort aktuell ein bekanntes Anzeigeproblem
   besteht (Ursache noch nicht untersucht: fehlende/falsche XMP-Metadaten vs. Immich-Bug –
   das gehört in die Recherche für den 360°-Feature-Chat, nicht in dieses Setup-Gespräch).
+- **2026-08-27:** Entwicklungsumgebung fertig eingerichtet und erster Build erfolgreich
+  auf dem echten Pixel 9 Pro getestet: Android Studio installiert (Snap, `--classic`),
+  Projekt in Android Studio geöffnet, Gradle-JDK-Konflikt behoben (Auto-Fix), USB-Debugging
+  auf dem Handy aktiviert, unveränderte Open-Camera-Basis erfolgreich gebaut und gestartet.
+  `applicationId` auf `de.falkloewert.cameraapp` geändert, um Signatur-Konflikte mit einer
+  ggf. installierten offiziellen Open-Camera-App zu vermeiden – zweiter Testlauf danach
+  ohne Deinstallations-Dialog erfolgreich. Damit ist die technische Basis vollständig
+  funktionsfähig; nächster Schritt: Feature-Reihenfolge mit Falk festlegen.
 - Viewer: eigene Implementierung oder bestehende Bibliothek nutzen?
 
 **Komplexität/Risiko:** Hoch – eigenständiges technisches Teilprojekt, ressourcenintensiv.
@@ -202,6 +210,15 @@ klar umrissenes Feature.
 - Empfehlung: Projekt in Phasen angehen, nicht alle Features parallel gleich tief planen.
   Sinnvolle Reihenfolge grob nach Risiko/Abhängigkeit sortieren (wird mit Nutzer noch
   final festgelegt).
+- **Paketname (`applicationId`):** `de.falkloewert.cameraapp` (bewusst geändert von
+  `net.sourceforge.opencamera`, um Konflikte mit einer eventuell installierten offiziellen
+  Open-Camera-App zu vermeiden). Der interne Java-Package-Name (`namespace` in
+  `app/build.gradle`, `package net.sourceforge.opencamera;` in allen Java-Dateien) wurde
+  bewusst NICHT mit umbenannt – rein kosmetisch, hätte Merge-Konflikte mit `upstream`
+  erhöht, kein funktionaler Nutzen. Bei Bedarf später nachholbar.
+- **App-Name/Icon:** zeigen aktuell noch "Open Camera" (aus `AndroidManifest.xml`
+  `android:label` bzw. Mipmap-Icons) – noch nicht angepasst, rein kosmetisch, folgt bei
+  Bedarf später.
 - Lokale Entwicklungsumgebung (Stand 2026-08-27): Zorin OS 18.1 (Ubuntu-basiert), noch
   kein Java/Android Studio installiert – wird als nächster Schritt eingerichtet.
 
