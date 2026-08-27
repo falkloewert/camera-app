@@ -74,11 +74,22 @@ das bei Pixel 9 nicht mehr existiert.
 **Anforderungen:**
 - Echtes Stitching mehrerer Aufnahmen zu einer 360°-Kugel (kein simples Weitwinkel-Panorama)
 - Interaktive Betrachtung in der App (wischen/drehen wie bei Google Street View / altem Photo Sphere)
+- **Immich-Kompatibilität:** Falk nutzt Immich (self-hosted auf FalksNAS, siehe
+  loewert-lab) als Google-Photos-Ersatz für seine gesamte Foto-/Videobibliothek. Normale
+  Fotos/Videos aus der App landen automatisch dort (Standardformate JPEG/MP4, kein
+  Sonderfall). Für 360°-Bilder speziell hat Falk aktuell ein Problem: Immich zeigt
+  360°-Bilder bei ihm nicht korrekt als interaktive Kugel an. Das gespeicherte
+  360°-Format muss deshalb so gewählt werden, dass Immich es erkennt und richtig
+  rendert – nicht nur der eigene In-App-Viewer.
 
 **Offene Fragen (für Feature-Chat zu klären):**
 - Aufnahme-Führung: Wie wird der Nutzer beim Abfotografieren der Kugel geführt (Gitter/Overlay)?
 - Welche Stitching-Bibliothek/-Methode kommt zum Einsatz (on-device, ressourcenschonend)?
-- Speicherformat für 360°-Bilder (z. B. equirectangular JPEG mit XMP-Metadaten)?
+- Speicherformat für 360°-Bilder (z. B. equirectangular JPEG mit XMP-GPano-Metadaten,
+  dem von Google Photo Sphere etablierten Standard) – muss zusätzlich konkret gegen
+  Immichs 360°-Anzeige getestet werden, da dort aktuell ein bekanntes Anzeigeproblem
+  besteht (Ursache noch nicht untersucht: fehlende/falsche XMP-Metadaten vs. Immich-Bug –
+  das gehört in die Recherche für den 360°-Feature-Chat, nicht in dieses Setup-Gespräch).
 - Viewer: eigene Implementierung oder bestehende Bibliothek nutzen?
 
 **Komplexität/Risiko:** Hoch – eigenständiges technisches Teilprojekt, ressourcenintensiv.
@@ -206,3 +217,8 @@ klar umrissenes Feature.
   Codeberg (`origin`) gepusht. `docs/SPEC.md` und `README.md` ergänzt. Entscheidung: Falk
   delegiert Commits/Pushes für dieses Projekt vollständig an Claude. Nächster Schritt:
   Android Studio installieren, um die unveränderte Basis erstmals zu bauen.
+- **2026-08-27:** Anforderung zu 4.1 ergänzt: 360°-Bilder müssen auch in Immich
+  (Falks self-hosted Foto-Bibliothek) korrekt als interaktive Kugel angezeigt werden,
+  nicht nur im eigenen In-App-Viewer. Bekanntes, noch ungeklärtes Problem: Immich zeigt
+  360°-Bilder bei Falk aktuell nicht richtig an – Ursache wird im 360°-Feature-Chat
+  untersucht, nicht jetzt.
