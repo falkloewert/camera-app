@@ -68,6 +68,16 @@ Projektmanager-Chat):
   erklären, wie es aktuell funktioniert und was geändert werden soll. Änderungen in
   überschaubaren, erklärten Schritten umsetzen. Nach Änderungen von Falk auf dem
   echten Pixel 9 Pro testen lassen, bevor committet wird.
+- **Nur eine Sitzung gleichzeitig aktiv im Repo:** Falk hatte bei einem anderen Projekt
+  (loewert-lab-TODO) bereits einen echten Konfliktfall mit zwei parallel laufenden
+  Claude-Code-Sitzungen im selben Arbeitsverzeichnis – eine Sitzung hat unbemerkt eine
+  fehlerhafte Datei angelegt, ohne dass die andere davon wusste. Deshalb: Vor
+  Codeänderungen immer `git status` und `git fetch` prüfen, ob eine andere Sitzung schon
+  unfertige Änderungen im Arbeitsverzeichnis hat. Falls ja: diese Dateien nicht anfassen
+  oder committen, nur um die eigenen Dateien herum arbeiten. App-weite Themen (nicht nur
+  das eigene Feature betreffend), die während der Arbeit auffallen, werden nicht selbst
+  entschieden, sondern als Vorschlag unter `docs/kickoff/` abgelegt und dem
+  Projektmanager-Chat überlassen (siehe Abschnitt 4.5 als Beispiel).
 - **Abschlussprotokoll**, sobald das Feature fertig und von Falk bestätigt ist:
   1. `docs/SPEC.md` aktualisieren: Status des Features setzen, Änderungsprotokoll-
      Eintrag mit Datum ergänzen (was gebaut wurde, Entscheidungen, neue offene
@@ -89,8 +99,9 @@ Projektmanager-Chat):
 | 3 | Dual-Kamera (Selfie-Bubble, unabhängiger Zoom) | Idee / Konzept | Hoch (geräteabhängig) |
 | 4 | Panorama mit Weitwinkel-Option | **Als Nächstes** | Niedrig-Mittel |
 | 5 | Kamera während Videoaufnahme umdrehen | Idee / Notiz (nice-to-have) | Niedrig |
+| 6 | Modernes Kamera-UI (Zoom-Stufen-Buttons + Moduswahl-Leiste) | Idee / Konzept (Vorschlag von Falk, 2026-08-27, aus Panorama-Feature-Chat) | Mittel (app-weit, viele Dateien betroffen) |
 
-### 3.1 Vereinbarte Reihenfolge (festgelegt am 2026-08-27)
+### 3.1 Vereinbarte Reihenfolge (festgelegt am 2026-08-27, Feature 6 vorläufig eingeordnet)
 
 Kompromiss aus "Einfaches zuerst" (zum Kennenlernen von Workflow/Codebasis als
 Programmier-Einsteiger) und "Riskantes früh klären" (Dual-Kamera hängt von
@@ -98,12 +109,14 @@ Tensor-Chip-Unterstützung ab, siehe Abschnitt 5):
 
 1. **Feature 4** – Panorama mit Weitwinkel-Option
 2. **Feature 5** – Kamera während Videoaufnahme umdrehen
-3. **Machbarkeits-Spike Dual-Kamera** – kein volles Feature, nur klären: unterstützt
+3. **Feature 6** – Modernes Kamera-UI (Zoom-Stufen-Buttons + Moduswahl-Leiste) –
+   *Platzierung noch mit Falk zu bestätigen, siehe Begründung in Abschnitt 4.5.*
+4. **Machbarkeits-Spike Dual-Kamera** – kein volles Feature, nur klären: unterstützt
    der Pixel 9 Pro zuverlässig gleichzeitigen Zugriff auf Front- und Rückkamera
    ("Concurrent Camera")?
-4. **Feature 2** – Filmchen-Modus
-5. **Feature 3** – Dual-Kamera (voller Ausbau, nach positivem Spike-Ergebnis)
-6. **Feature 1** – 360°-Foto-Stitching (inkl. Immich-Kompatibilität, siehe 4.1)
+5. **Feature 2** – Filmchen-Modus
+6. **Feature 3** – Dual-Kamera (voller Ausbau, nach positivem Spike-Ergebnis)
+7. **Feature 1** – 360°-Foto-Stitching (inkl. Immich-Kompatibilität, siehe 4.1)
 
 ---
 
@@ -133,18 +146,6 @@ das bei Pixel 9 nicht mehr existiert.
   Immichs 360°-Anzeige getestet werden, da dort aktuell ein bekanntes Anzeigeproblem
   besteht (Ursache noch nicht untersucht: fehlende/falsche XMP-Metadaten vs. Immich-Bug –
   das gehört in die Recherche für den 360°-Feature-Chat, nicht in dieses Setup-Gespräch).
-- **2026-08-27:** Entwicklungsumgebung fertig eingerichtet und erster Build erfolgreich
-  auf dem echten Pixel 9 Pro getestet: Android Studio installiert (Snap, `--classic`),
-  Projekt in Android Studio geöffnet, Gradle-JDK-Konflikt behoben (Auto-Fix), USB-Debugging
-  auf dem Handy aktiviert, unveränderte Open-Camera-Basis erfolgreich gebaut und gestartet.
-  `applicationId` auf `de.falkloewert.cameraapp` geändert, um Signatur-Konflikte mit einer
-  ggf. installierten offiziellen Open-Camera-App zu vermeiden – zweiter Testlauf danach
-  ohne Deinstallations-Dialog erfolgreich. Damit ist die technische Basis vollständig
-  funktionsfähig; nächster Schritt: Feature-Reihenfolge mit Falk festlegen.
-- **2026-08-27:** Feature-Reihenfolge gemeinsam festgelegt (siehe Abschnitt 3.1):
-  Panorama-Weitwinkel → Kamera-Flip bei Video → Dual-Kamera-Machbarkeits-Spike →
-  Filmchen-Modus → Dual-Kamera voll → 360°-Stitching. Kickoff-Kontext für den ersten
-  Feature-Chat (Panorama mit Weitwinkel-Option) erstellt.
 - Viewer: eigene Implementierung oder bestehende Bibliothek nutzen?
 
 **Komplexität/Risiko:** Hoch – eigenständiges technisches Teilprojekt, ressourcenintensiv.
@@ -248,6 +249,53 @@ klar umrissenes Feature.
 
 ---
 
+### 4.5 Modernes Kamera-UI (Zoom-Stufen-Buttons + Moduswahl-Leiste)
+
+**Entstehung:** Vorschlag von Falk, geäußert während des Panorama-Feature-Chats am
+2026-08-27 – zwei App-weite UI-Wünsche, die über Panorama hinausgehen. Der
+Panorama-Chat hat dazu bewusst keine Entscheidung getroffen (siehe Abschnitt 2.1) und
+stattdessen den Entwurf unter `docs/kickoff/entwurf-modernes-kamera-ui.md` abgelegt;
+für Panorama selbst wurde eine kleine, lokale Lösung gebaut (siehe Feature 4).
+
+**Ziel/Anforderungen:**
+1. **Zoom-Stufen-Buttons** wie bei modernen Kamera-Apps (z. B. Google-Kamera): feste,
+   antippbare Zoomstufen (z. B. "0.5x", "1x", "2x", je nach verfügbaren Linsen/Zoomstufen
+   des Geräts) statt nur eines stufenlosen Reglers, die direkt auf die passende Linse
+   bzw. den passenden Zoom-Faktor umschalten.
+2. **Modus-Auswahl** (Foto, Video, Panorama, künftige Modi) als horizontale
+   Scroll-Leiste am unteren Bildschirmrand statt über das bestehende Drei-Punkte-Menü,
+   das Falk als unschön empfindet.
+
+**Offene Frage (noch nicht von Falk entschieden, für den Feature-Chat):** Bleibt das
+Drei-Punkte-Menü für andere Einstellungen bestehen und nur die Modi wandern in die neue
+Leiste? Oder wird die Modus-Auswahl komplett daraus entfernt? Falk hält beides für
+denkbar und überlässt die Detailentscheidung dem Feature-Chat.
+
+**Warum als eigenes Feature statt Anhängsel an Panorama:** Betrifft die gesamte
+App-UI (alle Kameramodi), nicht nur einen. Laut Projektregel (Abschnitt 2.1) nicht
+Aufgabe eines einzelnen Feature-Chats, app-weite Entscheidungen zu treffen.
+
+**Einordnung in die Reihenfolge (Vorschlag des Projektmanager-Chats, siehe 3.1):**
+direkt nach Feature 5, vor dem Dual-Kamera-Spike. Begründung: Die Zoom-Stufen-Buttons
+sind konzeptionell eng mit Feature 3 (Dual-Kamera) verwandt – deren zentrale
+Anforderung ist ja "unabhängiger Zoom je Kamera". Wird die Zoom-Stufen-UI hier zuerst
+sauber gebaut, lässt sie sich für Dual-Kamera vermutlich wiederverwenden/anpassen,
+statt sie zweimal zu entwerfen. Ebenso würde Feature 2 (Filmchen-Modus) von einer
+bereits vorhandenen Moduswahl-Leiste profitieren, statt erst ins alte Drei-Punkte-Menü
+eingebaut und später migriert zu werden. **Noch mit Falk zu bestätigen.**
+
+**Komplexität/Risiko:** Mittel – kein Hardware-Risiko wie Dual-Kamera/360°, aber
+betrifft laut Entwurf viele Dateien app-weit (`MainUI.java`, `activity_main.xml`,
+Layout- und Klick-Logik für praktisch jeden Modus).
+
+**Start dieses Feature-Chats:** bewusst noch nicht – der Panorama-Feature-Chat läuft
+aktuell noch (offene, unfertige Änderung in `MainActivity.java`). Zwei Sitzungen
+gleichzeitig im selben Arbeitsverzeichnis sind ein bekanntes Risiko (siehe Abschnitt
+2.1) – dieser Feature-Chat wird erst gestartet, nachdem Panorama sein
+Abschlussprotokoll durchlaufen hat.
+
+---
+
 ## 5. Generelle technische Hinweise / Risiken (projektübergreifend)
 
 - **Basis:** Open Camera (Java, aktiv gepflegt) als Fork – guter Startpunkt, da bereits
@@ -266,8 +314,9 @@ klar umrissenes Feature.
 - **App-Name/Icon:** zeigen aktuell noch "Open Camera" (aus `AndroidManifest.xml`
   `android:label` bzw. Mipmap-Icons) – noch nicht angepasst, rein kosmetisch, folgt bei
   Bedarf später.
-- Lokale Entwicklungsumgebung (Stand 2026-08-27): Zorin OS 18.1 (Ubuntu-basiert), noch
-  kein Java/Android Studio installiert – wird als nächster Schritt eingerichtet.
+- **Lokale Entwicklungsumgebung:** Zorin OS 18.1 (Ubuntu-basiert), Android Studio
+  installiert (Snap, `--classic`), Build+Run auf echtem Pixel 9 Pro per USB-Debugging
+  bestätigt funktionsfähig (siehe Änderungsprotokoll).
 
 ---
 
@@ -286,3 +335,25 @@ klar umrissenes Feature.
   nicht nur im eigenen In-App-Viewer. Bekanntes, noch ungeklärtes Problem: Immich zeigt
   360°-Bilder bei Falk aktuell nicht richtig an – Ursache wird im 360°-Feature-Chat
   untersucht, nicht jetzt.
+- **2026-08-27:** Entwicklungsumgebung fertig eingerichtet und erster Build erfolgreich
+  auf dem echten Pixel 9 Pro getestet: Android Studio installiert (Snap, `--classic`),
+  Projekt in Android Studio geöffnet, Gradle-JDK-Konflikt behoben (Auto-Fix), USB-Debugging
+  auf dem Handy aktiviert, unveränderte Open-Camera-Basis erfolgreich gebaut und gestartet.
+  `applicationId` auf `de.falkloewert.cameraapp` geändert, um Signatur-Konflikte mit einer
+  ggf. installierten offiziellen Open-Camera-App zu vermeiden – zweiter Testlauf danach
+  ohne Deinstallations-Dialog erfolgreich. Damit ist die technische Basis vollständig
+  funktionsfähig.
+- **2026-08-27:** Feature-Reihenfolge gemeinsam festgelegt (siehe Abschnitt 3.1):
+  Panorama-Weitwinkel → Kamera-Flip bei Video → Dual-Kamera-Machbarkeits-Spike →
+  Filmchen-Modus → Dual-Kamera voll → 360°-Stitching. Kickoff-Kontext für den ersten
+  Feature-Chat (Panorama mit Weitwinkel-Option) erstellt (`docs/kickoff/panorama-weitwinkel.md`).
+- **2026-08-27:** Rolle & Abschlussprotokoll für Feature-Chats dokumentiert (Abschnitt
+  2.1): Feature-Chats sind keine Projektmanager, benennen ihre Session selbst um
+  (`camera-app – Feature: <Name>`) und folgen beim Abschluss einem festen Protokoll
+  (SPEC aktualisieren, committen/pushen, Zusammenfassung an Falk).
+- **2026-08-27:** Panorama-Feature-Chat gestartet (parallel zu diesem
+  Projektmanager-Chat). Während der Arbeit kam Falks Wunsch nach einem app-weiten
+  UI-Redesign auf (Zoom-Stufen-Buttons, Moduswahl-Leiste) – als eigenständiges Feature 6
+  aufgenommen (siehe 4.5, 3.1), nicht im Panorama-Chat umgesetzt. Dabei aufgefallen und
+  hier korrigiert: zwei frühere Änderungsprotokoll-Einträge waren durch einen falschen
+  Bearbeitungs-Ankerpunkt versehentlich in Abschnitt 4.1 statt hier gelandet.
