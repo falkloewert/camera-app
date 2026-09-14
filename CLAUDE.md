@@ -23,6 +23,23 @@ ausführen, ohne vorher zu fragen oder die Befehle ihm zum Ausführen zu geben.
 Gilt **nur für dieses Repo**, nicht generell für andere Projekte von Falk — dort
 gilt weiterhin die normale Zurückhaltung bei Commits/Pushes.
 
+## Feature-Chats bleiben manuell (Entscheidung 2026-09-14)
+
+Der Projektmanager-Chat plant/dokumentiert Features und bereitet Kickoff-Prompts vor,
+startet aber **keine** `coder`-Subagenten für die Feature-Implementierung selbst. Falk
+öffnet weiterhin manuell einen neuen Chat pro Feature. Grund: Falks Ziel (Lernen +
+Live-Kontrolle über den Gerätetest auf dem Pixel 9 Pro) braucht synchrone, dialogische
+Zusammenarbeit, die ein im Hintergrund arbeitender Subagent nicht liefern kann. Per
+LLM-Council geprüft und bestätigt (4 von 5 Beratern dagegen, 5 von 5 Peer-Reviews
+markierten die Pro-Stimme als größten blinden Fleck) — Transkript:
+`docs/council/2026-09-14-subagent-workflow.md`.
+
+Subagenten sind für testfreie Nebenarbeiten weiterhin sinnvoll (Recherche, Doku,
+SPEC-Konsistenzchecks) — nur nicht für die Kern-Feature-Implementierung mit Live-Test.
+
+Projektmanager-Chat läuft mit Sonnet (Planung/Doku, kein schweres Code-Reasoning);
+Opus eher situativ für einzelne komplexe Feature-Chats.
+
 ## Status
 
 Siehe `docs/SPEC.md` Abschnitte 3/3.1 (Feature-Übersicht, Reihenfolge) und 6
