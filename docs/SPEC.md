@@ -403,3 +403,16 @@ Parallel-Sitzungs-Risiko (Abschnitt 2.1) besteht für dieses Feature aktuell nic
   Graphify- (Wissensgraph) und Archify- (Architektur-Diagramm) Setup erstellt
   (`docs/kickoff/graphify-archify-setup.md`), inkl. dauerhafter Pflegeregel in
   CLAUDE.md (`graphify update .` als Teil des Feature-Chat-Abschlussprotokolls).
+- **2026-09-14:** Graphify/Archify-Setup abgeschlossen. Wissensgraph in
+  `graphify-out/` gebaut: 4101 Knoten/15505 Kanten aus 110 Java-Dateien (kostenlos
+  per AST) + 8 Projekt-Docs (ein Claude-Subagent-Durchlauf, ~100k/14k Tokens). Dabei
+  aufgefallen: das Repo enthält 361 App-Icons in `res/drawable-*`/`mipmap-*`
+  (5-fach dupliziert je Bildschirmdichte) plus Lizenz-Boilerplate, die für den
+  Graphen wertlos sind und bei jedem `update .` erneut teure Vision-Extraktion
+  ausgelöst hätten — dauerhaft per `.graphifyignore` (Repo-Root) ausgeschlossen.
+  Erstes Archify-Architekturdiagramm veröffentlicht (Link in
+  `docs/architecture-diagrams.md`): zeigt die bestehende Foto/Video/Panorama-Kette
+  (MainActivity → MainUI/Preview/MyApplicationInterface → CameraController1/2,
+  ApplicationInterface, ImageSaver, PanoramaProcessor) und markiert klar, wo die
+  geplanten Modi (Filmchen, Dual-Kamera, 360°-Stitching) andocken sollen — auf
+  Basis echter Repository-Evidenz (Commit `4bfc10cb`), von Archify verifiziert.

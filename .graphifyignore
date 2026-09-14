@@ -1,0 +1,21 @@
+# graphify: dauerhafter Ausschluss für den Wissensgraphen (graphify-out/)
+# Grund: App-Icons in mehreren Dichte-Varianten und Lizenz-Boilerplate sind keine
+# sinnvollen Graph-Knoten und würden bei "graphify update ." wieder Hunderte teure
+# Vision-Extraktions-Calls auslösen (siehe docs/kickoff/graphify-archify-setup.md).
+
+# App-Icons/Grafik-Ressourcen (dieselben Icons 5x für mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi,
+# auch unter androidTest-Ressourcen)
+app/src/*/res/drawable-*/
+app/src/*/res/mipmap-*/
+app/src/*/res/raw/*.ogg
+
+# Alte Open-Camera-Projektseite/-Icons (nicht unsere Projekt-Doku)
+_docs/
+
+# Store-Metadaten (Fastlane Screenshots/Icons für einen Release, der nicht geplant ist)
+fastlane/
+
+# Lizenz-Boilerplate (kein inhaltlicher Wert für den Graphen)
+*LICENSE*.txt
+gpl-3.0.txt
+opencamera_source.txt

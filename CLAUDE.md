@@ -42,16 +42,27 @@ Opus eher situativ für einzelne komplexe Feature-Chats.
 
 ## Graphify & Archify (Codebase-Übersicht)
 
-Zwei Übersichts-Werkzeuge für dieses Repo, initial eingerichtet über den Kickoff
-`docs/kickoff/graphify-archify-setup.md`:
+Zwei Übersichts-Werkzeuge für dieses Repo, initial eingerichtet am 2026-09-14 über den
+Kickoff `docs/kickoff/graphify-archify-setup.md`:
 
 - **Graphify:** Wissensgraph in `graphify-out/` (Repo-Root, per globaler Regel — ein
-  Graph pro Repo). Vor Codebase-Fragen erst `graphify query "<Frage>"` nutzen,
-  `graphify path`/`graphify explain` für Beziehungen/Konzepte, `GRAPH_REPORT.md` nur
-  für breite Architektur-Reviews. **Jeder Feature-Chat läuft nach Codeänderungen
+  Graph pro Repo). 4101 Knoten/15505 Kanten aus 110 Java-Dateien (kostenlos per AST)
+  + 8 echten Projekt-Docs (SPEC.md, CLAUDE.md, README, Kickoff-Dokumente; ein einziger
+  Claude-Subagent-Durchlauf). Vor Codebase-Fragen erst `graphify query "<Frage>"`
+  nutzen, `graphify path`/`graphify explain` für Beziehungen/Konzepte, `GRAPH_REPORT.md`
+  nur für breite Architektur-Reviews. **Jeder Feature-Chat läuft nach Codeänderungen
   `graphify update .`** (AST-only, kein API-Kostenaufwand) — das ist Teil des
   Abschlussprotokolls (siehe unten), nicht optional.
-- **Archify:** Architektur-/Workflow-Diagramme als Artifact. Nach architektonisch
+  - **`.graphifyignore` im Repo-Root** schließt App-Icons (`app/src/*/res/drawable-*/`,
+    `mipmap-*/`, dieselben Icons 5x pro Dichte-Stufe), `_docs/` (alte Open-Camera-
+    Projektseite), `fastlane/` (Store-Metadaten) und Lizenz-Boilerplate dauerhaft aus.
+    Grund: Ohne diesen Ausschluss versucht graphify bei jedem `update .` erneut ~360
+    Icon-Dateien per Vision-Extraktion zu verarbeiten (teuer, kein inhaltlicher
+    Mehrwert für den Graphen). **Nicht löschen**, sonst kommt das Problem beim
+    nächsten `graphify update .` zurück.
+- **Archify:** Architektur-/Workflow-Diagramme als Artifact. Erstes Diagramm
+  (bestehende Foto/Video/Panorama-Architektur + Andockpunkte für geplante Modi)
+  veröffentlicht: siehe `docs/architecture-diagrams.md`. Nach architektonisch
   bedeutsamen Änderungen (neuer Kameramodus, neue Kernklasse, geänderter Datenfluss)
   im PM-Chat oder Feature-Chat neu generieren lassen — nicht nach jeder Kleinigkeit,
   das entscheidet der jeweilige Chat nach Augenmaß.

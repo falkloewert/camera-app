@@ -24,3 +24,7 @@ testdata/
 
 local.properties
 uninstall.bat
+
+# graphify: regenerierbarer Wissensgraph (groß, wird bei jedem "graphify update ."
+# neu geschrieben) — lokal halten statt Git-Historie aufzublähen
+graphify-out/
