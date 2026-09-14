@@ -40,6 +40,26 @@ SPEC-Konsistenzchecks) — nur nicht für die Kern-Feature-Implementierung mit L
 Projektmanager-Chat läuft mit Sonnet (Planung/Doku, kein schweres Code-Reasoning);
 Opus eher situativ für einzelne komplexe Feature-Chats.
 
+## Graphify & Archify (Codebase-Übersicht)
+
+Zwei Übersichts-Werkzeuge für dieses Repo, initial eingerichtet über den Kickoff
+`docs/kickoff/graphify-archify-setup.md`:
+
+- **Graphify:** Wissensgraph in `graphify-out/` (Repo-Root, per globaler Regel — ein
+  Graph pro Repo). Vor Codebase-Fragen erst `graphify query "<Frage>"` nutzen,
+  `graphify path`/`graphify explain` für Beziehungen/Konzepte, `GRAPH_REPORT.md` nur
+  für breite Architektur-Reviews. **Jeder Feature-Chat läuft nach Codeänderungen
+  `graphify update .`** (AST-only, kein API-Kostenaufwand) — das ist Teil des
+  Abschlussprotokolls (siehe unten), nicht optional.
+- **Archify:** Architektur-/Workflow-Diagramme als Artifact. Nach architektonisch
+  bedeutsamen Änderungen (neuer Kameramodus, neue Kernklasse, geänderter Datenfluss)
+  im PM-Chat oder Feature-Chat neu generieren lassen — nicht nach jeder Kleinigkeit,
+  das entscheidet der jeweilige Chat nach Augenmaß.
+
+**Ergänzung zum Abschlussprotokoll (Abschnitt 2.1 in SPEC.md):** Feature-Chats führen
+vor ihrem finalen Commit zusätzlich `graphify update .` aus, sofern `graphify-out/`
+existiert.
+
 ## Status
 
 Siehe `docs/SPEC.md` Abschnitte 3/3.1 (Feature-Übersicht, Reihenfolge) und 6

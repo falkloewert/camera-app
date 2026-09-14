@@ -397,3 +397,9 @@ Parallel-Sitzungs-Risiko (Abschnitt 2.1) besteht für dieses Feature aktuell nic
   Wide-Faktor, auslöser-relative Position). Reihenfolge-Platzierung von Feature 6
   (direkt nach Feature 5) von Falk final bestätigt. Kickoff-Kontext für Feature 5
   (Video-Kameraflip) erstellt (`docs/kickoff/video-kameraflip.md`).
+- **2026-09-14:** Nach 3 Wochen Pause: Council-Entscheidung zu PM-orchestrierten
+  Subagenten (siehe CLAUDE.md, `docs/council/2026-09-14-subagent-workflow.md`) —
+  Ergebnis: manueller Feature-Chat-Workflow bleibt bestehen. Kickoff-Kontext für
+  Graphify- (Wissensgraph) und Archify- (Architektur-Diagramm) Setup erstellt
+  (`docs/kickoff/graphify-archify-setup.md`), inkl. dauerhafter Pflegeregel in
+  CLAUDE.md (`graphify update .` als Teil des Feature-Chat-Abschlussprotokolls).
