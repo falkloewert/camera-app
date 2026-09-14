@@ -45,6 +45,10 @@ dependencies {
     // appcompat version must be 1.4.0 or later to satisfy emoji policy!
     implementation 'androidx.appcompat:appcompat:1.7.1'
 
+    // Material 3 components + ConstraintLayout, foundation for the Material 3 redesign (SPEC.md 4.5)
+    implementation 'com.google.android.material:material:1.14.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+
     // needed to fix errors since upgrading to appcompat:1.7.0, see https://stackoverflow.com/questions/75263047/duplicate-class-in-kotlin-android
     implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.9.0"))
 

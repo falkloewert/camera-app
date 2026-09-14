@@ -7,4 +7,16 @@
     <color name="shutter_icon_pressed">#40C4FF</color>
     <color name="shutter_icon_video_recording">#F44336</color>
     <color name="scrollview">#999999</color>
+
+    <!-- Material 3 dark camera chrome (SPEC.md 4.5): dark neutral surface (not pure black),
+         near-white text, muted gray for secondary text, selection via full white fill rather
+         than a saturated accent, gold focus ring. Approximate values from the Pixel Camera
+         screenshot analysis - can be refined once real M3 components land in phase 2/3. -->
+    <color name="md_dark_surface">#1B1B1B</color>
+    <color name="md_dark_surface_variant">#2C2C2C</color>
+    <color name="md_dark_on_surface">#F2F2F2</color>
+    <color name="md_dark_on_surface_variant">#ABABAB</color>
+    <color name="md_dark_primary">#B0A695</color>
+    <color name="md_dark_on_primary">#1B1B1B</color>
+    <color name="md_dark_focus_ring">#E8B93F</color>
 </resources>

@@ -1,0 +1,24 @@
+<resources>
+
+    <!-- Application theme, Material 3 foundation (SPEC.md 4.5).
+         Parent is Theme.Material3.Dark.NoActionBar, not the .DayNight variant: the camera
+         chrome must stay fixed dark regardless of the system theme, like the real Pixel
+         Camera app - it should not follow the phone's light/dark setting. -->
+    <style name="AppTheme" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="android:imageButtonStyle">@style/image_button</item>
+        <item name="android:windowBackground">@color/md_dark_surface</item>
+
+        <item name="colorSurface">@color/md_dark_surface</item>
+        <item name="colorOnSurface">@color/md_dark_on_surface</item>
+        <item name="colorSurfaceVariant">@color/md_dark_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/md_dark_on_surface_variant</item>
+        <item name="colorPrimary">@color/md_dark_primary</item>
+        <item name="colorOnPrimary">@color/md_dark_on_primary</item>
+    </style>
+
+</resources>
