@@ -548,3 +548,6 @@ Settings/Icons).
   selbst nicht im Repo gesichert (nur im Chat geteilt) – bei Bedarf für
   Pixelgenauigkeit erneut als Dateien anfordern. Als Nächstes: gestaffelte
   Kickoff-Prompts erstellen.
+- **2026-09-14:** Kickoff-Prompt für Phase 1 (Theme-Fundament + ConstraintLayout-
+  Migration) erstellt (`docs/kickoff/redesign-phase1-theme-layout.md`). Phase 2
+  (Zoom-Stepper + Moduswahl-Leiste) und Phase 3 (Settings/Icons) folgen nach Phase 1.
