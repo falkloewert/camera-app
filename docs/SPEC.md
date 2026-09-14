@@ -99,17 +99,19 @@ Projektmanager-Chat):
 | 3 | Dual-Kamera (Selfie-Bubble, unabhängiger Zoom) | Idee / Konzept | Hoch (geräteabhängig) |
 | 4 | Panorama mit Weitwinkel-Option | **Fertig** | Niedrig-Mittel |
 | 5 | Kamera während Videoaufnahme umdrehen | Idee / Notiz (nice-to-have) | Niedrig |
-| 6 | Modernes Kamera-UI (Zoom-Stufen-Buttons + Moduswahl-Leiste) | Idee / Konzept (Vorschlag von Falk, 2026-08-27, aus Panorama-Feature-Chat) | Mittel (app-weit, viele Dateien betroffen) |
+| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | Idee / Konzept, Recherche läuft (Vorschlag von Falk, 2026-09-14) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
 
-### 3.1 Vereinbarte Reihenfolge (festgelegt am 2026-08-27, Feature 6 final bestätigt)
+### 3.1 Vereinbarte Reihenfolge (aktualisiert 2026-09-14: Material-3-Redesign vor Feature 5 vorgezogen)
 
 Kompromiss aus "Einfaches zuerst" (zum Kennenlernen von Workflow/Codebasis als
 Programmier-Einsteiger) und "Riskantes früh klären" (Dual-Kamera hängt von
-Tensor-Chip-Unterstützung ab, siehe Abschnitt 5):
+Tensor-Chip-Unterstützung ab, siehe Abschnitt 5) — mit einer Ausnahme: das
+Design-Fundament kommt vor allem UI-tragenden Folgefeatures, damit die nicht später
+nochmal überarbeitet werden müssen (Falks Begründung, von Claude bestätigt: siehe 4.5).
 
-1. **Feature 4** – Panorama mit Weitwinkel-Option
-2. **Feature 5** – Kamera während Videoaufnahme umdrehen
-3. **Feature 6** – Modernes Kamera-UI (Zoom-Stufen-Buttons + Moduswahl-Leiste)
+1. **Feature 4** – Panorama mit Weitwinkel-Option — **Fertig**
+2. **Feature 6** – Material-3-Redesign (siehe 4.5)
+3. **Feature 5** – Kamera während Videoaufnahme umdrehen
 4. **Machbarkeits-Spike Dual-Kamera** – kein volles Feature, nur klären: unterstützt
    der Pixel 9 Pro zuverlässig gleichzeitigen Zugriff auf Front- und Rückkamera
    ("Concurrent Camera")?
@@ -270,13 +272,20 @@ wählbar, nicht die Weitwinkellinse. Das soll in der eigenen App möglich sein.
 
 ---
 
-### 4.5 Modernes Kamera-UI (Zoom-Stufen-Buttons + Moduswahl-Leiste)
+### 4.5 Material-3-Redesign (absorbiert: Modernes Kamera-UI)
 
-**Entstehung:** Vorschlag von Falk, geäußert während des Panorama-Feature-Chats am
-2026-08-27 – zwei App-weite UI-Wünsche, die über Panorama hinausgehen. Der
-Panorama-Chat hat dazu bewusst keine Entscheidung getroffen (siehe Abschnitt 2.1) und
-stattdessen den Entwurf unter `docs/kickoff/entwurf-modernes-kamera-ui.md` abgelegt;
-für Panorama selbst wurde eine kleine, lokale Lösung gebaut (siehe Feature 4).
+**Entstehung/Verlauf:** Ursprünglich am 2026-08-27 als kleinerer Vorschlag aus dem
+Panorama-Feature-Chat aufgenommen (Zoom-Stufen-Buttons + Moduswahl-Leiste, siehe
+`docs/kickoff/entwurf-modernes-kamera-ui.md`). Am 2026-09-14 von Falk zu einem
+vollständigen visuellen Redesign der App ausgeweitet: weg von der aktuellen
+Open-Camera-Optik, hin zu Googles **Material-3-Designsprache**
+(https://m3.material.io/), damit die App wie die moderne Standard-Android/Pixel-
+Kamera-App aussieht – mit Falks eigenen Zusatz-Features. Die ursprüngliche
+Zoom-Buttons/Moduswahl-Idee ist darin als Teilmenge enthalten, nicht mehr separat.
+
+**Ziel:** Komplettes UI-Redesign nach Material 3 – Farbsystem, Typografie,
+Komponenten (Buttons, Moduswahl, Icons), Elevation/Surface-Tönung, Motion – nicht nur
+die zwei ursprünglich genannten Elemente.
 
 **Ziel/Anforderungen:**
 1. **Zoom-Stufen-Buttons** wie bei modernen Kamera-Apps (z. B. Google-Kamera): feste,
@@ -304,22 +313,37 @@ denkbar und überlässt die Detailentscheidung dem Feature-Chat.
 App-UI (alle Kameramodi), nicht nur einen. Laut Projektregel (Abschnitt 2.1) nicht
 Aufgabe eines einzelnen Feature-Chats, app-weite Entscheidungen zu treffen.
 
-**Einordnung in die Reihenfolge (siehe 3.1):** direkt nach Feature 5, vor dem
-Dual-Kamera-Spike – von Falk am 2026-08-27 bestätigt. Begründung: Die
-Zoom-Stufen-Buttons sind konzeptionell eng mit Feature 3 (Dual-Kamera) verwandt –
-deren zentrale Anforderung ist ja "unabhängiger Zoom je Kamera". Wird die
-Zoom-Stufen-UI hier zuerst sauber gebaut, lässt sie sich für Dual-Kamera vermutlich
-wiederverwenden/anpassen, statt sie zweimal zu entwerfen. Ebenso würde Feature 2
-(Filmchen-Modus) von einer bereits vorhandenen Moduswahl-Leiste profitieren, statt
-erst ins alte Drei-Punkte-Menü eingebaut und später migriert zu werden.
+**Einordnung in die Reihenfolge (siehe 3.1):** am 2026-09-14 vorgezogen auf Position 2,
+**vor** Feature 5 (Kamera-Flip bei Video) und allen weiteren Features. Begründung
+(Falks Vorschlag, von Claude bestätigt): Ein Design-Fundament zuerst zu bauen und alle
+Folge-Features direkt darauf aufzusetzen ist sinnvoller, als sie später einzeln
+nachträglich umzustylen. Feature 5 ist klein genug, dass eine Verschiebung kaum
+Nachteile hat; Filmchen-Modus und Dual-Kamera hätten dagegen jeweils eigene UI-Elemente
+(Mini-Editor, Selfie-Bubble), die sonst zweimal gebaut würden.
 
-**Komplexität/Risiko:** Mittel – kein Hardware-Risiko wie Dual-Kamera/360°, aber
-betrifft laut Entwurf viele Dateien app-weit (`MainUI.java`, `activity_main.xml`,
-Layout- und Klick-Logik für praktisch jeden Modus).
+**Recherche (läuft):** Ein Researcher-Agent analysiert aktuell (1) die für eine
+Kamera-App relevanten Material-3-Kernprinzipien und (2) den IST-Zustand des Repos
+(verwendetes UI-Toolkit, Theme-/Style-Ressourcen, Kern-Layouts), um eine konkrete
+Lücken-/Migrationsanalyse zu erstellen. Ergebnis fließt hier und in einen Kickoff-Prompt
+für den Umsetzungs-Chat ein, sobald fertig.
 
-**Start dieses Feature-Chats:** laut Reihenfolge (3.1) nach Feature 5
-(Video-Kameraflip). Panorama-Feature-Chat ist inzwischen abgeschlossen, das ursprüngliche
-Parallel-Sitzungs-Risiko (Abschnitt 2.1) besteht für dieses Feature aktuell nicht mehr.
+**Agenten-Einsatz laut Falk:** Die Analyse-/Recherche-Phase darf und soll Agenten
+nutzen (reine Nebenarbeit ohne Live-Test, siehe Council-Entscheidung
+`docs/council/2026-09-14-subagent-workflow.md`). Für die Umsetzung selbst hat Falk
+erlaubt, dass der Feature-Chat "wenn das Sinn macht" ebenfalls Agenten einsetzt.
+**Einordnung dazu:** passt zur Council-Entscheidung, solange es um eng begrenzte,
+mechanische Teilschritte geht (z. B. "dieses eine Layout auf Material-3-Komponenten
+umstellen") – der Feature-Chat selbst bleibt aber der durchgängige Gesprächspartner,
+der erklärt und mit Falk live auf dem Gerät testet, kein reiner Verteiler an
+Hintergrund-Subagenten.
+
+**Komplexität/Risiko:** Hoch – app-weit, betrifft praktisch jede Layout-/Style-Datei,
+plus die Unsicherheit, wie umfangreich eine Material-3-Migration in einem
+View-basierten (nicht Compose-basierten) Altprojekt tatsächlich ist. Genauere
+Einschätzung nach Abschluss der laufenden Recherche.
+
+**Start dieses Feature-Chats:** noch nicht – wartet auf das Recherche-Ergebnis, aus dem
+der konkrete Kickoff-Prompt entsteht.
 
 ---
 
@@ -416,3 +440,11 @@ Parallel-Sitzungs-Risiko (Abschnitt 2.1) besteht für dieses Feature aktuell nic
   ApplicationInterface, ImageSaver, PanoramaProcessor) und markiert klar, wo die
   geplanten Modi (Filmchen, Dual-Kamera, 360°-Stitching) andocken sollen — auf
   Basis echter Repository-Evidenz (Commit `4bfc10cb`), von Archify verifiziert.
+- **2026-09-14:** Falk möchte ein komplettes visuelles Redesign der App nach
+  Material 3 (Google, https://m3.material.io/) statt der bisherigen Open-Camera-Optik,
+  Ziel: Look der modernen Standard-Android-Kamera-App mit eigenen Zusatz-Features.
+  Absorbiert die alte Feature-6-Idee (Zoom-Stufen-Buttons/Moduswahl-Leiste) als
+  Teilmenge. Reihenfolge aktualisiert: Material-3-Redesign auf Position 2 vorgezogen,
+  vor Feature 5 (Begründung: Design-Fundament vor UI-tragenden Folgefeatures, siehe
+  4.5). Researcher-Agent für Material-3-/Repo-Gap-Analyse gestartet, Ergebnis noch
+  ausstehend — Kickoff-Prompt für den Umsetzungs-Chat folgt danach.
