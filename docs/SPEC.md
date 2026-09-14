@@ -355,18 +355,63 @@ Nachteile hat; Filmchen-Modus und Dual-Kamera hätten dagegen jeweils eigene UI-
   (welche Klasse rendert das Popup) – muss im jeweiligen Feature-Chat selbst
   nachgesehen werden.
 
-**Zwei offene Design-/Technik-Entscheidungen, die Falk vor dem Kickoff-Prompt treffen
-muss** (vom Researcher-Agent explizit als "nicht stillschweigend mitentscheiden"
-markiert):
-1. **Dunkles Kamera-Chrome vs. Systemtheme:** M3-Standardfarben (hell/dynamisch)
-   würden mit der etablierten dunklen, transluzenten Kamera-Sucher-Optik kollidieren.
-   Empfehlung des Agents: dunkles Chrome unabhängig vom Systemtheme (wie bei der
-   Pixel-Kamera selbst).
-2. **`RelativeLayout` → `ConstraintLayout` migrieren oder nicht:** `activity_main.xml`
-   ist aktuell `RelativeLayout` mit Java-berechneter Positionierung, was mit
-   M3-Komponenten wie `FloatingToolbarLayout` schlechter harmoniert als
-   `ConstraintLayout`. Eine Migration ist mehr Aufwand/Risiko, würde aber auch der
-   künftigen Dual-Kamera-Bubble (Feature 3, verschiebbares Element) zugutekommen.
+**Entscheidungen (2026-09-14, von Falk getroffen):**
+1. **Dunkles Kamera-Chrome:** bestätigt – fest dunkel, unabhängig vom Systemtheme,
+   wie bei der echten Pixel-Kamera. Konkretisiert durch die Screenshot-Referenz unten.
+2. **`RelativeLayout` → `ConstraintLayout`:** wird im Rahmen dieses Redesigns
+   migriert (mehr Aufwand jetzt, sauberere Basis für spätere Features wie die
+   Dual-Kamera-Bubble).
+
+**Visuelle Referenz (Screenshots der echten Pixel-Kamera-App, von Falk am 2026-09-14
+bereitgestellt):** Falk hat 9 Screenshots seiner Pixel-Kamera-App geteilt (Sucher,
+Zoom-Stepper, Moduswahl-Leiste, Foto-/Video-Einstellungs-Sheets, volle
+Einstellungsliste). Analyse:
+
+- **Farbe:** durchgehend sehr dunkler, fast schwarzer Grund (kein reines Schwarz –
+  eine dunkle neutrale Fläche/"Surface"-Tönung), weißer/hellgrauer Text, gedämpftes
+  Grau für Sekundärtext (z. B. Einstellungs-Untertitel). Kaum gesättigte Akzentfarbe –
+  "ausgewählt" wird fast durchgängig über eine **volle weiße/helle Füllung** markiert
+  (Pille oder Kreis), nicht über eine Akzentfarbe. Fokusring in Gold/Gelb. Switches in
+  der vollen Einstellungsliste nutzen einen gedämpften Akzentton im "An"-Zustand.
+  → Bestätigt die Chrome-Entscheidung: bewusst zurückhaltend, fast monochrom,
+  Farbe wird nur für Selektion/Fokus eingesetzt, nicht dekorativ.
+- **Form:** durchgehend stark abgerundet – Pillen/Kapseln für Zoom-Stepper,
+  Moduswahl-Highlight und Tab-Umschalter (Allgemein/Pro), Kreise für Icon-Buttons,
+  Auslöser und Einstellungen-Zahnrad, große abgerundete Ecken + Ziehgriff bei den
+  Bottom-Sheets.
+- **Zoom-Stepper:** horizontale (im Querformat vertikale) Pillen-Leiste mit den
+  Stufen ",5 / 1x / 2 / 5" – die aktive Stufe ist eine volle weiße Kreis-Pille mit
+  dunkler Schrift, inaktive Stufen sind reiner heller Text auf dunklem Grund. Exakt
+  das gleiche Prinzip wie unser Panorama-Button-Paar (Feature 4), nur als
+  durchgängige Leiste mit mehr Stufen statt nur zwei Buttons.
+- **Moduswahl-Leiste:** horizontale scrollbare Text-Zeile unter dem Auslöser
+  ("Porträt · Foto · Nachtsicht · Panorama" etc.), der aktive Modus bekommt eine
+  helle, abgerundete Pille als Hintergrund, alle anderen sind reiner Text ohne
+  Hintergrund – kein separates Icon je Modus, nur Beschriftung.
+- **Haupt-Bedienzeile:** Galerie-Miniatur (abgerundetes Quadrat) – Auslöser (großer
+  voller weißer Kreis mit dunklem Ring) – Kamera-Wechsel-Button (dunkles
+  abgerundetes Quadrat mit Wechsel-Icon), Auslöser deutlich größer als die beiden
+  Nachbar-Elemente.
+- **Einstellungen (Drei-Punkte-/Zahnrad-Menü-Nachfolger):** zwei Ebenen.
+  1. Schnelleinstellungen als **Bottom-Sheet** direkt über dem Sucher (Ziehgriff,
+     Titel z. B. "Fotoeinstellungen", Tab-Umschalter Allgemein/Pro bzw.
+     Allgemein/Mehr), jede Zeile = Label + grauer Wert-Untertitel + eine Reihe
+     kleiner Icon-Buttons rechts (ausgewählte Option = volle weiße Kreisfüllung).
+  2. Vollständige Einstellungsliste als **gruppierte, scrollbare Liste** (Abschnitte
+     "Allgemein", "Komposition", "Schnellzugriff", "Foto", "Video"), Zeilen mit Icon
+     links, Titel + optionalem Erklärtext, Material-**Switch** rechts für An/Aus,
+     Chevron für Zeilen, die zu einem Unterbildschirm führen.
+- **Persistente Ecken:** oben links kleine Info-Pillen (z. B. "12 MP", Makro-Symbol),
+  oben rechts ein Hilfe-"?"-Icon – alle als kleine dunkle abgerundete Chips.
+- **Raster:** dünne weiße 3×3-Rasterlinien im Sucher, dezent.
+
+**Wichtiger Hinweis zur Weiterverwendung:** Diese Screenshots wurden nur im Chat
+geteilt, nicht als Dateien gespeichert – ich habe keinen Dateipfad, den ich ins Repo
+committen könnte. Diese Textanalyse hier ist deshalb die einzige Form, in der die
+Referenz für künftige Feature-Chats verfügbar ist (die sehen den Chat-Verlauf nicht).
+**Falls pixelgenaue Places wichtig sind: Screenshots zusätzlich als Dateien schicken**,
+dann lege ich sie unter `docs/design-reference/` ab, wo jeder Feature-Chat sie lesen
+kann.
 
 **Agenten-Einsatz laut Falk:** Die Analyse-/Recherche-Phase darf und soll Agenten
 nutzen (reine Nebenarbeit ohne Live-Test, siehe Council-Entscheidung
@@ -383,9 +428,10 @@ plus die Unsicherheit, wie umfangreich eine Material-3-Migration in einem
 View-basierten (nicht Compose-basierten) Altprojekt tatsächlich ist. Genauere
 Einschätzung nach Abschluss der laufenden Recherche.
 
-**Start dieses Feature-Chats:** noch nicht – wartet auf Falks Antwort zu den beiden
-offenen Entscheidungen oben, danach folgen gestaffelte Kickoff-Prompts (Theme/Farben;
-Zoom-/Moduswahl-Leiste; Settings/Icons) statt eines einzigen.
+**Start dieses Feature-Chats:** Entscheidungen getroffen, Screenshot-Referenz liegt
+vor – als Nächstes erstellt der Projektmanager-Chat die gestaffelten Kickoff-Prompts
+(1. Theme/Farben/ConstraintLayout-Migration, 2. Zoom-/Moduswahl-Leiste, 3.
+Settings/Icons).
 
 ---
 
@@ -495,3 +541,10 @@ Zoom-/Moduswahl-Leiste; Settings/Icons) statt eines einzigen.
   Designsystems, kein Theme-Tausch. Geschätzter Aufwand 2–3 gebündelte Feature-Chat-
   Sessions statt einer. Zwei offene Entscheidungen an Falk gestellt (dunkles
   Kamera-Chrome vs. Systemtheme; RelativeLayout→ConstraintLayout-Migration ja/nein).
+- **2026-09-14:** Beide Entscheidungen von Falk getroffen (dunkles Chrome bestätigt,
+  ConstraintLayout-Migration ja) und mit einer konkreten Screenshot-Referenz der
+  echten Pixel-Kamera-App unterlegt (Analyse in 4.5: Farbe, Form, Zoom-Stepper,
+  Moduswahl-Leiste, Settings-Bottom-Sheets, volle Einstellungsliste). Screenshots
+  selbst nicht im Repo gesichert (nur im Chat geteilt) – bei Bedarf für
+  Pixelgenauigkeit erneut als Dateien anfordern. Als Nächstes: gestaffelte
+  Kickoff-Prompts erstellen.
