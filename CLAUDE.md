@@ -23,8 +23,7 @@ ausführen, ohne vorher zu fragen oder die Befehle ihm zum Ausführen zu geben.
 Gilt **nur für dieses Repo**, nicht generell für andere Projekte von Falk — dort
 gilt weiterhin die normale Zurückhaltung bei Commits/Pushes.
 
-## Status (Stand 2026-08-27)
+## Status
 
-Repo-Setup abgeschlossen (Klon + Push + docs/SPEC.md + README committet).
-Nächster Schritt: Android Studio auf Zorin OS 18.1 installieren, dann Open Camera
-unverändert bauen/starten, bevor Features angegangen werden.
+Siehe `docs/SPEC.md` Abschnitte 3/3.1 (Feature-Übersicht, Reihenfolge) und 6
+(Änderungsprotokoll) — nicht hier duplizieren, ändert sich zu schnell.
