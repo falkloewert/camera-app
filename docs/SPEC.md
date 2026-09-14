@@ -321,11 +321,52 @@ nachträglich umzustylen. Feature 5 ist klein genug, dass eine Verschiebung kaum
 Nachteile hat; Filmchen-Modus und Dual-Kamera hätten dagegen jeweils eigene UI-Elemente
 (Mini-Editor, Selfie-Bubble), die sonst zweimal gebaut würden.
 
-**Recherche (läuft):** Ein Researcher-Agent analysiert aktuell (1) die für eine
-Kamera-App relevanten Material-3-Kernprinzipien und (2) den IST-Zustand des Repos
-(verwendetes UI-Toolkit, Theme-/Style-Ressourcen, Kern-Layouts), um eine konkrete
-Lücken-/Migrationsanalyse zu erstellen. Ergebnis fließt hier und in einen Kickoff-Prompt
-für den Umsetzungs-Chat ein, sobald fertig.
+**Recherche-Ergebnis (2026-09-14, Researcher-Agent):**
+
+- **IST-Zustand:** Das Repo nutzt aktuell **reines AppCompat 1.7.1, keine
+  Material-Components-Bibliothek** (weder M2 noch M3 – verifiziert per Grep, keine
+  Treffer). Kein Farbrollen-System (`colors.xml` hat nur 7 hartcodierte Hex-Werte),
+  kein `themes.xml`. `activity_main.xml` ist ein flaches `RelativeLayout` mit vielen
+  `ImageButton`/`Button`-Geschwistern, Positionierung teils zur Laufzeit in
+  `MainUI.java` berechnet (z. B. die Panorama-Linsenwahl-Buttons aus Feature 4).
+  → Das ist keine "Theme austauschen"-Aufgabe, sondern die **Ersteinführung** eines
+  Designsystems.
+- **AGP/Gradle:** 8.13.2/8.13 im Repo, passt zu Material Components 1.14.0
+  (verlangt AGP 8.11.1+/Gradle 8.13+) – keine Vorarbeit nötig.
+- **minSdk 23:** exakt die Untergrenze, die Material Components 1.14.0 verlangt –
+  passt, aber ohne Puffer. Für dieses Ein-Geräte-Projekt unkritisch.
+- **Empfohlene Migrationsreihenfolge** (geringstes Regressions-Risiko zuerst):
+  1. `com.google.android.material:material:1.14.0` als Dependency hinzufügen.
+  2. **Theme-Fundament:** `Theme.Material3.DayNight.NoActionBar` als Parent,
+     Farbrollen per Material Theme Builder (m3.material.io/theme-builder) exportieren,
+     `DynamicColors.applyToActivitiesIfAvailable()` (auf Pixel 9 Pro/Android 17 immer
+     aktiv, da Dynamic Color API 31+ voraussetzt).
+  3. **Komponente für Komponente, mit Gerätetest dazwischen:** Zoom-Stufen-Buttons
+     (Panorama-Paar + Ausweitung auf Foto/Video) → `MaterialButtonToggleGroup`;
+     Moduswahl-Leiste unten → `FloatingToolbarLayout` oder Chip-`RecyclerView`;
+     Settings-Overlay (Drei-Punkte-Menü-Nachfolger) → `BottomSheetDialogFragment`;
+     übrige Icon-Buttons restylen.
+  4. Icons (Material-Symbols-konsistent) – niedrigste Priorität, kosmetisch,
+     aufschiebbar.
+- **Aufwandsschätzung:** mittel-hoch, realistisch **2–3 gebündelte Feature-Chat-
+  Sessions** (Theme+Grundfarben / Zoom- und Moduswahl-Leiste / Settings-Overlays
+  und Icons) statt ein einziger Umbau.
+- **Nicht geklärt:** genauer Mechanismus des aktuellen Drei-Punkte-Settings-Menüs
+  (welche Klasse rendert das Popup) – muss im jeweiligen Feature-Chat selbst
+  nachgesehen werden.
+
+**Zwei offene Design-/Technik-Entscheidungen, die Falk vor dem Kickoff-Prompt treffen
+muss** (vom Researcher-Agent explizit als "nicht stillschweigend mitentscheiden"
+markiert):
+1. **Dunkles Kamera-Chrome vs. Systemtheme:** M3-Standardfarben (hell/dynamisch)
+   würden mit der etablierten dunklen, transluzenten Kamera-Sucher-Optik kollidieren.
+   Empfehlung des Agents: dunkles Chrome unabhängig vom Systemtheme (wie bei der
+   Pixel-Kamera selbst).
+2. **`RelativeLayout` → `ConstraintLayout` migrieren oder nicht:** `activity_main.xml`
+   ist aktuell `RelativeLayout` mit Java-berechneter Positionierung, was mit
+   M3-Komponenten wie `FloatingToolbarLayout` schlechter harmoniert als
+   `ConstraintLayout`. Eine Migration ist mehr Aufwand/Risiko, würde aber auch der
+   künftigen Dual-Kamera-Bubble (Feature 3, verschiebbares Element) zugutekommen.
 
 **Agenten-Einsatz laut Falk:** Die Analyse-/Recherche-Phase darf und soll Agenten
 nutzen (reine Nebenarbeit ohne Live-Test, siehe Council-Entscheidung
@@ -342,8 +383,9 @@ plus die Unsicherheit, wie umfangreich eine Material-3-Migration in einem
 View-basierten (nicht Compose-basierten) Altprojekt tatsächlich ist. Genauere
 Einschätzung nach Abschluss der laufenden Recherche.
 
-**Start dieses Feature-Chats:** noch nicht – wartet auf das Recherche-Ergebnis, aus dem
-der konkrete Kickoff-Prompt entsteht.
+**Start dieses Feature-Chats:** noch nicht – wartet auf Falks Antwort zu den beiden
+offenen Entscheidungen oben, danach folgen gestaffelte Kickoff-Prompts (Theme/Farben;
+Zoom-/Moduswahl-Leiste; Settings/Icons) statt eines einzigen.
 
 ---
 
@@ -448,3 +490,8 @@ der konkrete Kickoff-Prompt entsteht.
   vor Feature 5 (Begründung: Design-Fundament vor UI-tragenden Folgefeatures, siehe
   4.5). Researcher-Agent für Material-3-/Repo-Gap-Analyse gestartet, Ergebnis noch
   ausstehend — Kickoff-Prompt für den Umsetzungs-Chat folgt danach.
+- **2026-09-14:** Recherche-Ergebnis eingetroffen (Details in 4.5): Repo nutzt aktuell
+  keine Material-Components-Bibliothek, das Redesign ist eine Ersteinführung des
+  Designsystems, kein Theme-Tausch. Geschätzter Aufwand 2–3 gebündelte Feature-Chat-
+  Sessions statt einer. Zwei offene Entscheidungen an Falk gestellt (dunkles
+  Kamera-Chrome vs. Systemtheme; RelativeLayout→ConstraintLayout-Migration ja/nein).
