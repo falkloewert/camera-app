@@ -551,3 +551,28 @@ Settings/Icons).
 - **2026-09-14:** Kickoff-Prompt für Phase 1 (Theme-Fundament + ConstraintLayout-
   Migration) erstellt (`docs/kickoff/redesign-phase1-theme-layout.md`). Phase 2
   (Zoom-Stepper + Moduswahl-Leiste) und Phase 3 (Settings/Icons) folgen nach Phase 1.
+- **2026-09-15:** Phase 1 und ein großer Teil von Phase 2 umgesetzt und auf dem Pixel 9
+  Pro getestet. Phase 1: `activity_main.xml` auf ConstraintLayout migriert – das war
+  kein reiner XML-Tausch, weil `MainUI.layoutUI()` (~800 Zeilen) jede Schaltfläche zur
+  Laufzeit über RelativeLayout-Regeln positioniert; komplett auf `ConstraintSet`
+  portiert. Zwei Fehler dabei gefunden, die nur im Gerätetest auffielen:
+  `ConstraintSet.clear()` löscht auch Größe und Sichtbarkeit einer Ansicht mit, und der
+  unsichtbare Anker `gui_anchor` blähte sich mit `0dp` (unter ConstraintLayout =
+  „fülle den Platz") auf volle Bildschirmhöhe auf und schob alle daran hängenden Icons
+  vom Bildschirm. Phase 2: Zoom-Stufen-Leiste (`ZoomStepper`, Stufen ,5/1×/2/5 aus dem
+  echten Zoombereich der Kamera), kontextabhängige Moduswahl-Leiste (Foto/Panorama
+  bzw. Video – nie Video-Modi im Fotomodus), monochrome Bedienelemente statt der blauen
+  Open-Camera-Optik, roter Punkt im Video-Auslöser, Objektiv-Auswahlknopf abgeschaltet,
+  Info-Textzeilen (Uhrzeit/Speicher/ISO) standardmäßig aus. Verbindliche Bau-Vorgabe für
+  den Rest: `docs/design-reference/ui-spezifikation.md` (inkl. Falks Entscheidungen zu
+  Einstellungs-Blättern und der Liste dessen, was die App dafür noch nicht kann).
+  Ähnlichkeit zum Original per Bildvergleich (Gemini, Screenshot gegen Screenshot):
+  von 3/10 auf 6/10.
+- **2026-09-15:** Offen und als Nächstes dran: (1) **Orientierungs-Modell umstellen** –
+  die Pixel-Kamera ordnet beim Drehen nichts neu an, sie dreht nur die Symbole um die
+  eigene Achse. Open Camera kann das bereits (`MainActivity.lock_to_landscape`), nagelt
+  aber auf Querformat fest; wir bräuchten dieselbe Mechanik auf Hochformat. Das ist ein
+  Eingriff in die Grundlage und betrifft auch die Ausrichtung gespeicherter Fotos/Videos.
+  (2) Feinjustier-Rad für Zoom über 5×. (3) Foto- und Video-Einstellungs-Blätter.
+  (4) Untere Bedienzeile, Galerie/Kamera-Wechsel im Referenz-Stil, Raster und gelber
+  Fokus-Ring.
