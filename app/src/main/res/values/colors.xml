@@ -3,8 +3,11 @@
     <color name="seekbar_background">#30000000</color>
     <color name="icons_background">#20000000</color> <!-- when used as background color for imagebutton, the rgb color seems to be ignored for Android 6 onwards, but still relevant for older versions -->
     <color name="icons_background_tint">#ff000000</color>
-    <color name="shutter_icon">#2F9CF2</color>
-    <color name="shutter_icon_pressed">#40C4FF</color>
+    <!-- Auslöser ist monochrom (weiß mit dunklem Ring) wie bei der Pixel-Kamera, siehe
+         docs/design-reference/pixel-camera-screenshots.md - früher blau (#2F9CF2). Rot
+         bleibt für "nimmt gerade auf" erhalten, das ist ein Signalzustand, keine Deko. -->
+    <color name="shutter_icon">#FFFFFF</color>
+    <color name="shutter_icon_pressed">#C6C6C6</color>
     <color name="shutter_icon_video_recording">#F44336</color>
     <color name="scrollview">#999999</color>
 
@@ -18,5 +21,8 @@
     <color name="md_dark_on_surface_variant">#ABABAB</color>
     <color name="md_dark_primary">#B0A695</color>
     <color name="md_dark_on_primary">#1B1B1B</color>
-    <color name="md_dark_focus_ring">#E8B93F</color>
+    <!-- Hintergrund der Zoom-Stufen-Leiste: deutlich deckender als icons_background (das ist
+         fuer Icon-Buttons bewusst fast durchsichtig), sonst sind die inaktiven Stufen ueber
+         hellen Motiven nicht lesbar. -->
+    <color name="zoom_stepper_background">#99000000</color>
 </resources>

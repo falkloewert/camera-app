@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark pill/stadium shape, used as the container background for the zoom stepper -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid
+        android:color="@color/zoom_stepper_background"
+        />
+    <corners android:radius="9999dp" />
+</shape>

@@ -6,6 +6,6 @@
     <solid android:color="@color/shutter_icon_video_recording"/>
     <stroke
         android:width="14dp"
-        android:color="#FFFFFF"
+        android:color="@color/md_dark_surface"
         />
 </shape>

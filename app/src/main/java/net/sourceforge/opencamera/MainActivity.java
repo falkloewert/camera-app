@@ -717,17 +717,11 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
      *  PreferenceKeys.MultiCamButtonPreferenceKey is enabled.
      */
     public boolean showSwitchMultiCamIcon() {
-        if( preview.hasPhysicalCameras() ) {
-            SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-            if( sharedPreferences.getBoolean(PreferenceKeys.MultiCamButtonPreferenceKey, true) )
-                return true;
-        }
-        if( isMultiCamEnabled() ) {
-            int cameraId = getActualCameraId();
-            if( this.multiCamHandler.hasMultiCameras(preview.getCameraControllerManager().getFacing(cameraId)) ) {
-                return true;
-            }
-        }
+        // Deliberately always false: the lens picker this icon opens is replaced by the zoom
+        // step buttons (see ZoomStepper), so Falk never wants to see it - decision 2026-09-15,
+        // docs/design-reference/ui-spezifikation.md. The dialog code below is left untouched
+        // rather than deleted, to keep merges from the Open Camera upstream clean (same reason
+        // the Java package was never renamed, see docs/SPEC.md section 5).
         return false;
     }
 
@@ -5187,10 +5181,18 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                 Log.d(TAG, "has_zoom? " + preview.supportsZoom());
             SeekBar zoomSeekBar = findViewById(R.id.zoom_seekbar);
 
+            // the zoom steps depend on the zoom range this camera reports, so rebuild them
+            // whenever a camera is opened or switched - before deciding on the slider below,
+            // which only appears where the stepper has nothing to offer
+            mainUI.getZoomStepper().update();
+
             if( preview.supportsZoom() ) {
                 setZoomSeekbar();
 
-                if( sharedPreferences.getBoolean(PreferenceKeys.ShowZoomSliderControlsPreferenceKey, true) ) {
+                // the zoom stepper replaces the slider where it has steps to offer - only fall
+                // back to the slider on cameras where it doesn't
+                if( sharedPreferences.getBoolean(PreferenceKeys.ShowZoomSliderControlsPreferenceKey, true)
+                        && !mainUI.getZoomStepper().hasSteps() ) {
                     if( !mainUI.inImmersiveMode() ) {
                         zoomSeekBar.setVisibility(View.VISIBLE);
                     }
@@ -5202,6 +5204,15 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             else {
                 zoomSeekBar.setVisibility(View.INVISIBLE); // should be INVISIBLE not GONE, as the focus_seekbar is aligned to be left to this; in future we might want this similarly for the exposure panel
             }
+            View zoomStepper = findViewById(R.id.zoom_stepper);
+            if( mainUI.getZoomStepper().hasSteps() && !mainUI.inImmersiveMode() ) {
+                zoomStepper.setVisibility(View.VISIBLE);
+            }
+            else {
+                zoomStepper.setVisibility(View.GONE);
+            }
+            mainUI.updateModeBar();
+
             if( MyDebug.LOG )
                 Log.d(TAG, "cameraSetup: time after setting up zoom: " + (System.currentTimeMillis() - debug_time));
 

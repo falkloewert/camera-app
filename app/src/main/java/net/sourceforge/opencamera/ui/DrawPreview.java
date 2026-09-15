@@ -53,7 +53,7 @@ import android.util.Log;
 import android.util.Pair;
 import android.view.Surface;
 import android.view.View;
-import android.widget.RelativeLayout;
+import android.view.ViewGroup;
 
 public class DrawPreview {
     private static final String TAG = "DrawPreview";
@@ -661,7 +661,10 @@ public class DrawPreview {
         if( MyDebug.LOG )
             Log.d(TAG, "photoMode: " + photoMode);
 
-        show_time_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowTimePreferenceKey, true);
+        // Uhrzeit, freier Speicher und ISO/Belichtungszeit sind standardmaessig aus: die
+        // Referenz-Oberflaeche zeigt sie nicht, und Falk benutzt sie nicht (Entscheidung
+        // 2026-09-15). Ueber die Einstellungen weiter einschaltbar.
+        show_time_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowTimePreferenceKey, false);
         // reset in case user changes the preference:
         dateFormatTimeInstance = DateFormat.getTimeInstance();
         current_time_string = null;
@@ -670,8 +673,8 @@ public class DrawPreview {
 
         show_camera_id_pref = main_activity.isMultiCam() && sharedPreferences.getBoolean(PreferenceKeys.ShowCameraIDPreferenceKey, true);
         //show_camera_id_pref = true; // test
-        show_free_memory_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowFreeMemoryPreferenceKey, true);
-        show_iso_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowISOPreferenceKey, true);
+        show_free_memory_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowFreeMemoryPreferenceKey, false);
+        show_iso_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowISOPreferenceKey, false);
         show_video_max_amp_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowVideoMaxAmpPreferenceKey, false);
         show_zoom_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowZoomPreferenceKey, true);
         show_battery_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowBatteryPreferenceKey, true);
@@ -2282,7 +2285,7 @@ public class DrawPreview {
                 // "left" and "right" here are written assuming we're in landscape system orientation
 
                 View view = main_activity.findViewById(R.id.focus_seekbar);
-                RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
+                ViewGroup.LayoutParams layoutParams = view.getLayoutParams();
                 preview.getView().getLocationOnScreen(gui_location);
                 int preview_left = gui_location[system_orientation_portrait ? 1 : 0];
                 if( system_orientation == MainActivity.SystemOrientation.REVERSE_LANDSCAPE )
@@ -2318,7 +2321,7 @@ public class DrawPreview {
                 view.setLayoutParams(layoutParams);
 
                 view = main_activity.findViewById(R.id.focus_bracketing_target_seekbar);
-                layoutParams = (RelativeLayout.LayoutParams)view.getLayoutParams();
+                layoutParams = view.getLayoutParams();
                 layoutParams.width = new_seekbar_width;
                 view.setLayoutParams(layoutParams);
 

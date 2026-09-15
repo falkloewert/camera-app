@@ -1560,14 +1560,14 @@ public class TestUtils {
 
         if( preview.isVideo() ) {
             assertEquals((int) (Integer) takePhotoButton.getTag(), net.sourceforge.opencamera.R.drawable.take_video_selector);
-            assertEquals((int) (Integer) switchVideoButton.getTag(), net.sourceforge.opencamera.R.drawable.take_photo);
+            assertEquals((int) (Integer) switchVideoButton.getTag(), net.sourceforge.opencamera.R.drawable.ic_photo_camera_white_48dp);
             assertEquals(takePhotoButton.getContentDescription(), activity.getResources().getString(net.sourceforge.opencamera.R.string.start_video));
             assertEquals(pauseVideoButton.getContentDescription(), activity.getResources().getString(net.sourceforge.opencamera.R.string.pause_video));
             assertEquals(switchVideoButton.getContentDescription(), activity.getResources().getString(net.sourceforge.opencamera.R.string.switch_to_photo));
         }
         else {
             assertEquals((int) (Integer) takePhotoButton.getTag(), net.sourceforge.opencamera.R.drawable.take_photo_selector);
-            assertEquals((int) (Integer) switchVideoButton.getTag(), net.sourceforge.opencamera.R.drawable.take_video);
+            assertEquals((int) (Integer) switchVideoButton.getTag(), net.sourceforge.opencamera.R.drawable.ic_videocam_white_48dp);
             assertEquals(takePhotoButton.getContentDescription(), activity.getResources().getString(net.sourceforge.opencamera.R.string.take_photo));
             assertEquals(pauseVideoButton.getContentDescription(), activity.getResources().getString(net.sourceforge.opencamera.R.string.pause_video));
             assertEquals(switchVideoButton.getContentDescription(), activity.getResources().getString(net.sourceforge.opencamera.R.string.switch_to_video));
@@ -1603,7 +1603,7 @@ public class TestUtils {
         View shareButton = activity.findViewById(net.sourceforge.opencamera.R.id.share);
 
         assertEquals((int) (Integer) takePhotoButton.getTag(), net.sourceforge.opencamera.R.drawable.take_video_recording);
-        assertEquals((int) (Integer) switchVideoButton.getTag(), net.sourceforge.opencamera.R.drawable.take_photo);
+        assertEquals((int) (Integer) switchVideoButton.getTag(), net.sourceforge.opencamera.R.drawable.ic_photo_camera_white_48dp);
         assertEquals(takePhotoButton.getContentDescription(), activity.getResources().getString(net.sourceforge.opencamera.R.string.stop_video));
         assertEquals(pauseVideoButton.getContentDescription(), activity.getResources().getString(net.sourceforge.opencamera.R.string.pause_video));
         if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.N )
@@ -1699,7 +1699,7 @@ public class TestUtils {
 
         assertFalse( preview.isVideoRecording() );
         assertEquals((int) (Integer) takePhotoButton.getTag(), net.sourceforge.opencamera.R.drawable.take_video_selector);
-        assertEquals((int) (Integer) switchVideoButton.getTag(), net.sourceforge.opencamera.R.drawable.take_photo);
+        assertEquals((int) (Integer) switchVideoButton.getTag(), net.sourceforge.opencamera.R.drawable.ic_photo_camera_white_48dp);
         assertEquals( takePhotoButton.getContentDescription(), activity.getResources().getString(net.sourceforge.opencamera.R.string.start_video) );
         assertEquals(pauseVideoButton.getContentDescription(), activity.getResources().getString(net.sourceforge.opencamera.R.string.pause_video));
         Log.d(TAG, "pauseVideoButton.getVisibility(): " + pauseVideoButton.getVisibility());

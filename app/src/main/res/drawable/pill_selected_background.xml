@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Light pill/stadium shape, used behind the active entry in the mode bar and behind
+     the active zoom step (matches the "selection = full light fill" language from the
+     Pixel Camera reference, see docs/design-reference/pixel-camera-screenshots.md) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid
+        android:color="@color/md_dark_on_surface"
+        />
+    <corners android:radius="9999dp" />
+</shape>

@@ -1,17 +1,32 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_main_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity" >
 
+    <!-- The camera preview is the one view here that is never repositioned at runtime by
+         MainUI.layoutUI() - it just needs to stay centred, like RelativeLayout's
+         layout_centerInParent used to give it (ConstraintLayout centres a view by connecting
+         both opposing sides on each axis to the parent). -->
     <FrameLayout
         android:id="@+id/preview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         />
-    
+
+    <!-- Everything below this point is positioned dynamically at runtime by
+         MainUI.layoutUI() (using ConstraintSet), for every rotation/UI-placement change - the
+         app:layout_constraint* attributes here are only a fallback so nothing is flagged as
+         "unconstrained" in the layout editor; they're overwritten before the first frame is
+         ever shown, same as these views simply had no position at all under the old
+         RelativeLayout (which also defaults unconstrained views to the top-left corner). -->
+
     <ImageButton
         android:id="@+id/take_photo"
         android:layout_width="100dp"
@@ -23,6 +38,8 @@
         android:stateListAnimator="@animator/button_animation"
         android:onClick="clickedTakePhoto"
         android:background="@null"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -38,6 +55,8 @@
         android:background="@drawable/circle_background"
         android:backgroundTint="@color/icons_background_tint"
         android:backgroundTintMode="src_in"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -57,6 +76,8 @@
         android:backgroundTint="@color/icons_background_tint"
         android:backgroundTintMode="src_in"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <!-- In Panorama mode, this row replaces switch_multi_camera: instead of one icon that
@@ -64,14 +85,16 @@
          Panorama only ever needs those two lenses (zoom is disabled in Panorama, see
          MyApplicationInterface.allowZoom()). The two buttons are grouped in one LinearLayout so
          they can be positioned as a single centred unit (see MainUI.java) - centering two
-         independent RelativeLayout siblings on a third view isn't straightforward, but a wrapping
+         independent siblings on a third view isn't straightforward, but a wrapping
          LinearLayout sidesteps that. -->
     <LinearLayout
         android:id="@+id/panorama_lens_row"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:visibility="gone">
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <Button
             android:id="@+id/panorama_lens_wide"
@@ -119,6 +142,8 @@
         android:onClick="clickedPauseVideo"
         android:background="@null"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -133,21 +158,27 @@
         android:stateListAnimator="@animator/button_animation"
         android:background="@null"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
-    <!-- don't have alpha too low, as otherwise flags up Google Play prelaunch warning about contrast ratio too low (should be at least 3)-->
+    <!-- Monochrom (dunkler Kreis + weißes Symbol) wie switch_camera und wie die
+         Pixel-Kamera-Referenz - vorher ein blaues PNG (@drawable/take_video). -->
     <ImageButton
         android:id="@+id/switch_video"
         android:layout_width="60dp"
         android:layout_height="60dp"
-        android:padding="10dp"
+        android:padding="14dp"
         android:scaleType="fitCenter"
         android:contentDescription="@string/switch_to_video"
-        app:srcCompat="@drawable/take_video"
+        app:srcCompat="@drawable/ic_videocam_white_48dp"
         android:stateListAnimator="@animator/button_animation"
-        android:alpha="0.61"
         android:onClick="clickedSwitchVideo"
-        android:background="@null"
+        android:background="@drawable/circle_background"
+        android:backgroundTint="@color/icons_background_tint"
+        android:backgroundTintMode="src_in"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <!-- need large padding than pause_video, to reflect that pause_video icon has padding built into the png image -->
@@ -163,6 +194,8 @@
         android:onClick="clickedTakePhotoVideoSnapshot"
         android:background="@null"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <SeekBar
@@ -171,6 +204,8 @@
         android:layout_width="150dp"
         android:layout_height="50dp"
         android:background="@color/seekbar_background"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <!-- n.b., layout_marginLeft set programmatically in DrawPreview -->
@@ -185,6 +220,8 @@
         android:layout_marginBottom="0dp"
         android:visibility="gone"
         android:background="@color/seekbar_background"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <!-- n.b., layout_marginLeft set programmatically in DrawPreview -->
@@ -199,15 +236,23 @@
         android:layout_marginBottom="0dp"
         android:visibility="gone"
         android:background="@color/seekbar_background"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
+    <!-- Fixed 1dp size, not 0dp: under RelativeLayout, 0dp was a literal zero size, but
+         ConstraintLayout treats 0dp as "match constraints" - with only one constraint per axis
+         (see MainUI.layoutUI()) that would make it expand to fill all remaining space instead
+         of collapsing to ~nothing, corrupting every icon chained off it. -->
     <View
         android:id="@+id/gui_anchor"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
         android:padding="1dp"
         android:scaleType="fitCenter"
         android:visibility="invisible"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <!-- padding set to 0 to maximise the size of the thumbnail shown; background is transparent for
@@ -226,6 +271,8 @@
         android:backgroundTint="@color/icons_background_tint"
         android:backgroundTintMode="src_in"
         android:onClick="clickedGallery"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -240,6 +287,8 @@
         android:backgroundTint="@color/icons_background_tint"
         android:backgroundTintMode="src_in"
         android:onClick="clickedSettings"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -254,8 +303,10 @@
         android:backgroundTint="@color/icons_background_tint"
         android:backgroundTintMode="src_in"
         android:onClick="clickedPopupSettings"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
-    
+
     <ImageButton
         android:id="@+id/exposure"
         android:layout_width="@dimen/onscreen_button_size"
@@ -269,6 +320,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedExposure"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -284,6 +337,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedExposureLock"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
 
@@ -300,6 +355,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedWhiteBalanceLock"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -315,6 +372,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedCycleRaw"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -330,6 +389,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedStoreLocation"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <!--<ImageButton
@@ -373,6 +434,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedTextStamp"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -388,6 +451,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedStamp"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -403,6 +468,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedFocusPeaking"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -418,6 +485,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedAutoLevel"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -433,6 +502,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedCycleFlash"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -448,6 +519,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedFaceDetection"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -463,6 +536,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedAudioControl"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -478,6 +553,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedCycleLockOrientation"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -493,6 +570,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedPreviewShots"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageView
@@ -507,6 +586,8 @@
         android:backgroundTint="@color/icons_background_tint"
         android:backgroundTintMode="src_in"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <!-- should be at left-most -->
@@ -523,6 +604,8 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedTrash"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
     <ImageButton
@@ -538,17 +621,24 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedShare"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
 
+    <!-- sliders_container is only ever centred in the parent (its position never changes at
+         runtime - only its translationX/Y, set in MainUI.layoutUI()); the nested RelativeLayouts
+         inside it are untouched by the root layout's type and keep working exactly as before. -->
     <LinearLayout
         android:id="@+id/sliders_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
         android:orientation="vertical"
         android:background="@color/seekbar_background"
         android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         >
 
         <RelativeLayout
@@ -693,8 +783,10 @@
         android:layout_height="wrap_content"
         android:fadeScrollbars="false"
         android:scrollbarThumbVertical="@color/scrollview"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         />
-    
+
     <ScrollView
         android:id="@+id/hide_container"
         android:layout_width="match_parent"
@@ -703,5 +795,83 @@
         android:visibility="gone"
         android:importantForAccessibility="no"
         />
-    
-</RelativeLayout>
+
+    <!-- Zoom-Stufen und Moduswahl-Leiste (Phase 2, SPEC.md 4.5). Die Stufen-Buttons werden
+         zur Laufzeit aus dem echten Zoom-Bereich der Kamera erzeugt, siehe ZoomStepper.java;
+         positioniert wird beides rotationsbewusst in MainUI.layoutUI(), die
+         app:layout_constraint*-Angaben hier sind nur ein Startwert. -->
+    <LinearLayout
+        android:id="@+id/zoom_stepper"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/pill_background"
+        android:contentDescription="@string/zoom_stepper"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/take_photo"
+        android:layout_marginBottom="16dp"
+        />
+
+    <!-- Eine LinearLayout-Leiste (keine ScrollView), damit sie im Querformat einfach auf
+         senkrecht umklappen kann - derselbe Mechanismus wie beim Panorama-Objektiv-Paar aus
+         Feature 4. Die Alternative (View drehen und ihre Layout-Groesse per Rand-Trick
+         korrigieren, siehe MainUI.setFixedRotation) ist im Projekt schon als fragil
+         dokumentiert, deshalb bewusst nicht gewaehlt. -->
+    <LinearLayout
+        android:id="@+id/mode_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:contentDescription="@string/mode_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/mode_bar_video"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textColor="@color/md_dark_on_surface"
+            android:textSize="14sp"
+            android:text="@string/video"
+            />
+
+        <TextView
+            android:id="@+id/mode_bar_photo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:background="@drawable/pill_selected_background"
+            android:textColor="@color/md_dark_surface"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:text="@string/photo"
+            />
+
+        <TextView
+            android:id="@+id/mode_bar_panorama"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textColor="@color/md_dark_on_surface"
+            android:textSize="14sp"
+            android:text="@string/photo_mode_panorama_full"
+            />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

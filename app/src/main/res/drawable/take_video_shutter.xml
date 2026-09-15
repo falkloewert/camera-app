@@ -3,9 +3,11 @@
     android:shape="oval">
     <size android:width="48dp" android:height="48dp"
         />
-    <solid android:color="@color/shutter_icon"/>
+    <!-- Im Videomodus ist die Mitte rot (Aufnahme-Optik), aussen der dunkle Ring -
+         Entscheidung Falk 2026-09-15 -->
+    <solid android:color="@color/shutter_icon_video_recording"/>
     <stroke
         android:width="16dp"
-        android:color="#FFFFFF"
+        android:color="@color/md_dark_surface"
         />
 </shape>

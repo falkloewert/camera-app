@@ -6,4 +6,8 @@
 
     <!-- used for the on-screen icons, e.g., Settings etc -->
 	<dimen name="onscreen_button_size">60dp</dimen>
+
+    <!-- one step in the zoom stepper (see ZoomStepper.java) -->
+    <dimen name="zoom_step_size">44dp</dimen>
+    <dimen name="zoom_step_margin">4dp</dimen>
 </resources>
