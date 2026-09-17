@@ -450,9 +450,19 @@ sind Zoom-Stufen-Pille, statische Moduswahl-Leiste und Drehmodell – grob ein V
 Alles Weitere (Kopfzeile, unterste Zeile, Karussell-Mechanik, Feinjustier-Rad,
 Einstellungen-Blatt, Fokus-Ring/Nivellierung, Haptik, Farben/Blur/Schrift) fehlt oder
 weicht ab; Ist/Soll mit Zeilenangaben in `ui-spezifikation.md` Abschnitt 7, empfohlene
-Reihenfolge dort am Anfang. **Vor dem nächsten Feature-Chat muss Falk die elf
-Spec-Konflikte in `ui-spezifikation.md` Abschnitt 9 entscheiden** (Detail-Spec vs.
-Screenshots, u. a. Drehmodell, Sucher-Layout, Kamera-Wechsel-Form, aktive Pille).
+Reihenfolge dort am Anfang.
+
+**Alle elf Spec-Konflikte entschieden (2026-09-17, Projektmanager-Chat, von Falk
+bestätigt):** Details/Begründung in `ui-spezifikation.md` Abschnitt 9. Kurzfassung:
+größtenteils Screenshot-Spec gewinnt (Grundregel „eins zu eins wie in der Referenz"),
+Ausnahmen: K6 kein echter Widerspruch (Badge zeigt aktive Auflösung dynamisch), K7
+Ruler-Hauptmarken nach Detail-Spec (mit „,5"), K8 Doppel-Tap-Verhalten bleibt vorerst
+wie heute (Foto auslösen). Schriftfamilie ebenfalls geklärt: Roboto Flex statt Google
+Sans (Lizenzgrund, keine Rückfrage nötig).
+
+**Nächster Schritt:** Kickoff für Audit-Schritt 1 (Auslöser-Zeile: Auslöser-Ring,
+Kamera-Wechsel-Form/-Abstand, Galerie-Miniatur an der richtigen Position, Haptik)
+erstellt.
 
 ---
 
@@ -647,3 +657,10 @@ Screenshots, u. a. Drehmodell, Sucher-Layout, Kamera-Wechsel-Form, aktive Pille)
   Schriftfamilie, Haptik nur die alten SeekBar-Ticks, Fokus weiterhin Rechteck,
   Nivellierung grün statt gelb. Nichts davon wurde in diesem Chat gebaut – nur
   dokumentiert.
+- **2026-09-17 (Projektmanager-Chat):** Alle elf Spec-Konflikte aus
+  `ui-spezifikation.md` Abschnitt 9 entschieden (Details dort und in 4.5 oben) –
+  größtenteils Screenshot-Spec, Ausnahmen K6 (kein echter Widerspruch), K7
+  (Detail-Spec) und K8 (Doppel-Tap bleibt vorerst wie heute). Schriftfamilie auf
+  Roboto Flex festgelegt (Google Sans nicht frei lizenzierbar). Kickoff für
+  Audit-Schritt 1 (Auslöser-Zeile) erstellt
+  (`docs/kickoff/redesign-schritt1-ausloeser-zeile.md`).

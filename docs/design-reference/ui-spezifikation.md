@@ -426,19 +426,22 @@ Screenshots abgeleiteten Vorgabe oben. Bis zur Entscheidung gilt die Screenshot-
 (Grundregel „eins zu eins wie in der Referenz"). Feature-Chats bauen nichts, das von
 einem offenen Punkt abhängt, ohne vorher nachzufragen.
 
-| # | Punkt | Detail-Spec | Screenshot-Spec (oben) | Entscheidung |
+| # | Punkt | Detail-Spec | Screenshot-Spec (oben) | Entscheidung (Falk, 2026-09-17) |
 |---|---|---|---|---|
-| K1 | Kamera-Wechsel-Form | Kreis, 56 dp | Squircle (1b) | offen |
-| K2 | Aktive Modus-Pille | `rgba(255,255,255,0.15)`, **weißer** Text, Gewicht 600 | helles, leicht transparentes Grau, **dunkle** Schrift (1b) | offen |
-| K3 | Drehmodell | Sucher fix, Bedienelemente drehen isoliert um die eigene Achse, Karussell ordnet sich an der Kante neu | starrer Block, Fenster dreht mit (2) – **am Gerät verifiziert** | Empfehlung: Screenshot-Spec, weil belegt |
-| K4 | Sucher-Layout 4:3 | zentriert zwischen Kopf- und Fußfläche, freie Ränder, 28 dp Eckradius; 16:9 schiebt sich transluzent hinter die Leisten | Bedienelemente hängen am Bildschirmrand und liegen bei 4:3 **über** dem Bild (1a) | offen |
-| K5 | Modus-Einträge | Nachtsicht · Porträt · Foto · Video · Kinoeffekt/Pan | nur echte Modi Foto · Video · Panorama (5, Falk 2026-09-15) | Entscheidung 5 gilt, solange Falk nichts Neues sagt |
-| K6 | Kopfzeilen-Badges | RAW / 50 MP (Foto), FHD / 4K (Video) | „12 MP" + Makro-Chip (1) | offen |
-| K7 | Ruler-Hauptmarken | `,5 · 1 · 2 · 5 · 10 · 30` | `1 · 2 · 5 · 10 · 30` (3.2) | offen (Kleinigkeit) |
-| K8 | Doppel-Tap | Kamerawechsel oder Sprung auf 2× | nicht spezifiziert; App heute: Foto auslösen | offen |
-| K9 | Fokus-Ring-Farbe | Weiß, 1,5 dp | gelb/golden, dünn (1, 1b) | offen |
-| K10 | Auslöser-Außenring | weiße 2-dp-Kontur, 4 dp Lücke, 88 dp | breiter, halbtransparenter grauer Außenring (1b) | offen |
-| K11 | Zoom-Zeichen | Buchstabe `x` (`1x`, `,5x`) | `×` (3.1, „offen") | offen |
+| K1 | Kamera-Wechsel-Form | Kreis, 56 dp | Squircle (1b) | **Squircle** – Direktvergleich sticht Zahlen |
+| K2 | Aktive Modus-Pille | `rgba(255,255,255,0.15)`, **weißer** Text, Gewicht 600 | helles, leicht transparentes Grau, **dunkle** Schrift (1b) | **Screenshot-Spec** (helles Grau + dunkler Text) |
+| K3 | Drehmodell | Sucher fix, Bedienelemente drehen isoliert um die eigene Achse, Karussell ordnet sich an der Kante neu | starrer Block, Fenster dreht mit (2) – **am Gerät verifiziert** | **Screenshot-Spec** (bereits so gebaut, bestätigt) |
+| K4 | Sucher-Layout 4:3 | zentriert zwischen Kopf- und Fußfläche, freie Ränder, 28 dp Eckradius; 16:9 schiebt sich transluzent hinter die Leisten | Bedienelemente hängen am Bildschirmrand und liegen bei 4:3 **über** dem Bild (1a) | **Screenshot-Spec** (Grundregel eins-zu-eins) |
+| K5 | Modus-Einträge | Nachtsicht · Porträt · Foto · Video · Kinoeffekt/Pan | nur echte Modi Foto · Video · Panorama (5, Falk 2026-09-15) | bestätigt, keine Änderung |
+| K6 | Kopfzeilen-Badges | RAW / 50 MP (Foto), FHD / 4K (Video) | „12 MP" + Makro-Chip (1) | **Kein echter Widerspruch** – Badge zeigt die jeweils aktuell aktive Auflösungs-Einstellung dynamisch an; „12 MP" war nur der Standardzustand im Screenshot |
+| K7 | Ruler-Hauptmarken | `,5 · 1 · 2 · 5 · 10 · 30` | `1 · 2 · 5 · 10 · 30` (3.2) | **Detail-Spec** (mit „,5", Konsistenz zu den Stufen-Buttons) |
+| K8 | Doppel-Tap | Kamerawechsel oder Sprung auf 2× | nicht spezifiziert; App heute: Foto auslösen | **offen – bleibt vorerst wie heute** (Foto auslösen), da Verhaltensänderung, keine reine Optik-Frage. Feature-Chats bauen nichts, das davon abhängt, ohne erneut nachzufragen |
+| K9 | Fokus-Ring-Farbe | Weiß, 1,5 dp | gelb/golden, dünn (1, 1b) | **Screenshot-Spec** (Gold/Gelb, direkt aus Falks Fotos ersichtlich) |
+| K10 | Auslöser-Außenring | weiße 2-dp-Kontur, 4 dp Lücke, 88 dp | breiter, halbtransparenter grauer Außenring (1b) | **Screenshot-Spec** (transluzent-grau) |
+| K11 | Zoom-Zeichen | Buchstabe `x` (`1x`, `,5x`) | `×` (3.1, „offen") | **Screenshot-Spec** (`×`, bereits so umgesetzt) |
+
+**Schriftfamilie (Zeile in 7.3, kein K-Punkt):** Google Sans ist nicht frei lizenzierbar
+→ **Roboto Flex (OFL)** als gebündelte Font-Ressource, keine weitere Rückfrage nötig.
 
 Kein Konflikt, nur zur Klarheit: Die Detail-Spec hat **sowohl** „Video" im Karussell
 **als auch** den Foto/Video-Umschalter im Dock – so ist es auch in der Referenz, beides
