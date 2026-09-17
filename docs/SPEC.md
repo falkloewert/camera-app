@@ -479,11 +479,16 @@ Video Start/Stopp, Panorama). Details: Abschnitt 6 (Eintrag 2026-09-17, Audit-Sc
    von Millimetern, weil jede Lage in einem anderen Fenster-Koordinatensystem rechnet).
    Kickoff fertig: `docs/kickoff/rotation-pixel-modell.md`, Belegbilder
    `docs/design-reference/rotation-uebergang-2026-09-17.jpg`.
-2. **Auslöse-Verzögerung ~1–2 s** (Falk): im Kamera-Log belegt – Fokusmodus „auto" löst
-   beim Tippen einen 0,7-s-Fokus-Scan aus, Blitz „auto" verhindert den ZSL-Puffer des
-   Pixel-HAL („can't find a ZSL buffer … fall back to real time request"). Beides sind
-   Open-Camera-Standardwerte; Pixel-Verhalten hieße Standard auf kontinuierlichen Fokus
-   (+ Blitz aus/ZSL). Verhaltens-Entscheidung, kein Optik-Thema.
+2. **Auslöse-Verzögerung ~1–2 s – geklärt (2026-09-17):** im Kamera-Log belegt –
+   Fokusmodus „auto" löst beim Tippen einen 0,7–0,9-s-Fokus-Scan aus, Blitz „auto"
+   verhindert den ZSL-Puffer des Pixel-HAL („can't find a ZSL buffer … fall back to real
+   time request", ~0,3 s). Mit **Fokus „Kontinuierlich" + Blitz „Aus"** kommt die
+   Aufnahme-Anforderung sofort beim Tipp (gemessen). „Kontinuierlich" ist bereits der
+   Open-Camera-Standard (`Preview.setFocusPref()`); das gespeicherte „auto" auf Falks
+   Gerät kam von einem Tipp auf „AF" im Popup (erstes Symbol der Fokus-Zeile) – Panorama/
+   Weitwinkel als Ursache am Gerät ausgeschlossen. Kein Code nötig; Blitz bleibt Falks
+   Wahl („Aus"). Beim Einstellungen-Blatt (7.1 Punkt 2) entfällt die Fokus-Zeile ohnehin,
+   die Pixel-App bietet keine Fokusmodus-Wahl.
 3. **Selfie-Weitwinkel:** die Frontkamera meldet Zoom 0,896×–10×; `ZoomStepper` filtert
    Stufen unter 1,25-facher Weite (0,9× wäre ein Fast-Duplikat von 1×). Zu klären: was
    zeigt die Pixel-App im Selfie-Modus in der Zoom-Pille? Dann ggf. Schwelle anpassen
