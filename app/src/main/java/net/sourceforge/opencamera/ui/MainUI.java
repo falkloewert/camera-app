@@ -915,18 +915,20 @@ public class MainUI {
     }
 
     /** Shows the sub-modes of the current top-level mode and highlights the active one: Foto
-     *  and Panorama while taking photos, nothing while filming. The bar's own place is fixed
-     *  (layoutUI()), so an empty bar moves nothing.
+     *  and Panorama while taking photos (Panorama only where the camera supports it - not with
+     *  the selfie camera, see MainActivity.supportsPanorama()), nothing while filming. The bar's
+     *  own place is fixed (layoutUI()), so an empty bar moves nothing.
      */
     public void updateModeBar() {
         boolean is_video = main_activity.getPreview().isVideo();
+        boolean offer_panorama = !is_video && main_activity.supportsPanorama();
         boolean is_panorama = !is_video &&
                 main_activity.getApplicationInterface().getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama;
 
         TextView photo_entry = main_activity.findViewById(R.id.mode_bar_photo);
         TextView panorama_entry = main_activity.findViewById(R.id.mode_bar_panorama);
         photo_entry.setVisibility(is_video ? View.GONE : View.VISIBLE);
-        panorama_entry.setVisibility(is_video ? View.GONE : View.VISIBLE);
+        panorama_entry.setVisibility(offer_panorama ? View.VISIBLE : View.GONE);
         applyModeBarStyle(photo_entry, !is_video && !is_panorama);
         applyModeBarStyle(panorama_entry, is_panorama);
     }
