@@ -169,12 +169,9 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     public static volatile Insets test_insets; // test insets for WindowInsets.Type.navigationBars() | WindowInsets.Type.displayCutout()
     public static volatile Insets test_cutout_insets; // test insets for WindowInsets.Type.displayCutout()
 
-    private final ToastBoxer switch_video_toast = new ToastBoxer();
     private final ToastBoxer screen_locked_toast = new ToastBoxer();
     private final ToastBoxer changed_auto_stabilise_toast = new ToastBoxer();
     private final ToastBoxer audio_control_toast = new ToastBoxer();
-    private boolean block_startup_toast = false; // used when returning from Settings/Popup - if we're displaying a toast anyway, don't want to display the info toast too
-    private String push_info_toast_text; // can be used to "push" extra text to the info text for showPhotoVideoToast()
 
     // application shortcuts:
     static private final String ACTION_SHORTCUT_CAMERA = "net.sourceforge.opencamera.SHORTCUT_CAMERA";
@@ -1430,7 +1427,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                     if( MyDebug.LOG )
                         Log.d(TAG, "camera_is_default: " + camera_is_default);
                     if( !camera_is_default ) {
-                        this.pushCameraIdToast(cameraId, cameraIdSPhysical);
                     }
                 }
             }
@@ -2006,26 +2002,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         return cameraId;
     }*/
 
-    private void pushCameraIdToast(int cameraId, String cameraIdSPhysical) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "pushCameraIdToast: " + cameraId);
-        if( preview.getCameraControllerManager().getNumberOfCameras() > 2 || cameraIdSPhysical != null ) {
-            // telling the user which camera is pointless for only two cameras, but on devices that now
-            // expose many cameras it can be confusing, so show a toast to at least display the id
-            // similarly we want to show a toast if using a physical camera, so user doesn't forget
-            String description = cameraIdSPhysical != null ?
-                    preview.getCameraControllerManager().getDescription(null, this, cameraIdSPhysical, true, true) :
-                    preview.getCameraControllerManager().getDescription(this, cameraId);
-            if( description != null ) {
-                String toast_string = description;
-                if( cameraIdSPhysical == null ) // only add the ID if not a physical camera
-                    toast_string += ": " + getResources().getString(R.string.camera_id) + " " + cameraId;
-                //preview.showToast(null, toast_string);
-                this.push_info_toast_text = toast_string;
-            }
-        }
-    }
-
     public void userSwitchToCamera(int cameraId, String cameraIdSPhysical) {
         if( MyDebug.LOG )
             Log.d(TAG, "userSwitchToCamera: " + cameraId + " / " + cameraIdSPhysical);
@@ -2075,7 +2051,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         if( this.preview.canSwitchCamera() ) {
             int cameraId = getNextCameraId();
             if( !isMultiCamEnabled() ) {
-                pushCameraIdToast(cameraId, null);
             }
             else {
                 // In multi-cam mode, no need to show the toast when just switching between front and back cameras.
@@ -2266,7 +2241,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                     }
                     MainActivity.this.closePopup();
                     if( MainActivity.this.preview.canSwitchCamera() ) {
-                        pushCameraIdToast(logical_camera, physical_camera);
                         userSwitchToCamera(logical_camera, physical_camera);
                     }
                 }
@@ -2406,7 +2380,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         if( already_selected )
             return;
         int curr_camera_id = getActualCameraId();
-        pushCameraIdToast(curr_camera_id, target_physical_id);
         userSwitchToCamera(curr_camera_id, target_physical_id);
     }
 
@@ -2460,9 +2433,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         // (if enabling them, we'll make the icon visible later on)
         mainUI.getOnScreenIcons().checkDisableGUIIcons();
 
-        if( !block_startup_toast ) {
-            this.showPhotoVideoToast(true);
-        }
     }
 
     public void clickedExposure(View view) {
@@ -3022,9 +2992,8 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
      *  camera, and make any other necessary changes.
      * @param update_camera Whether the camera needs to be updated. Can be set to false if we know changes
      *                      haven't been made to the camera settings, or we already reopened it.
-     * @param toast_message If non-null, display this toast instead of the usual camera "startup" toast
-     *                      that's shown in showPhotoVideoToast(). If non-null but an empty string, then
-     *                      this means no toast is shown at all.
+     * @param toast_message If non-null and not empty, display this toast (the camera "startup" info
+     *                      toast Open Camera used to show here is gone, see ui-spezifikation.md 8).
      * @param keep_popup    If false, the popup will be closed and destroyed. Set to true if you're sure
      *                      that the changed setting isn't one that requires the PopupView to be recreated
      * @param allow_dim     If true, for Camera2 API a dimming effect will be applied if updating the
@@ -3155,8 +3124,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         if( MyDebug.LOG ) {
             Log.d(TAG, "updateForSettings: time after init speech and location: " + (System.currentTimeMillis() - debug_time));
         }
-        if( toast_message != null )
-            block_startup_toast = true;
         if( !update_camera ) {
             // don't try to update camera
         }
@@ -3197,7 +3164,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                 }
             }, DrawPreview.dim_effect_time_c+16); // +16 to allow time for a frame update to run
         }
-        // don't set block_startup_toast to false yet, as camera might be closing/opening on background thread
         if( toast_message != null && !toast_message.isEmpty() )
             preview.showToast(null, toast_message, true);
 
@@ -3219,10 +3185,8 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     /** Closes and reopens the camera.
      *  The camera will be closed and opened on a background thread, so won't be available upon
      *  exit of this function.
-     * @param block_startup_toast Whether to block the usual info toast that's displayed when opening the camera
      */
-    public void reopenCamera(boolean block_startup_toast) {
-        this.block_startup_toast = block_startup_toast;
+    public void reopenCamera() {
         preview.reopenCamera();
     }
 
@@ -5414,10 +5378,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         if( MyDebug.LOG )
             Log.d(TAG, "cameraSetup: time after setting take photo icon: " + (System.currentTimeMillis() - debug_time));
 
-        if( !block_startup_toast ) {
-            this.showPhotoVideoToast(false);
-        }
-        block_startup_toast = false;
         if( MyDebug.LOG )
             Log.d(TAG, "cameraSetup: total time for cameraSetup: " + (System.currentTimeMillis() - debug_time));
 
@@ -5858,276 +5818,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                 break;
         }
         return photo_mode_string;
-    }
-
-    /** Displays a toast with information about the current preferences.
-     *  If always_show is true, the toast is always displayed; otherwise, we only display
-     *  a toast if it's important to notify the user (i.e., unusual non-default settings are
-     *  set). We want a balance between not pestering the user too much, whilst also reminding
-     *  them if certain settings are on.
-     */
-    private void showPhotoVideoToast(boolean always_show) {
-        if( MyDebug.LOG ) {
-            Log.d(TAG, "showPhotoVideoToast");
-            Log.d(TAG, "always_show? " + always_show);
-        }
-        CameraController camera_controller = preview.getCameraController();
-        if( camera_controller == null || this.camera_in_background ) {
-            if( MyDebug.LOG )
-                Log.d(TAG, "camera not open or in background");
-            return;
-        }
-        String toast_string;
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        boolean simple = true;
-        boolean video_high_speed = preview.isVideoHighSpeed();
-        MyApplicationInterface.PhotoMode photo_mode = applicationInterface.getPhotoMode();
-        if( preview.isVideo() ) {
-            VideoProfile profile = preview.getVideoProfile();
-
-            String extension_string = profile.fileExtension;
-            if( !profile.fileExtension.equals("mp4") ) {
-                simple = false;
-            }
-
-            String bitrate_string;
-            if( profile.videoBitRate >= 10000000 )
-                bitrate_string = profile.videoBitRate/1000000 + "Mbps";
-            else if( profile.videoBitRate >= 10000 )
-                bitrate_string = profile.videoBitRate/1000 + "Kbps";
-            else
-                bitrate_string = profile.videoBitRate + "bps";
-            String bitrate_value = applicationInterface.getVideoBitratePref();
-            if( !bitrate_value.equals("default") ) {
-                simple = false;
-            }
-
-            double capture_rate = profile.videoCaptureRate;
-            String capture_rate_string = (capture_rate < 9.5f) ? new DecimalFormat("#0.###").format(capture_rate) : String.valueOf((int) (profile.videoCaptureRate + 0.5));
-            toast_string = getResources().getString(R.string.video) + ": " + profile.videoFrameWidth + "x" + profile.videoFrameHeight + "\n" +
-                    capture_rate_string + getResources().getString(R.string.fps) + (video_high_speed ? " [" + getResources().getString(R.string.high_speed) + "]" : "") + ", " + bitrate_string + " (" + extension_string + ")";
-
-            String fps_value = applicationInterface.getVideoFPSPref();
-            if( !fps_value.equals("default") || video_high_speed ) {
-                simple = false;
-            }
-
-            float capture_rate_factor = applicationInterface.getVideoCaptureRateFactor();
-            if( Math.abs(capture_rate_factor - 1.0f) > 1.0e-5 ) {
-                toast_string += "\n" + getResources().getString(R.string.preference_video_capture_rate) + ": " + capture_rate_factor + "x";
-                simple = false;
-            }
-
-            {
-                CameraController.TonemapProfile tonemap_profile = applicationInterface.getVideoTonemapProfile();
-                if( tonemap_profile != CameraController.TonemapProfile.TONEMAPPROFILE_OFF && preview.supportsTonemapCurve() ) {
-                    if( applicationInterface.getVideoTonemapProfile() != CameraController.TonemapProfile.TONEMAPPROFILE_OFF && preview.supportsTonemapCurve() ) {
-                        int string_id = 0;
-                        switch( tonemap_profile ) {
-                            case TONEMAPPROFILE_REC709:
-                                string_id = R.string.preference_video_rec709;
-                                break;
-                            case TONEMAPPROFILE_SRGB:
-                                string_id = R.string.preference_video_srgb;
-                                break;
-                            case TONEMAPPROFILE_LOG:
-                                string_id = R.string.video_log;
-                                break;
-                            case TONEMAPPROFILE_GAMMA:
-                                string_id = R.string.preference_video_gamma;
-                                break;
-                            case TONEMAPPROFILE_JTVIDEO:
-                                string_id = R.string.preference_video_jtvideo;
-                                break;
-                            case TONEMAPPROFILE_JTLOG:
-                                string_id = R.string.preference_video_jtlog;
-                                break;
-                            case TONEMAPPROFILE_JTLOG2:
-                                string_id = R.string.preference_video_jtlog2;
-                                break;
-                        }
-                        if( string_id != 0 ) {
-                            simple = false;
-                            toast_string += "\n" + getResources().getString(string_id);
-                            if( tonemap_profile == CameraController.TonemapProfile.TONEMAPPROFILE_GAMMA ) {
-                                toast_string += " " + applicationInterface.getVideoProfileGamma();
-                            }
-                        }
-                        else {
-                            Log.e(TAG, "unknown tonemap_profile: " + tonemap_profile);
-                        }
-                    }
-                }
-            }
-
-            boolean record_audio = applicationInterface.getRecordAudioPref();
-            if( !record_audio ) {
-                toast_string += "\n" + getResources().getString(R.string.audio_disabled);
-                simple = false;
-            }
-            String max_duration_value = sharedPreferences.getString(PreferenceKeys.VideoMaxDurationPreferenceKey, "0");
-            if( !max_duration_value.isEmpty() && !max_duration_value.equals("0") ) {
-                String [] entries_array = getResources().getStringArray(R.array.preference_video_max_duration_entries);
-                String [] values_array = getResources().getStringArray(R.array.preference_video_max_duration_values);
-                int index = Arrays.asList(values_array).indexOf(max_duration_value);
-                if( index != -1 ) { // just in case!
-                    String entry = entries_array[index];
-                    toast_string += "\n" + getResources().getString(R.string.max_duration) +": " + entry;
-                    simple = false;
-                }
-            }
-            long max_filesize = applicationInterface.getVideoMaxFileSizeUserPref();
-            if( max_filesize != 0 ) {
-                toast_string += "\n" + getResources().getString(R.string.max_filesize) +": ";
-                if( max_filesize >= 1024*1024*1024 ) {
-                    long max_filesize_gb = max_filesize/(1024*1024*1024);
-                    toast_string += max_filesize_gb + getResources().getString(R.string.gb_abbreviation);
-                }
-                else {
-                    long max_filesize_mb = max_filesize/(1024*1024);
-                    toast_string += max_filesize_mb + getResources().getString(R.string.mb_abbreviation);
-                }
-                simple = false;
-            }
-            if( applicationInterface.getVideoFlashPref() && preview.supportsFlash() ) {
-                toast_string += "\n" + getResources().getString(R.string.preference_video_flash);
-                simple = false;
-            }
-        }
-        else {
-            if( photo_mode == MyApplicationInterface.PhotoMode.Panorama ) {
-                // don't show resolution in panorama mode
-                toast_string = "";
-            }
-            else {
-                toast_string = getResources().getString(R.string.photo);
-                CameraController.Size current_size = preview.getCurrentPictureSize();
-                toast_string += " " + current_size.width + "x" + current_size.height;
-            }
-
-            String photo_mode_string = getPhotoModeString(photo_mode, false);
-            if( photo_mode_string != null ) {
-                toast_string += (toast_string.isEmpty() ? "" : "\n") + getResources().getString(R.string.photo_mode) + ": " + photo_mode_string;
-                if( photo_mode != MyApplicationInterface.PhotoMode.DRO && photo_mode != MyApplicationInterface.PhotoMode.HDR && photo_mode != MyApplicationInterface.PhotoMode.NoiseReduction )
-                    simple = false;
-            }
-
-            if( preview.supportsFocus() && preview.getSupportedFocusValues().size() > 1 && photo_mode != MyApplicationInterface.PhotoMode.FocusBracketing ) {
-                String focus_value = preview.getCurrentFocusValue();
-                if( focus_value != null && !focus_value.equals("focus_mode_auto") && !focus_value.equals("focus_mode_continuous_picture") ) {
-                    String focus_entry = preview.findFocusEntryForValue(focus_value);
-                    if( focus_entry != null ) {
-                        toast_string += "\n" + focus_entry;
-                    }
-                }
-            }
-
-            if( applicationInterface.getAutoStabilisePref() ) {
-                // important as users are sometimes confused at the behaviour if they don't realise the option is on
-                toast_string += (toast_string.isEmpty() ? "" : "\n") + getResources().getString(R.string.preference_auto_stabilise);
-                simple = false;
-            }
-        }
-        if( applicationInterface.getFaceDetectionPref() ) {
-            // important so that the user realises why touching for focus/metering areas won't work - easy to forget that face detection has been turned on!
-            toast_string += "\n" + getResources().getString(R.string.preference_face_detection);
-            simple = false;
-        }
-        if( !video_high_speed ) {
-            //manual ISO only supported for high speed video
-            String iso_value = applicationInterface.getISOPref();
-            if( !iso_value.equals(CameraController.ISO_DEFAULT) ) {
-                toast_string += "\nISO: " + iso_value;
-                if( preview.supportsExposureTime() ) {
-                    long exposure_time_value = applicationInterface.getExposureTimePref();
-                    toast_string += " " + preview.getExposureTimeString(exposure_time_value);
-                }
-                simple = false;
-            }
-            int current_exposure = camera_controller.getExposureCompensation();
-            if( current_exposure != 0 ) {
-                toast_string += "\n" + preview.getExposureCompensationString(current_exposure);
-                simple = false;
-            }
-        }
-        try {
-            String scene_mode = camera_controller.getSceneMode();
-            String white_balance = camera_controller.getWhiteBalance();
-            String color_effect = camera_controller.getColorEffect();
-            if( scene_mode != null && !scene_mode.equals(CameraController.SCENE_MODE_DEFAULT) ) {
-                toast_string += "\n" + getResources().getString(R.string.scene_mode) + ": " + mainUI.getEntryForSceneMode(scene_mode);
-                simple = false;
-            }
-            if( white_balance != null && !white_balance.equals(CameraController.WHITE_BALANCE_DEFAULT) ) {
-                toast_string += "\n" + getResources().getString(R.string.white_balance) + ": " + mainUI.getEntryForWhiteBalance(white_balance);
-                if( white_balance.equals("manual") && preview.supportsWhiteBalanceTemperature() ) {
-                    toast_string += " " + camera_controller.getWhiteBalanceTemperature();
-                }
-                simple = false;
-            }
-            if( color_effect != null && !color_effect.equals(CameraController.COLOR_EFFECT_DEFAULT) ) {
-                toast_string += "\n" + getResources().getString(R.string.color_effect) + ": " + mainUI.getEntryForColorEffect(color_effect);
-                simple = false;
-            }
-        }
-        catch(RuntimeException e) {
-            // catch runtime error from camera_controller old API from camera.getParameters()
-            MyDebug.logStackTrace(TAG, "failed to get info from camera controller", e);
-        }
-        String lock_orientation = applicationInterface.getLockOrientationPref();
-        if( !lock_orientation.equals("none") && photo_mode != MyApplicationInterface.PhotoMode.Panorama ) {
-            // panorama locks to portrait, but don't want to display that in the toast
-            String [] entries_array = getResources().getStringArray(R.array.preference_lock_orientation_entries);
-            String [] values_array = getResources().getStringArray(R.array.preference_lock_orientation_values);
-            int index = Arrays.asList(values_array).indexOf(lock_orientation);
-            if( index != -1 ) { // just in case!
-                String entry = entries_array[index];
-                toast_string += "\n" + entry;
-                simple = false;
-            }
-        }
-        String timer = sharedPreferences.getString(PreferenceKeys.TimerPreferenceKey, "0");
-        if( !timer.equals("0") && photo_mode != MyApplicationInterface.PhotoMode.Panorama ) {
-            String [] entries_array = getResources().getStringArray(R.array.preference_timer_entries);
-            String [] values_array = getResources().getStringArray(R.array.preference_timer_values);
-            int index = Arrays.asList(values_array).indexOf(timer);
-            if( index != -1 ) { // just in case!
-                String entry = entries_array[index];
-                toast_string += "\n" + getResources().getString(R.string.preference_timer) + ": " + entry;
-                simple = false;
-            }
-        }
-        String repeat = applicationInterface.getRepeatPref();
-        if( !repeat.equals("1") ) {
-            String [] entries_array = getResources().getStringArray(R.array.preference_burst_mode_entries);
-            String [] values_array = getResources().getStringArray(R.array.preference_burst_mode_values);
-            int index = Arrays.asList(values_array).indexOf(repeat);
-            if( index != -1 ) { // just in case!
-                String entry = entries_array[index];
-                toast_string += "\n" + getResources().getString(R.string.preference_burst_mode) + ": " + entry;
-                simple = false;
-            }
-        }
-		/*if( audio_listener != null ) {
-			toast_string += "\n" + getResources().getString(R.string.preference_audio_noise_control);
-		}*/
-
-        if( MyDebug.LOG ) {
-            Log.d(TAG, "toast_string: " + toast_string);
-            Log.d(TAG, "simple?: " + simple);
-            Log.d(TAG, "push_info_toast_text: " + push_info_toast_text);
-        }
-        final boolean use_fake_toast = true;
-        if( !simple || always_show ) {
-            if( push_info_toast_text != null ) {
-                toast_string = push_info_toast_text + "\n" + toast_string;
-            }
-            preview.showToast(switch_video_toast, toast_string, use_fake_toast);
-        }
-        else if( push_info_toast_text != null ) {
-            preview.showToast(switch_video_toast, push_info_toast_text, use_fake_toast);
-        }
-        push_info_toast_text = null; // reset
     }
 
     public boolean hasAudioListener() {

@@ -1106,42 +1106,6 @@ public class PopupView extends LinearLayout {
         }
         else {
             MyApplicationInterface.PhotoMode new_photo_mode = photo_mode_values.get(option_id);
-            String toast_message = option;
-            switch (new_photo_mode) {
-                case Standard:
-                    toast_message = getResources().getString(R.string.photo_mode_standard_full);
-                    break;
-                case ExpoBracketing:
-                    toast_message = getResources().getString(R.string.photo_mode_expo_bracketing_full);
-                    break;
-                case FocusBracketing:
-                    toast_message = getResources().getString(R.string.photo_mode_focus_bracketing_full);
-                    break;
-                case FastBurst:
-                    toast_message = getResources().getString(R.string.photo_mode_fast_burst_full);
-                    break;
-                case NoiseReduction:
-                    toast_message = getResources().getString(R.string.photo_mode_noise_reduction_full);
-                    break;
-                case Panorama:
-                    toast_message = getResources().getString(R.string.photo_mode_panorama_full);
-                    break;
-                case X_Auto:
-                    toast_message = getResources().getString(R.string.photo_mode_x_auto_full);
-                    break;
-                case X_HDR:
-                    toast_message = getResources().getString(R.string.photo_mode_x_hdr_full);
-                    break;
-                case X_Night:
-                    toast_message = getResources().getString(R.string.photo_mode_x_night_full);
-                    break;
-                case X_Bokeh:
-                    toast_message = getResources().getString(R.string.photo_mode_x_bokeh_full);
-                    break;
-                case X_Beauty:
-                    toast_message = getResources().getString(R.string.photo_mode_x_beauty_full);
-                    break;
-            }
             final SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
             SharedPreferences.Editor editor = sharedPreferences.edit();
             switch (new_photo_mode) {
@@ -1191,29 +1155,23 @@ public class PopupView extends LinearLayout {
             }
             editor.apply();
 
-            boolean done_dialog = false;
             if( new_photo_mode == MyApplicationInterface.PhotoMode.HDR ) {
                 boolean done_hdr_info = sharedPreferences.contains(PreferenceKeys.HDRInfoPreferenceKey);
                 if( !done_hdr_info ) {
                     main_activity.getMainUI().showInfoDialog(R.string.photo_mode_hdr, R.string.hdr_info, PreferenceKeys.HDRInfoPreferenceKey);
-                    done_dialog = true;
                 }
             }
             else if( new_photo_mode == MyApplicationInterface.PhotoMode.Panorama ) {
                 boolean done_panorama_info = sharedPreferences.contains(PreferenceKeys.PanoramaInfoPreferenceKey);
                 if( !done_panorama_info ) {
                     main_activity.getMainUI().showInfoDialog(R.string.photo_mode_panorama_full, R.string.panorama_info, PreferenceKeys.PanoramaInfoPreferenceKey);
-                    done_dialog = true;
                 }
             }
 
-            if( done_dialog ) {
-                // no need to show toast
-                toast_message = null;
-            }
-
+            // No toast naming the new mode: Falk wants no mode/lens announcements anywhere in the
+            // app (ui-spezifikation.md section 8) - the mode bar shows the mode.
             main_activity.getApplicationInterface().getDrawPreview().updateSettings(); // because we cache the photomode
-            main_activity.updateForSettings(true, toast_message, false, true); // need to setup the camera again, as options may change (e.g., required burst mode, or whether RAW is allowed in this mode)
+            main_activity.updateForSettings(true, null, false, true); // need to setup the camera again, as options may change (e.g., required burst mode, or whether RAW is allowed in this mode)
             main_activity.getMainUI().destroyPopup(); // need to recreate popup for new selection
         }
     }

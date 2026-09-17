@@ -674,7 +674,7 @@ public class OnScreenIcons {
 
         updateFaceDetectionIcon();
         main_activity.getPreview().showToast(face_detection_toast, value ? R.string.face_detection_enabled : R.string.face_detection_disabled, true);
-        main_activity.reopenCamera(true);
+        main_activity.reopenCamera();
     }
 
     public void clickedAudioControl() {
