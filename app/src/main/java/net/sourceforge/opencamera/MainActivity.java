@@ -234,9 +234,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     private boolean has_cached_system_orientation;
     private SystemOrientation cached_system_orientation;
 
-    private boolean hasOldSystemOrientation;
-    private SystemOrientation oldSystemOrientation;
-
     private boolean has_cached_display_rotation;
     private long cached_display_rotation_time_ms;
     private int cached_display_rotation;
@@ -666,10 +663,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
         }*/
-
-        // so we get the icons rotation even when rotating for the first time - see onSystemOrientationChanged
-        this.hasOldSystemOrientation = true;
-        this.oldSystemOrientation = getSystemOrientation();
 
         if( MyDebug.LOG )
             Log.d(TAG, "onCreate: total time for Activity startup: " + (System.currentTimeMillis() - debug_time));
@@ -1616,6 +1609,10 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         super.onConfigurationChanged(newConfig);
     }
 
+    /** Called when the window's orientation changes - with lock_to_portrait only ever on the
+     *  way to and from Settings (which is allowed to rotate); the camera layout itself never
+     *  changes, MainUI.layoutUI() is called from setWindowFlagsForCamera() when we return.
+     */
     private void onSystemOrientationChanged() {
         if( MyDebug.LOG )
             Log.d(TAG, "onSystemOrientationChanged");
@@ -1628,33 +1625,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         resetCachedSystemOrientation();
 
         preview.setCameraDisplayOrientation();
-        if( !lock_to_portrait ) {
-            SystemOrientation newSystemOrientation = getSystemOrientation();
-            if( hasOldSystemOrientation && oldSystemOrientation == newSystemOrientation ) {
-                if( MyDebug.LOG )
-                    Log.d(TAG, "onSystemOrientationChanged: orientation hasn't changed");
-            }
-            else {
-                if( hasOldSystemOrientation ) {
-                    // handle rotation animation
-                    int start_rotation = getRotationFromSystemOrientation(oldSystemOrientation) - getRotationFromSystemOrientation(newSystemOrientation);
-                    if( MyDebug.LOG )
-                        Log.d(TAG, "start_rotation: " + start_rotation);
-                    if( start_rotation < -180 )
-                        start_rotation += 360;
-                    else if( start_rotation > 180 )
-                        start_rotation -= 360;
-                    mainUI.layoutUIWithRotation(start_rotation);
-                }
-                else {
-                    mainUI.layoutUI();
-                }
-                applicationInterface.getDrawPreview().updateSettings();
-
-                hasOldSystemOrientation = true;
-                oldSystemOrientation = newSystemOrientation;
-            }
-        }
     }
 
     /** Returns the current system orientation, i.e. the orientation the window (and so the

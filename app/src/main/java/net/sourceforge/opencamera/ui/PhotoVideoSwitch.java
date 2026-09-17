@@ -19,11 +19,9 @@ import androidx.dynamicanimation.animation.SpringAnimation;
  *  film-camera glyph at the other, and a white knob that springs to whichever is active - the
  *  glyph under the knob turns dark, the other one is white.
  *
- *  Drawn by hand rather than built from child views so it can lay itself out along either
- *  axis: in landscape the pill stands on end like everything else in the rigidly turning
- *  layout (ui-spezifikation.md section 2), while the glyphs stay upright like the zoom digits.
- *  Which end holds "photo" follows the turn too - the portrait left end becomes the bottom in
- *  landscape, the top in reverse landscape (see setLayoutRotation()).
+ *  Drawn by hand rather than built from child views: the pill and knob are one shape that
+ *  never moves (the layout is locked to portrait, ui-spezifikation.md section 2), and only the
+ *  two glyphs need to turn on the spot when the device is held on its side.
  *
  *  Geometry measured off the reference screenshot (ui-spezifikation.md section 6): pill
  *  92 x 40 dp in #333333, knob 48 dp - it overhangs the pill by 4 dp on both sides, which is
@@ -47,9 +45,6 @@ public class PhotoVideoSwitch extends View {
     private final int glyph_on_knob_color;
     private final int glyph_color;
 
-    /** 0, 90 or 270: how far the portrait arrangement has been turned on screen, see
-     *  MainUI.getPortraitLayoutRotation(). */
-    private int layout_rotation;
     private boolean video;
     /** Where the knob is along the pill: 0 at the photo end, 1 at the video end. */
     private float knob_position;
@@ -86,19 +81,6 @@ public class PhotoVideoSwitch extends View {
         return dp * scale;
     }
 
-    private boolean isVertical() {
-        return layout_rotation != 0;
-    }
-
-    /** See MainUI.getPortraitLayoutRotation(); called from MainUI.layoutUI(). */
-    public void setLayoutRotation(int layout_rotation) {
-        if( this.layout_rotation != layout_rotation ) {
-            this.layout_rotation = layout_rotation;
-            requestLayout();
-            invalidate();
-        }
-    }
-
     public boolean isVideo() {
         return video;
     }
@@ -120,26 +102,15 @@ public class PhotoVideoSwitch extends View {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int length = Math.round(dp(PILL_LENGTH_DP));
-        int thickness = Math.round(dp(KNOB_DP));
-        if( isVertical() )
-            setMeasuredDimension(thickness, length);
-        else
-            setMeasuredDimension(length, thickness);
+        setMeasuredDimension(Math.round(dp(PILL_LENGTH_DP)), Math.round(dp(KNOB_DP)));
     }
 
-    /** Centre of the glyph (and knob) at position t along the pill, 0 = photo end, 1 = video
-     *  end, in this view's coordinates. In portrait the photo end is on the left; turned 90
-     *  degrees anticlockwise (landscape, rotation 270) that end is at the bottom, turned
-     *  clockwise (reverse landscape, 90) at the top.
-     */
+    /** X of the glyph (and knob) centre at position t along the pill, 0 = photo end on the
+     *  left, 1 = video end on the right. */
     private float alongAt(float t) {
         float inset = dp(GLYPH_INSET_DP);
         float length = dp(PILL_LENGTH_DP);
-        float from_photo_end = inset + t * (length - 2 * inset);
-        if( layout_rotation == 270 )
-            return length - from_photo_end;
-        return from_photo_end;
+        return inset + t * (length - 2 * inset);
     }
 
     @Override
@@ -149,26 +120,17 @@ public class PhotoVideoSwitch extends View {
         float pill_thickness = dp(PILL_THICKNESS_DP);
         float length = dp(PILL_LENGTH_DP);
         float pill_inset = (thickness - pill_thickness) / 2;
-        if( isVertical() )
-            pill_rect.set(pill_inset, 0, pill_inset + pill_thickness, length);
-        else
-            pill_rect.set(0, pill_inset, length, pill_inset + pill_thickness);
+        pill_rect.set(0, pill_inset, length, pill_inset + pill_thickness);
         canvas.drawRoundRect(pill_rect, pill_thickness / 2, pill_thickness / 2, pill_paint);
 
-        float across = thickness / 2;
-        float knob_along = alongAt(knob_position);
-        if( isVertical() )
-            canvas.drawCircle(across, knob_along, thickness / 2, knob_paint);
-        else
-            canvas.drawCircle(knob_along, across, thickness / 2, knob_paint);
+        float y = thickness / 2;
+        canvas.drawCircle(alongAt(knob_position), y, thickness / 2, knob_paint);
 
-        drawGlyph(canvas, photo_glyph, alongAt(0.0f), across, knob_position < 0.5f);
-        drawGlyph(canvas, video_glyph, alongAt(1.0f), across, knob_position >= 0.5f);
+        drawGlyph(canvas, photo_glyph, alongAt(0.0f), y, knob_position < 0.5f);
+        drawGlyph(canvas, video_glyph, alongAt(1.0f), y, knob_position >= 0.5f);
     }
 
-    private void drawGlyph(Canvas canvas, Drawable glyph, float along, float across, boolean on_knob) {
-        float x = isVertical() ? across : along;
-        float y = isVertical() ? along : across;
+    private void drawGlyph(Canvas canvas, Drawable glyph, float x, float y, boolean on_knob) {
         int half = Math.round(dp(GLYPH_DP) / 2);
         glyph.setBounds(Math.round(x) - half, Math.round(y) - half, Math.round(x) + half, Math.round(y) + half);
         glyph.setTint(on_knob ? glyph_on_knob_color : glyph_color);

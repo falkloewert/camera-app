@@ -53,7 +53,8 @@ public class ZoomStepper {
         return !step_zoom_factors.isEmpty();
     }
 
-    /** The step buttons in their portrait order (widest lens first), for MainUI.orientBar(). */
+    /** The step buttons, widest lens first - the glyphs MainUI turns when the device is held
+     *  on its side (the pill itself stays put). */
     List<Button> getStepButtons() {
         return step_buttons;
     }
@@ -83,10 +84,8 @@ public class ZoomStepper {
             step_ratios.add(preview.getZoomRatio(zoom_factor));
             Button button = createStepButton(preview.getZoomRatio(zoom_factor), zoom_factor, step_index);
             step_buttons.add(button);
+            container.addView(button);
         }
-        // the buttons go into the bar via MainUI, which knows which way round they belong for
-        // the current orientation (this runs after layoutUI() when a camera is opened)
-        main_activity.getMainUI().orientBar(container, step_buttons);
 
         updateSelection(preview.getCameraController().getZoom());
     }

@@ -20,8 +20,9 @@
         app:layout_constraintBottom_toBottomOf="parent"
         />
 
-    <!-- Everything below this point is positioned dynamically at runtime by
-         MainUI.layoutUI() (using ConstraintSet), for every rotation/UI-placement change - the
+    <!-- Everything below this point is positioned at runtime by MainUI.layoutUI() (using
+         ConstraintSet) - one fixed portrait arrangement, the window never rotates (see the
+         rotation model in docs/design-reference/ui-spezifikation.md section 2). The
          app:layout_constraint* attributes here are only a fallback so nothing is flagged as
          "unconstrained" in the layout editor; they're overwritten before the first frame is
          ever shown, same as these views simply had no position at all under the old
@@ -89,9 +90,8 @@
          MyApplicationInterface.allowZoom()). The two buttons are grouped in one LinearLayout so
          they can be positioned as a single centred unit (see MainUI.java) - centering two
          independent siblings on a third view isn't straightforward, but a wrapping
-         LinearLayout sidesteps that. The gap between the two buttons is a divider rather
-         than a margin, so it stays between them when MainUI.orientBar() reverses their
-         order in landscape. The buttons zero their padding and minimum size because under
+         LinearLayout sidesteps that. The gap between the two buttons is a divider
+         (panorama_lens_gap.xml). The buttons zero their padding and minimum size because under
          the Material 3 theme a <Button> inflates as a MaterialButton with 24dp side padding,
          which wrapped "1x" onto two lines inside the 60dp circle (same fix as in
          ZoomStepper.createStepButton()). -->
@@ -834,14 +834,11 @@
         android:layout_marginBottom="16dp"
         />
 
-    <!-- Eine LinearLayout-Leiste (keine ScrollView). Im Querformat wird sie von
-         MainUI.orientBar() zur Spalte umgeklappt, mit umgekehrter Reihenfolge und quer
-         gestellten Beschriftungen (RotatedTextView) - so sieht sie aus wie die starr
-         mitgedrehte Hochformat-Leiste der Referenz. Die Alternative (ganze View drehen und
-         ihre Layout-Groesse per Rand-Trick korrigieren, siehe MainUI.setFixedRotation) ist
-         im Projekt schon als fragil dokumentiert, deshalb bewusst nicht gewaehlt. Der
-         Abstand zwischen den Eintraegen kommt als Trenner (showDividers), damit er bei
-         umgekehrter Reihenfolge automatisch an der richtigen Stelle bleibt. -->
+    <!-- Eine LinearLayout-Leiste (keine ScrollView). Das Fenster ist auf Hochformat gesperrt,
+         die Leiste liegt also immer waagerecht; haelt man das Geraet quer, stehen ihre
+         Beschriftungen quer - genau wie in der Referenz (ui-spezifikation.md Abschnitt 2),
+         die Modus-Texte werden bewusst NICHT wie die Symbole zurueckgedreht. Der Abstand
+         zwischen den Eintraegen kommt als Trenner (showDividers). -->
     <!-- Foto/Video-Umschalter aus der untersten Zeile der Referenz (Audit-Schritt 1 nimmt nur
          dieses eine Element vorweg, die Buttons links und rechts davon kommen mit Schritt 2).
          Größe und Ausrichtung bestimmt die View selbst, Position MainUI.layoutUI(). -->
@@ -869,7 +866,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginBottom="16dp">
 
-        <net.sourceforge.opencamera.ui.RotatedTextView
+        <TextView
             android:id="@+id/mode_bar_panorama"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

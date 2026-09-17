@@ -47,8 +47,6 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -70,18 +68,18 @@ public class MainUI {
     private final static boolean cache_popup = true; // if false, we recreate the popup each time
     private boolean force_destroy_popup = false; // if true, then the popup isn't cached for only the next time the popup is closed
 
-    private int current_orientation;
+    private int current_orientation; // how far the device has been turned clockwise from portrait, in steps of 90 degrees (onOrientationChanged())
+    /** Where the old icon row sits. There is only one fixed layout now (see layoutUI()), with
+     *  the icons along the top edge; the enum survives for DrawPreview, which positions its
+     *  on-screen text relative to the icons. */
     enum UIPlacement {
         UIPLACEMENT_RIGHT,
         UIPLACEMENT_LEFT,
         UIPLACEMENT_TOP
     }
-    private UIPlacement ui_placement = UIPlacement.UIPLACEMENT_RIGHT;
     private View top_icon = null;
-    private int navigation_gap_landscape_align_parent_bottom;
-    private int navigation_gap_reverse_landscape_align_parent_bottom;
+    private int navigation_gap_left; // inset along the left edge, remembered for setFocusSeekbarsRotation()
     private boolean view_rotate_animation;
-    private float view_rotate_animation_start; // for MainActivity.lock_to_portrait==false
     private final static int view_rotate_animation_duration = 100; // duration in ms of the icon rotation animation
     public final static int privacy_indicator_gap_dp = 24;
 
@@ -182,12 +180,6 @@ public class MainUI {
         if( !view_rotate_animation ) {
             view.setRotation(ui_rotation);
         }
-        if( !MainActivity.lock_to_portrait ) {
-            float start_rotation = view_rotate_animation_start + ui_rotation;
-            if( start_rotation >= 360.0f )
-                start_rotation -= 360.0f;
-            view.setRotation(start_rotation);
-        }
         float rotate_by = ui_rotation - view.getRotation();
         if( rotate_by > 181.0f )
             rotate_by -= 360.0f;
@@ -210,47 +202,9 @@ public class MainUI {
         layoutUI(false);
     }
 
-    public void layoutUIWithRotation(float view_rotate_animation_start) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "layoutUIWithRotation: " + view_rotate_animation_start);
-        this.view_rotate_animation = true;
-        this.view_rotate_animation_start = view_rotate_animation_start;
-        layoutUI();
-        view_rotate_animation = false;
-        this.view_rotate_animation_start = 0.0f;
-    }
-
-    private UIPlacement computeUIPlacement() {
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
-        String ui_placement_string = sharedPreferences.getString(PreferenceKeys.UIPlacementPreferenceKey, "ui_top");
-        switch( ui_placement_string ) {
-            case "ui_left":
-                return UIPlacement.UIPLACEMENT_LEFT;
-            case "ui_top":
-                return UIPlacement.UIPLACEMENT_TOP;
-            default:
-                return UIPlacement.UIPLACEMENT_RIGHT;
-        }
-    }
-
     // stores with width and height of the last time we laid out the UI
     public int layoutUI_display_w = -1;
     public int layoutUI_display_h = -1;
-
-    /** Represents one "logical direction" for ConstraintSet-based positioning: which side of
-     *  the view being positioned connects to which side of its anchor. This replaces the old
-     *  RelativeLayout rule-verb-as-int-constant trick (e.g. LEFT_OF meant "my right = anchor's
-     *  left") - ConstraintSet.connect() needs both sides spelled out explicitly, so Side bundles
-     *  that pair, letting the rest of layoutUI() keep swapping "logical" directions by
-     *  orientation/UI-placement exactly like the original RelativeLayout-based code did. */
-    private static final class Side {
-        final int view_side;
-        final int anchor_side;
-        Side(int view_side, int anchor_side) {
-            this.view_side = view_side;
-            this.anchor_side = anchor_side;
-        }
-    }
 
     private ConstraintLayout getConstraintRoot() {
         return (ConstraintLayout) main_activity.findViewById(R.id.activity_main_root);
@@ -274,28 +228,20 @@ public class MainUI {
         cs.setVisibility(view_id, visibility);
     }
 
-    /** Connects view_id's side to anchor_id's corresponding side (use ConstraintSet.PARENT_ID
-     *  for the parent). Does nothing if side is null, mirroring the old addRule(verb, 0)
-     *  ("no rule") case. */
-    private void connect(ConstraintSet cs, int view_id, Side side, int anchor_id, int margin) {
-        if( side == null )
-            return;
-        cs.connect(view_id, side.view_side, anchor_id, side.anchor_side, margin);
+    /** Centres a view on the screen's width. */
+    private void centerHorizontally(ConstraintSet cs, int view_id) {
+        cs.connect(view_id, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT, 0);
+        cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, 0);
     }
 
-    /** Applies the old logical "center_vertical"/"center_horizontal" RelativeLayout rule:
-     *  centers the view on one axis of the parent - real vertical centering, unless in
-     *  portrait, where the UI is conceptually rotated 90 degrees and it becomes real
-     *  horizontal centering instead (see the center_is_real_vertical computation below). */
-    private void centerLogicalVertical(ConstraintSet cs, int view_id, boolean real_vertical) {
-        if( real_vertical ) {
-            cs.connect(view_id, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 0);
-            cs.connect(view_id, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, 0);
-        }
-        else {
-            cs.connect(view_id, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT, 0);
-            cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, 0);
-        }
+    /** Places view above anchor_id, its bottom edge margin above the anchor's top edge. */
+    private void placeAbove(ConstraintSet cs, int view_id, int anchor_id, int margin) {
+        cs.connect(view_id, ConstraintSet.BOTTOM, anchor_id, ConstraintSet.TOP, margin);
+    }
+
+    /** Pins a view's bottom edge to the bottom of the screen, margin above the gesture inset. */
+    private void pinToBottom(ConstraintSet cs, int view_id, int navigation_gap, int margin) {
+        cs.connect(view_id, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, navigation_gap + margin);
     }
 
     private void layoutUI(boolean popup_container_only) {
@@ -305,152 +251,38 @@ public class MainUI {
             debug_time = System.currentTimeMillis();
         }
 
-        MainActivity.SystemOrientation system_orientation = main_activity.getSystemOrientation();
-        boolean system_orientation_portrait = system_orientation == MainActivity.SystemOrientation.PORTRAIT;
-        boolean system_orientation_reversed_landscape = system_orientation == MainActivity.SystemOrientation.REVERSE_LANDSCAPE;
-        if( MyDebug.LOG ) {
-            Log.d(TAG, "    system_orientation = " + system_orientation);
-            Log.d(TAG, "    system_orientation_portrait? " + system_orientation_portrait);
-        }
-
-        // we cache the preference_ui_placement to save having to check it in the draw() method
-        this.ui_placement = computeUIPlacement();
-        if( MyDebug.LOG )
-            Log.d(TAG, "ui_placement: " + ui_placement);
-        int relative_orientation;
-        if( MainActivity.lock_to_portrait ) {
-            // new code for orientation fixed to landscape
-            // the display orientation should be locked to landscape, but how many degrees is that?
-            int rotation = main_activity.getWindowManager().getDefaultDisplay().getRotation();
-            int degrees = 0;
-            switch (rotation) {
-                case Surface.ROTATION_0: degrees = 0; break;
-                case Surface.ROTATION_90: degrees = 90; break;
-                case Surface.ROTATION_180: degrees = 180; break;
-                case Surface.ROTATION_270: degrees = 270; break;
-                default:
-                    break;
-            }
-            // getRotation is anti-clockwise, but current_orientation is clockwise, so we add rather than subtract
-            // relative_orientation is clockwise from landscape-left
-            //int relative_orientation = (current_orientation + 360 - degrees) % 360;
-            relative_orientation = (current_orientation + degrees) % 360;
-            if( MyDebug.LOG ) {
-                Log.d(TAG, "    current_orientation = " + current_orientation);
-                Log.d(TAG, "    degrees = " + degrees);
-                Log.d(TAG, "    relative_orientation = " + relative_orientation);
-            }
-        }
-        else {
-            relative_orientation = 0;
-        }
-        final int ui_rotation = (360 - relative_orientation) % 360;
-        main_activity.getPreview().setUIRotation(ui_rotation);
-        // naming convention for variables is for system_orientation==LANDSCAPE, right-handed UI
+        // Rotation model (docs/design-reference/ui-spezifikation.md section 2, docs/kickoff/
+        // rotation-pixel-modell.md): the window is locked to portrait
+        // (MainActivity.lock_to_portrait), so there is exactly ONE arrangement of the controls,
+        // laid out below in real screen directions - nothing here depends on how the device is
+        // held. Turning the device only changes ui_rotation, which turns the glyphs in place
+        // via setViewRotation() and never touches a layout parameter; that is what keeps every
+        // control pixel-exact at its physical spot on the device, as in the Pixel Camera.
         //
-        // Orientation model (docs/design-reference/ui-spezifikation.md, section 2): there is ONE
-        // fixed arrangement of the controls, and the whole thing turns rigidly with the device -
-        // as if the portrait layout were printed on a card that rotates with the phone, so every
-        // button keeps its physical spot on the device. The mapping below expresses exactly that:
-        // the "logical" directions are named from the landscape point of view, and portrait is
-        // that same arrangement turned 90 degrees clockwise (logical right -> real bottom,
-        // logical top -> real right). Read the other way round, landscape (device top on the
-        // left) is the portrait arrangement turned 90 degrees anticlockwise, which is how the
-        // reference behaves. Reverse landscape is the 180 degree turn of landscape, handled by
-        // the swaps further down. So do NOT rebuild this mapping per orientation - it already is
-        // the rotation. What the mapping can't do is turn the contents of the LinearLayout bars
-        // (zoom steps, mode bar, panorama lens pair), since rotating a View doesn't rotate its
-        // layout bounds; those are re-stacked to look rotated in orientBar() instead.
-        Side align_left = system_orientation_portrait ? new Side(ConstraintSet.TOP, ConstraintSet.TOP) : new Side(ConstraintSet.LEFT, ConstraintSet.LEFT);
-        Side align_right = system_orientation_portrait ? new Side(ConstraintSet.BOTTOM, ConstraintSet.BOTTOM) : new Side(ConstraintSet.RIGHT, ConstraintSet.RIGHT);
-        Side align_top = system_orientation_portrait ? new Side(ConstraintSet.RIGHT, ConstraintSet.RIGHT) : new Side(ConstraintSet.TOP, ConstraintSet.TOP);
-        Side align_bottom = system_orientation_portrait ? new Side(ConstraintSet.LEFT, ConstraintSet.LEFT) : new Side(ConstraintSet.BOTTOM, ConstraintSet.BOTTOM);
-        Side left_of = system_orientation_portrait ? new Side(ConstraintSet.BOTTOM, ConstraintSet.TOP) : new Side(ConstraintSet.RIGHT, ConstraintSet.LEFT);
-        Side right_of = system_orientation_portrait ? new Side(ConstraintSet.TOP, ConstraintSet.BOTTOM) : new Side(ConstraintSet.LEFT, ConstraintSet.RIGHT);
-        Side above = system_orientation_portrait ? new Side(ConstraintSet.LEFT, ConstraintSet.RIGHT) : new Side(ConstraintSet.BOTTOM, ConstraintSet.TOP);
-        Side below = system_orientation_portrait ? new Side(ConstraintSet.RIGHT, ConstraintSet.LEFT) : new Side(ConstraintSet.TOP, ConstraintSet.BOTTOM);
-        Side ui_independent_left_of = left_of;
-        Side ui_independent_right_of = right_of;
-        Side ui_independent_above = above;
-        Side ui_independent_below = below;
-        Side align_parent_left = system_orientation_portrait ? new Side(ConstraintSet.TOP, ConstraintSet.TOP) : new Side(ConstraintSet.LEFT, ConstraintSet.LEFT);
-        Side align_parent_right = system_orientation_portrait ? new Side(ConstraintSet.BOTTOM, ConstraintSet.BOTTOM) : new Side(ConstraintSet.RIGHT, ConstraintSet.RIGHT);
-        Side align_parent_top = system_orientation_portrait ? new Side(ConstraintSet.RIGHT, ConstraintSet.RIGHT) : new Side(ConstraintSet.TOP, ConstraintSet.TOP);
-        Side align_parent_bottom = system_orientation_portrait ? new Side(ConstraintSet.LEFT, ConstraintSet.LEFT) : new Side(ConstraintSet.BOTTOM, ConstraintSet.BOTTOM);
-        // logical "center_vertical" (see centerLogicalVertical()) is a real vertical centering,
-        // unless in portrait, where the UI is conceptually rotated 90 degrees and it becomes a
-        // real horizontal centering instead
-        final boolean center_is_real_vertical = !system_orientation_portrait;
-
-        Side iconpanel_left_of = left_of;
-        Side iconpanel_right_of = right_of;
-        Side iconpanel_above = above;
-        Side iconpanel_below = below;
-        Side iconpanel_align_parent_left = align_parent_left;
-        Side iconpanel_align_parent_right = align_parent_right;
-        Side iconpanel_align_parent_top = align_parent_top;
-        Side iconpanel_align_parent_bottom = align_parent_bottom;
-
-        if( system_orientation_reversed_landscape ) {
-            Side temp = align_left;
-            align_left = align_right;
-            align_right = temp;
-            temp  = align_top;
-            align_top = align_bottom;
-            align_bottom = temp;
-            temp = left_of;
-            left_of = right_of;
-            right_of = temp;
-            temp = above;
-            above = below;
-            below = temp;
-
-            ui_independent_left_of = left_of;
-            ui_independent_right_of = right_of;
-            ui_independent_above = above;
-            ui_independent_below = below;
-
-            temp = align_parent_left;
-            align_parent_left = align_parent_right;
-            align_parent_right = temp;
-            temp = align_parent_top;
-            align_parent_top = align_parent_bottom;
-            align_parent_bottom = temp;
-
-            iconpanel_left_of = left_of;
-            iconpanel_right_of = right_of;
-            iconpanel_above = above;
-            iconpanel_below = below;
-            iconpanel_align_parent_left = align_parent_left;
-            iconpanel_align_parent_right = align_parent_right;
-            iconpanel_align_parent_top = align_parent_top;
-            iconpanel_align_parent_bottom = align_parent_bottom;
+        // ui_rotation is the rotation that makes a glyph read upright for the user:
+        // current_orientation is how far the device has been turned clockwise from its natural
+        // (portrait) position (MainUI.onOrientationChanged()), so the glyph has to turn the
+        // same amount the other way. The window's own rotation is added in case the natural
+        // orientation isn't portrait (a tablet held on end): for a phone it's 0.
+        int rotation = main_activity.getWindowManager().getDefaultDisplay().getRotation();
+        int degrees = 0;
+        switch (rotation) {
+            case Surface.ROTATION_0: degrees = 0; break;
+            case Surface.ROTATION_90: degrees = 90; break;
+            case Surface.ROTATION_180: degrees = 180; break;
+            case Surface.ROTATION_270: degrees = 270; break;
+            default:
+                break;
         }
-
-        if( ui_placement == UIPlacement.UIPLACEMENT_LEFT ) {
-            Side temp = above;
-            above = below;
-            below = temp;
-            temp = align_parent_top;
-            align_parent_top = align_parent_bottom;
-            align_parent_bottom = temp;
-            iconpanel_align_parent_top = align_parent_top;
-            iconpanel_align_parent_bottom = align_parent_bottom;
+        // getRotation is anti-clockwise, but current_orientation is clockwise, so we add rather than subtract
+        int relative_orientation = (current_orientation + degrees) % 360;
+        final int ui_rotation = (360 - relative_orientation) % 360;
+        if( MyDebug.LOG ) {
+            Log.d(TAG, "    current_orientation = " + current_orientation);
+            Log.d(TAG, "    degrees = " + degrees);
+            Log.d(TAG, "    ui_rotation = " + ui_rotation);
         }
-        else if( ui_placement == UIPlacement.UIPLACEMENT_TOP ) {
-            iconpanel_left_of = below;
-            iconpanel_right_of = above;
-            iconpanel_above = left_of;
-            iconpanel_below = right_of;
-            //noinspection SuspiciousNameCombination
-            iconpanel_align_parent_left = align_parent_bottom;
-            //noinspection SuspiciousNameCombination
-            iconpanel_align_parent_right = align_parent_top;
-            //noinspection SuspiciousNameCombination
-            iconpanel_align_parent_top = align_parent_left;
-            //noinspection SuspiciousNameCombination
-            iconpanel_align_parent_bottom = align_parent_right;
-        }
+        main_activity.getPreview().setUIRotation(ui_rotation);
 
         final ConstraintLayout constraint_root = getConstraintRoot();
         final ConstraintSet cs = new ConstraintSet();
@@ -464,40 +296,22 @@ public class MainUI {
             Log.d(TAG, "layoutUI_display_w: " + layoutUI_display_w);
             Log.d(TAG, "layoutUI_display_h: " + layoutUI_display_h);
         }
-        final int display_height = Math.min(display_size.x, display_size.y);
+        // the screen's width (the shorter side), which the icon row along the top is spread across
+        final int display_width = Math.min(display_size.x, display_size.y);
 
         final float scale = main_activity.getResources().getDisplayMetrics().density;
         if( MyDebug.LOG )
             Log.d(TAG, "scale: " + scale);
 
-        /*int navigation_gap = 0;
-		if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1 ) {
-            final int display_width = Math.max(display_size.x, display_size.y);
-            Point real_display_size = new Point();
-            display.getRealSize(real_display_size);
-            final int real_display_width = Math.max(real_display_size.x, real_display_size.y);
-            navigation_gap = real_display_width - display_width;
-            if( MyDebug.LOG ) {
-                Log.d(TAG, "display_width: " + display_width);
-                Log.d(TAG, "real_display_width: " + real_display_width);
-                Log.d(TAG, "navigation_gap: " + navigation_gap);
-            }
-        }*/
+        // System insets to keep clear of: the gesture bar along the bottom edge, and anything
+        // along the two long edges (normally nothing in portrait; MainActivity names them after
+        // the landscape edges they'd be on if the window could turn).
         int navigation_gap = main_activity.getNavigationGap();
-        int navigation_gap_landscape = main_activity.getNavigationGapLandscape();
-        int navigation_gap_reverse_landscape = main_activity.getNavigationGapReverseLandscape();
-        // navigation gaps for UI elements that are aligned to align_parent_bottom (the landscape edge, or reversed landscape edge if left-handed):
-        this.navigation_gap_landscape_align_parent_bottom = navigation_gap_landscape;
-        this.navigation_gap_reverse_landscape_align_parent_bottom = navigation_gap_reverse_landscape;
-        if( ui_placement == UIPlacement.UIPLACEMENT_LEFT ) {
-            navigation_gap_landscape_align_parent_bottom = 0;
-        }
-        else {
-            navigation_gap_reverse_landscape_align_parent_bottom = 0;
-        }
+        this.navigation_gap_left = main_activity.getNavigationGapLandscape();
+        int navigation_gap_right = main_activity.getNavigationGapReverseLandscape();
         test_navigation_gap = navigation_gap;
-        test_navigation_gap_landscape = navigation_gap_landscape;
-        test_navigation_gap_reversed_landscape = navigation_gap_reverse_landscape;
+        test_navigation_gap_landscape = navigation_gap_left;
+        test_navigation_gap_reversed_landscape = navigation_gap_right;
         if( MyDebug.LOG ) {
             Log.d(TAG, "navigation_gap: " + navigation_gap);
         }
@@ -507,23 +321,25 @@ public class MainUI {
             // reset:
             top_icon = null;
 
-            // we use a dummy view, so that the GUI buttons keep their positioning even if the Settings button is hidden (visibility set to View.GONE)
+            // The old Open Camera icon row along the top edge (settings, popup menu, exposure,
+            // plus whatever OnScreenIcons adds), running right to left from a dummy anchor in
+            // the top right corner, so the row keeps its positioning even if the Settings
+            // button is hidden (visibility set to View.GONE). Not part of the redesign yet -
+            // the reference's header row replaces it in a later step.
             View view = main_activity.findViewById(R.id.gui_anchor);
             int view_id = view.getId();
             resetView(cs, view);
-            connect(cs, view_id, iconpanel_align_parent_right, ConstraintSet.PARENT_ID, 0);
-            connect(cs, view_id, iconpanel_align_parent_top, ConstraintSet.PARENT_ID, 0);
+            cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, 0);
+            cs.connect(view_id, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 0);
             setViewRotation(view, ui_rotation);
             View previous_view = view;
 
-            // the gallery thumbnail is no longer one of these icons - it sits on the shutter row
-            // in every UI placement, see below
+            // the gallery thumbnail is no longer one of these icons - it sits on the shutter row,
+            // see below
             List<View> buttons_permanent = new ArrayList<>();
             buttons_permanent.add(main_activity.findViewById(R.id.settings));
             buttons_permanent.add(main_activity.findViewById(R.id.popup));
             buttons_permanent.add(main_activity.findViewById(R.id.exposure));
-            //buttons_permanent.add(main_activity.findViewById(R.id.switch_video));
-            //buttons_permanent.add(main_activity.findViewById(R.id.switch_camera));
 
             onScreenIcons.addOnScreenIcons(buttons_permanent);
 
@@ -537,16 +353,15 @@ public class MainUI {
             for(View this_view : buttons_all) {
                 int this_id = this_view.getId();
                 resetView(cs, this_view);
-                connect(cs, this_id, iconpanel_align_parent_top, ConstraintSet.PARENT_ID, 0);
-                connect(cs, this_id, iconpanel_left_of, previous_view.getId(), 0);
+                cs.connect(this_id, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 0);
+                cs.connect(this_id, ConstraintSet.RIGHT, previous_view.getId(), ConstraintSet.LEFT, 0);
                 setViewRotation(this_view, ui_rotation);
                 previous_view = this_view;
             }
 
+            // spread the permanent icons evenly across the width
             int button_size = main_activity.getResources().getDimensionPixelSize(R.dimen.onscreen_button_size);
-            if( ui_placement == UIPlacement.UIPLACEMENT_TOP ) {
-                // need to dynamically lay out the permanent icons
-
+            {
                 int count = 0;
                 View first_visible_view = null;
                 View last_visible_view = null;
@@ -558,41 +373,33 @@ public class MainUI {
                         count++;
                     }
                 }
-                //count = 10; // test
                 if( MyDebug.LOG ) {
                     Log.d(TAG, "count: " + count);
-                    Log.d(TAG, "display_height: " + display_height);
+                    Log.d(TAG, "display_width: " + display_width);
                 }
                 if( count > 0 ) {
-					/*int button_size = display_height / count;
-					if( MyDebug.LOG )
-						Log.d(TAG, "button_size: " + button_size);
-					for(View this_view : buttons) {
-						if( this_view.getVisibility() == View.VISIBLE ) {
-							layoutParams = (RelativeLayout.LayoutParams)this_view.getLayoutParams();
-							layoutParams.width = button_size;
-							layoutParams.height = button_size;
-							this_view.setLayoutParams(layoutParams);
-						}
-					}*/
                     int total_button_size = count*button_size;
                     int margin = 0;
-                    if( total_button_size > display_height ) {
+                    if( total_button_size > display_width ) {
                         if( MyDebug.LOG )
                             Log.d(TAG, "need to reduce button size");
-                        button_size = display_height / count;
+                        button_size = display_width / count;
                     }
                     else {
                         if( MyDebug.LOG )
                             Log.d(TAG, "need to increase margin");
                         if( count > 1 )
-                            margin = (display_height - total_button_size) / (count-1);
+                            margin = (display_width - total_button_size) / (count-1);
                     }
                     if( MyDebug.LOG ) {
                         Log.d(TAG, "button_size: " + button_size);
                         Log.d(TAG, "total_button_size: " + total_button_size);
                         Log.d(TAG, "margin: " + margin);
                     }
+                    // keep clear of the privacy indicator (camera/microphone dot) at the top: a
+                    // hardcoded dp rather than WindowInsets.getPrivacyIndicatorBounds(), so the
+                    // icons stay in the same location
+                    final int privacy_gap_top = (int) (12 * scale + 0.5f); // convert dps to pixels
                     for(View this_view : buttons_permanent) {
                         if( this_view.getVisibility() == View.VISIBLE ) {
                             if( MyDebug.LOG ) {
@@ -601,21 +408,16 @@ public class MainUI {
                                     Log.d(TAG,"    first visible view");
                                 }
                             }
-                            //this_view.setPadding(0, margin/2, 0, margin/2);
                             int this_id = this_view.getId();
                             // be careful if we change how the margins are laid out: it looks nicer when only the settings icon
-                            // is displayed (when taking a photo) if it is still shown left-most, rather than centred; also
-                            // needed for "pause preview" trash/icons to be shown properly (test by rotating the phone to update
-                            // the layout)
-                            int margin_first = this_view==first_visible_view ? navigation_gap_reverse_landscape : margin/2;
-                            int margin_last = this_view==last_visible_view ? navigation_gap_landscape : margin/2;
-                            // avoid risk of privacy dot appearing on top of icon - in practice this is only a risk when in
-                            // reverse landscape mode, but we apply in all orientations to avoid icons jumping about;
-                            // similarly, as noted above we use a hardcoded dp rather than
-                            // WindowInsets.getPrivacyIndicatorBounds(), as we want the icons to stay in the same location even as
-                            // the device is rotated
-                            final int privacy_gap_left = (int) (12 * scale + 0.5f); // convert dps to pixels
-                            setMarginsForSystemUI(cs, this_id, privacy_gap_left, margin_first, 0, margin_last);
+                            // is displayed (when taking a photo) if it is still shown right-most, rather than centred; also
+                            // needed for "pause preview" trash/icons to be shown properly
+                            int margin_right = this_view==first_visible_view ? navigation_gap_right : margin/2;
+                            int margin_left = this_view==last_visible_view ? navigation_gap_left : margin/2;
+                            cs.setMargin(this_id, ConstraintSet.LEFT, margin_left);
+                            cs.setMargin(this_id, ConstraintSet.TOP, privacy_gap_top);
+                            cs.setMargin(this_id, ConstraintSet.RIGHT, margin_right);
+                            cs.setMargin(this_id, ConstraintSet.BOTTOM, 0);
                             cs.constrainWidth(this_id, button_size);
                             cs.constrainHeight(this_id, button_size);
                         }
@@ -623,288 +425,142 @@ public class MainUI {
                     top_icon = first_visible_view;
                 }
             }
-            else {
-                // need to reset size/margins to their default
-                // icons still need margins set for navigation_gap_landscape and navigation_gap_reverse_landscape
-                for(View this_view : buttons_permanent) {
-                    int this_id = this_view.getId();
-                    setMarginsForSystemUI(cs, this_id, 0, navigation_gap_reverse_landscape, 0, navigation_gap_landscape);
-                    cs.constrainWidth(this_id, button_size);
-                    cs.constrainHeight(this_id, button_size);
-                }
-            }
 
             // end icon panel
 
-            // The reference puts the mode bar in the outermost slot (below the shutter in
-            // portrait, a column beyond it in landscape), so the shutter sits one slot in from
-            // the screen edge rather than being pinned to it - see
-            // docs/design-reference/ui-spezifikation.md.
-            // The three bottom rows - shutter row, mode bar, photo/video switch - each hang
-            // off the screen edge on their own, at fixed distances measured off the reference
+            // The three bottom rows - shutter row, mode bar, photo/video switch - each hang off
+            // the bottom edge on their own, at fixed distances measured off the reference
             // screenshot (ui-spezifikation.md section 6: centres 241 / 149 / 85 dp from the
-            // bottom edge, of which 24 dp is the gesture inset). Deliberately NOT chained to
-            // one another: nothing that appears or disappears may ever push another row
-            // about (Falk, 2026-09-17).
+            // bottom edge, of which 24 dp is the gesture inset). Deliberately NOT chained to one
+            // another: nothing that appears or disappears may ever push another row about
+            // (Falk, 2026-09-17). The mode bar takes the outermost slot below the shutter, as in
+            // the reference.
             view = main_activity.findViewById(R.id.take_photo);
             view_id = view.getId();
             resetView(cs, view);
-            centerLogicalVertical(cs, view_id, center_is_real_vertical);
-            connect(cs, view_id, align_parent_right, ConstraintSet.PARENT_ID, 0);
-            {
-                int margin = (int) (167 * scale + 0.5f); // convert dps to pixels: 241 dp centre - 50 dp half view - 24 dp inset
-                setMarginsForSystemUI(cs, view_id, 0, 0, navigation_gap + margin, 0);
-            }
+            centerHorizontally(cs, view_id);
+            pinToBottom(cs, view_id, navigation_gap, (int) (167 * scale + 0.5f)); // 241 dp centre - 50 dp half view - 24 dp inset
             setViewRotation(view, ui_rotation);
 
-            // The shutter's neighbours: camera switch on its right (ui_independent_above is real
-            // right in portrait), gallery thumbnail on its left, each the reference distance from
-            // the shutter's centre and lined up with it rather than with the screen edge, since
-            // the shutter no longer sits at the edge itself (the mode bar does). The buttons that
-            // take over those two spots while recording video (pause / photo snapshot) or a
-            // panorama (cancel) are placed the same way, so nothing shifts when they appear.
+            // The shutter's neighbours: camera switch on its right, gallery thumbnail on its
+            // left, each the reference distance from the shutter's centre and lined up with it
+            // rather than with the screen edge. The buttons that take over those two spots while
+            // recording video (pause / photo snapshot) or a panorama (cancel) are placed the
+            // same way, so nothing shifts when they appear.
             view = main_activity.findViewById(R.id.switch_camera);
-            flankShutter(cs, view, ui_independent_above, align_left, align_right, system_orientation_portrait, scale);
+            flankShutter(cs, view, true, scale);
             setViewRotation(view, ui_rotation);
 
             view = main_activity.findViewById(R.id.gallery);
-            flankShutter(cs, view, ui_independent_below, align_left, align_right, system_orientation_portrait, scale);
+            flankShutter(cs, view, false, scale);
             setViewRotation(view, ui_rotation);
 
+            // the multi-camera switch sits just above the camera switch, lined up with it
             view = main_activity.findViewById(R.id.switch_multi_camera);
             view_id = view.getId();
             resetView(cs, view);
-            connect(cs, view_id, ui_independent_left_of, R.id.switch_camera, 0);
-            connect(cs, view_id, align_top, R.id.switch_camera, 0);
-            connect(cs, view_id, align_bottom, R.id.switch_camera, 0);
-            {
-                int margin = (int) (5 * scale + 0.5f); // convert dps to pixels
-                setMarginsForSystemUI(cs, view_id, 0, 0, margin, 0);
-            }
+            placeAbove(cs, view_id, R.id.switch_camera, (int) (5 * scale + 0.5f));
+            cs.connect(view_id, ConstraintSet.LEFT, R.id.switch_camera, ConstraintSet.LEFT, 0);
+            cs.connect(view_id, ConstraintSet.RIGHT, R.id.switch_camera, ConstraintSet.RIGHT, 0);
             setViewRotation(view, ui_rotation);
 
-            // panorama_lens_row (containing the "wide" and "1x" buttons) is positioned as a
-            // single centred unit above take_photo, using the same rotation-aware approach as
-            // every other button here (so it moves together with take_photo between portrait and
-            // landscape, rather than floating at a fixed screen spot disconnected from the
-            // shutter - Falk confirmed this is what he wants after comparing both):
-            // - center_vertical is the same rule take_photo itself uses to centre on the cross
-            //   axis, so the row lines up centred on take_photo in both portrait and landscape.
-            // - ui_independent_left_of maps to real ABOVE in portrait (and real LEFT_OF in
-            //   landscape) - see the comment on the "above"/"left_of" variables near the top of
-            //   this method - which is what puts it really above the shutter button in portrait,
-            //   as opposed to ui_independent_above, which maps to RIGHT_OF in portrait (that's
-            //   the relation switch_camera/switch_multi_camera use, placing them beside
-            //   take_photo rather than above it).
+            // panorama_lens_row (containing the "wide" and "1x" buttons) sits centred above the
+            // shutter, with a gap so the two don't visually merge (Falk confirmed he wants it
+            // tied to the shutter rather than floating at a fixed screen spot). The gap between
+            // the two buttons is a divider set in the XML.
             view = main_activity.findViewById(R.id.panorama_lens_row);
-            // The row itself is a horizontal pair of buttons in portrait, but a vertical stack in
-            // landscape, ordered as if the pair had simply rotated together with the rest of
-            // the UI - see orientBar(). The gap between the two buttons is a divider set in the
-            // XML, so it needs no per-orientation handling here.
-            orientBar((LinearLayout)view, Arrays.asList(
-                    main_activity.findViewById(R.id.panorama_lens_wide),
-                    main_activity.findViewById(R.id.panorama_lens_1x)));
             view_id = view.getId();
             resetView(cs, view);
-            centerLogicalVertical(cs, view_id, center_is_real_vertical);
-            connect(cs, view_id, ui_independent_left_of, R.id.take_photo, 0);
-            {
-                // gap between the button row and the shutter button, so they don't visually merge
-                int margin = (int) (16 * scale + 0.5f); // convert dps to pixels
-                setMarginsForSystemUI(cs, view_id, 0, 0, margin, 0);
-            }
+            centerHorizontally(cs, view_id);
+            placeAbove(cs, view_id, R.id.take_photo, (int) (16 * scale + 0.5f));
             setViewRotation(view, ui_rotation);
 
-            // The mode bar: below the shutter row in portrait, a column beyond it in landscape.
+            // The mode bar, below the shutter row. Its labels are plain TextViews that never
+            // turn: when the device is held on its side they read sideways, printed on the
+            // fixed layout exactly as in the reference (ui-spezifikation.md section 2).
             view = main_activity.findViewById(R.id.mode_bar);
-            // Like the panorama lens row, the mode bar sits side by side in portrait and stacks
-            // in landscape (see orientBar()). Unlike the zoom steps, its labels are laid on
-            // their side in landscape too, exactly as the reference does it - a RotatedTextView
-            // takes care of the text and its layout bounds.
-            {
-                List<RotatedTextView> mode_entries = Collections.singletonList(
-                        (RotatedTextView)main_activity.findViewById(R.id.mode_bar_panorama));
-                orientBar((LinearLayout)view, mode_entries);
-                int text_rotation = getPortraitLayoutRotation(system_orientation);
-                for(RotatedTextView entry : mode_entries)
-                    entry.setTextRotation(text_rotation);
-            }
             view_id = view.getId();
             resetView(cs, view);
-            centerLogicalVertical(cs, view_id, center_is_real_vertical);
-            connect(cs, view_id, align_parent_right, ConstraintSet.PARENT_ID, 0);
-            {
-                int margin = (int) (109 * scale + 0.5f); // convert dps to pixels: reference pill bottom edge 133 dp from the screen edge - 24 dp inset
-                setMarginsForSystemUI(cs, view_id, 0, 0, navigation_gap + margin, 0);
-            }
-            setViewRotation(view, ui_rotation);
+            centerHorizontally(cs, view_id);
+            pinToBottom(cs, view_id, navigation_gap, (int) (109 * scale + 0.5f)); // reference pill bottom edge 133 dp from the screen edge - 24 dp inset
 
             // The photo/video switch is the outermost element (the reference's bottom row; its
-            // other two buttons come with audit step 2). It draws itself along the turned
-            // axis, so it only needs to be told the layout rotation - see PhotoVideoSwitch.
+            // other two buttons come with audit step 2).
             view = main_activity.findViewById(R.id.photo_video_switch);
-            ((PhotoVideoSwitch)view).setLayoutRotation(getPortraitLayoutRotation(system_orientation));
             view_id = view.getId();
             resetView(cs, view);
-            centerLogicalVertical(cs, view_id, center_is_real_vertical);
-            connect(cs, view_id, align_parent_right, ConstraintSet.PARENT_ID, 0);
-            {
-                int margin = (int) (37 * scale + 0.5f); // convert dps to pixels: 85 dp centre - 24 dp half view - 24 dp inset
-                setMarginsForSystemUI(cs, view_id, 0, 0, navigation_gap + margin, 0);
-            }
+            centerHorizontally(cs, view_id);
+            pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f)); // 85 dp centre - 24 dp half view - 24 dp inset
             setViewRotation(view, ui_rotation);
 
+            // the zoom steps pill, centred just above the shutter
             view = main_activity.findViewById(R.id.zoom_stepper);
-            // the steps sit side by side in portrait and stack in landscape, ordered as if the
-            // row had rotated with the rest of the UI (see orientBar()); the digits themselves
-            // stay upright, as in the reference
-            orientBar((LinearLayout)view, zoomStepper.getStepButtons());
             view_id = view.getId();
             resetView(cs, view);
-            centerLogicalVertical(cs, view_id, center_is_real_vertical);
-            connect(cs, view_id, ui_independent_left_of, R.id.take_photo, 0);
-            {
-                int margin = (int) (12 * scale + 0.5f); // convert dps to pixels
-                setMarginsForSystemUI(cs, view_id, 0, 0, margin, 0);
-            }
+            centerHorizontally(cs, view_id);
+            placeAbove(cs, view_id, R.id.take_photo, (int) (12 * scale + 0.5f));
             setViewRotation(view, ui_rotation);
 
             view = main_activity.findViewById(R.id.pause_video);
-            flankShutter(cs, view, ui_independent_above, align_left, align_right, system_orientation_portrait, scale);
+            flankShutter(cs, view, true, scale);
             setViewRotation(view, ui_rotation);
 
             view = main_activity.findViewById(R.id.cancel_panorama);
-            flankShutter(cs, view, above, align_left, align_right, system_orientation_portrait, scale);
+            flankShutter(cs, view, true, scale);
             setViewRotation(view, ui_rotation);
 
             // switch_video stays hidden (see activity_main.xml), so it isn't positioned any more
 
             view = main_activity.findViewById(R.id.take_photo_when_video_recording);
-            flankShutter(cs, view, ui_independent_below, align_left, align_right, system_orientation_portrait, scale);
+            flankShutter(cs, view, false, scale);
             setViewRotation(view, ui_rotation);
 
+            // The seekbars stand on end along the left edge (see standOnEnd()): the zoom
+            // seekbar in the bottom left corner (kept only for tests, it's invisible where the
+            // zoom steps pill applies), the manual focus seekbar above it, the focus bracketing
+            // target seekbar to the right of that.
             view = main_activity.findViewById(R.id.zoom_seekbar);
             view_id = view.getId();
-            // align close to the edge of screen
             resetView(cs, view);
-            connect(cs, view_id, align_parent_right, ConstraintSet.PARENT_ID, 0);
-            connect(cs, view_id, align_parent_bottom, ConstraintSet.PARENT_ID, 0);
-            // margins set below in setFixedRotation()
-            int margin = (int) (20 * scale + 0.5f); // convert dps to pixels
-            setFixedRotation(cs, view, 0, navigation_gap_reverse_landscape_align_parent_bottom, margin+navigation_gap, navigation_gap_landscape_align_parent_bottom);
+            cs.connect(view_id, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT, 0);
+            cs.connect(view_id, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, 0);
+            standOnEnd(cs, view, navigation_gap_left, (int) (20 * scale + 0.5f) + navigation_gap);
 
             view = main_activity.findViewById(R.id.focus_seekbar);
             view_id = view.getId();
             resetView(cs, view);
-            connect(cs, view_id, left_of, R.id.zoom_seekbar, 0);
-            connect(cs, view_id, align_parent_bottom, ConstraintSet.PARENT_ID, 0);
+            placeAbove(cs, view_id, R.id.zoom_seekbar, 0);
+            cs.connect(view_id, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT, 0);
 
             view = main_activity.findViewById(R.id.focus_bracketing_target_seekbar);
             view_id = view.getId();
             resetView(cs, view);
-            connect(cs, view_id, left_of, R.id.zoom_seekbar, 0);
-            connect(cs, view_id, above, R.id.focus_seekbar, 0);
+            placeAbove(cs, view_id, R.id.zoom_seekbar, 0);
+            cs.connect(view_id, ConstraintSet.LEFT, R.id.focus_seekbar, ConstraintSet.RIGHT, 0);
 
             applyFocusSeekbarsRotation(cs);
         }
 
         if( !popup_container_only )
         {
-            // set seekbar info
-            int width_dp;
-            if( !system_orientation_portrait && (ui_rotation == 0 || ui_rotation == 180) ) {
-                // landscape
-                width_dp = 350;
-            }
-            else {
-                // portrait
-                width_dp = 250;
-                // prevent being too large on smaller devices (e.g., Galaxy Nexus or smaller)
-                int max_width_dp = getMaxHeightDp(true);
-                if( width_dp > max_width_dp )
-                    width_dp = max_width_dp;
-            }
+            // the exposure/ISO/... sliders: limit the width so they fit on screen (the limit only
+            // ever bites on small devices, e.g. Galaxy Nexus or smaller)
+            int width_dp = 250;
+            int max_width_dp = getMaxHeightDp(true);
+            if( width_dp > max_width_dp )
+                width_dp = max_width_dp;
             if( MyDebug.LOG )
                 Log.d(TAG, "width_dp: " + width_dp);
             int height_dp = 50;
             int width_pixels = (int) (width_dp * scale + 0.5f); // convert dps to pixels
             int height_pixels = (int) (height_dp * scale + 0.5f); // convert dps to pixels
 
+            // the container is centred on screen by the XML; shift it down so it doesn't sit
+            // right over the middle of the preview
             View view = main_activity.findViewById(R.id.sliders_container);
             setViewRotation(view, ui_rotation);
             view.setTranslationX(0.0f);
-            view.setTranslationY(0.0f);
-
-            if( system_orientation_portrait || ui_rotation == 90 || ui_rotation == 270 ) {
-                // portrait
-                if( system_orientation_portrait )
-                    view.setTranslationY(2*height_pixels);
-                else
-                    view.setTranslationX(2*height_pixels);
-            }
-            else if( ui_rotation == 0 ) {
-                // landscape
-                view.setTranslationY(height_pixels);
-            }
-            else {
-                // upside-down landscape
-                view.setTranslationY(-1*height_pixels);
-            }
-
-            /*
-            // align sliders_container
-            RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams)view.getLayoutParams();
-            if( system_orientation_portrait || ui_rotation == 90 || ui_rotation == 270 ) {
-                // portrait
-                if( system_orientation_portrait )
-                    view.setTranslationY(2*height_pixels);
-                else
-                    view.setTranslationX(2*height_pixels);
-                lp.addRule(left_of, 0);
-                lp.addRule(right_of, 0);
-                lp.addRule(above, 0);
-                lp.addRule(below, 0);
-                lp.addRule(align_parent_top, 0);
-                lp.addRule(align_parent_bottom, 0);
-            }
-            else if( ui_rotation == (ui_placement == UIPlacement.UIPLACEMENT_LEFT ? 180 : 0) ) {
-                // landscape (or upside-down landscape if ui-left)
-                view.setTranslationY(0);
-                lp.addRule(left_of, R.id.zoom_seekbar);
-                lp.addRule(right_of, 0);
-
-                if( main_activity.showManualFocusSeekbar(true) ) {
-                    lp.addRule(above, R.id.focus_bracketing_target_seekbar);
-                    lp.addRule(below, 0);
-                    lp.addRule(align_parent_top, 0);
-                    lp.addRule(align_parent_bottom, 0);
-                }
-                else if( main_activity.showManualFocusSeekbar(false) ) {
-                    lp.addRule(above, R.id.focus_seekbar);
-                    lp.addRule(below, 0);
-                    lp.addRule(align_parent_top, 0);
-                    lp.addRule(align_parent_bottom, 0);
-                }
-                else {
-                    lp.addRule(above, 0);
-                    lp.addRule(below, 0);
-                    lp.addRule(align_parent_top, 0);
-                    lp.addRule(align_parent_bottom, RelativeLayout.TRUE);
-                }
-            }
-            else {
-                // upside-down landscape (or landscape if ui-left)
-                if( ui_rotation == 0 )
-                    view.setTranslationY(height_pixels);
-                else
-                    view.setTranslationY(-1*height_pixels);
-                lp.addRule(left_of, 0);
-                lp.addRule(right_of, 0);
-                lp.addRule(above, 0);
-                lp.addRule(below, 0);
-                lp.addRule(align_parent_bottom, 0);
-            }
-            view.setLayoutParams(lp);*/
+            view.setTranslationY(2*height_pixels);
 
             view = main_activity.findViewById(R.id.exposure_seekbar);
             RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams)view.getLayoutParams();
@@ -933,29 +589,15 @@ public class MainUI {
 
         if( popupIsOpen() )
         {
+            // the popup menu opens below the icon row, at the left of the screen, and is
+            // limited to the screen's width in height so it doesn't take up the full screen
             final View view = main_activity.findViewById(R.id.popup_container);
             int view_id = view.getId();
             resetView(cs, view);
-            if( ui_placement == UIPlacement.UIPLACEMENT_TOP ) {
-                connect(cs, view_id, right_of, R.id.popup, 0);
-                if( !system_orientation_portrait ) {
-                    connect(cs, view_id, align_parent_top, ConstraintSet.PARENT_ID, 0);
-                    connect(cs, view_id, align_parent_bottom, ConstraintSet.PARENT_ID, 0);
-                }
-            }
-            else {
-                connect(cs, view_id, align_right, R.id.popup, 0);
-                connect(cs, view_id, below, R.id.popup, 0);
-                if( !system_orientation_portrait ) {
-                    connect(cs, view_id, align_parent_bottom, ConstraintSet.PARENT_ID, 0);
-                }
-            }
-            if( system_orientation_portrait ) {
-                // limit height so doesn't take up full height of screen
-                cs.constrainHeight(view_id, display_height);
-            }
+            cs.connect(view_id, ConstraintSet.TOP, R.id.popup, ConstraintSet.BOTTOM, 0);
+            cs.connect(view_id, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT, 0);
+            cs.constrainHeight(view_id, display_width);
 
-            //setPopupViewRotation(ui_rotation, display_height);
             view.getViewTreeObserver().addOnGlobalLayoutListener(
                     new OnGlobalLayoutListener() {
                         @Override
@@ -964,11 +606,11 @@ public class MainUI {
                                 Log.d(TAG, "onGlobalLayout()");
                             // We need to call setPopupViewRotation after the above layout param changes
                             // have taken effect, otherwise we can have problems due to popup_height being incorrect.
-                            // Example bugs:
+                            // Example bugs (from the days the layout could turn):
                             // Left-handed UI, portrait: Restart and open popup, it doesn't appear until device is rotated.
                             // Top UI, reverse-portrait: Restart and open popup, it appears in wrong location.
                             // Top UI, reverse-landscape: Restart and open popup, it appears in wrong location.
-                            setPopupViewRotation(ui_rotation, display_height);
+                            setPopupViewRotation(ui_rotation, display_width);
 
                             // stop listening - only want to call this once!
                             view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
@@ -993,60 +635,28 @@ public class MainUI {
         }
     }
 
-    /** Wrapper for ConstraintSet.setMargin, but where the margins are supplied for landscape
-     *  orientation, and if in portrait these are automatically rotated. Only takes effect for
-     *  sides that already have a connect() on this view - ConstraintLayout ignores margins on
-     *  unconnected sides, same as RelativeLayout ignored margins for rules that weren't set.
+    /** The seekbars are ordinary horizontal SeekBars stood on end (rotated 90 degrees) along
+     *  the left edge - Android has poor support for a vertical seekbar. View.setRotation()
+     *  doesn't affect the layout bounds, so as a hack the margins are shifted by half the
+     *  difference of width and height, which puts the rotated view where its bounds appear to
+     *  be. For this to work, the view must have a specified width (which can be computed
+     *  programmatically), rather than having both left and right sides aligned to another
+     *  view. Margins only take effect on sides that already have a connect() on this view.
+     *  @param left_margin   Wanted visual gap to whatever the view's left side is connected to.
+     *  @param bottom_margin Wanted visual gap to whatever the view's bottom side is connected to.
      */
-    void setMarginsForSystemUI(ConstraintSet cs, int view_id, int left, int top, int right, int bottom) {
-        MainActivity.SystemOrientation system_orientation = main_activity.getSystemOrientation();
-        int m_left, m_top, m_right, m_bottom;
-        if( system_orientation == MainActivity.SystemOrientation.PORTRAIT ) {
-            //noinspection SuspiciousNameCombination
-            m_left = bottom; m_top = left; m_right = top; m_bottom = right;
-        }
-        else if( system_orientation == MainActivity.SystemOrientation.REVERSE_LANDSCAPE ) {
-            m_left = right; m_top = bottom; m_right = left; m_bottom = top;
-        }
-        else {
-            m_left = left; m_top = top; m_right = right; m_bottom = bottom;
-        }
-        cs.setMargin(view_id, ConstraintSet.LEFT, m_left);
-        cs.setMargin(view_id, ConstraintSet.TOP, m_top);
-        cs.setMargin(view_id, ConstraintSet.RIGHT, m_right);
-        cs.setMargin(view_id, ConstraintSet.BOTTOM, m_bottom);
-    }
-
-    /** Some views (e.g. seekbars and zoom controls) are ones where we want to have a fixed
-     *  orientation as if in landscape mode, even if the system UI is portrait. So this method
-     *  sets a rotation so that the view appears as if in landscape orentation, and also sets
-     *  margins.
-     *  Note that Android has poor support for a rotated seekbar - we use view.setRotation(), but
-     *  this doesn't affect the bounds of the view! So as a hack, we modify the margins so the
-     *  view is positioned correctly. For this to work, the view must have a specified width
-     *  (which can be computed programmatically), rather than having both left and right sides being
-     *  aligned to another view.
-     *  The left/top/right/bottom margins should be supply for landscape orientation - these will
-     *  be automatically rotated if we're actually in portrait orientation.
-     */
-    private void setFixedRotation(ConstraintSet cs, View view, int left, int top, int right, int bottom) {
-        MainActivity.SystemOrientation system_orientation = main_activity.getSystemOrientation();
-        int rotation = (360 - MainActivity.getRotationFromSystemOrientation(system_orientation)) % 360;
-        view.setRotation(rotation);
+    private void standOnEnd(ConstraintSet cs, View view, int left_margin, int bottom_margin) {
+        view.setRotation(90);
         int view_id = view.getId();
-        // width/height are only ever set from static XML for these views, so reading them here
-        // (rather than from the pending ConstraintSet, which doesn't track plain dimensions the
-        // same way) is safe and matches the original behaviour
+        // width/height are only ever set from static XML (or programmatically, for the focus
+        // seekbars) for these views, so reading them here rather than from the pending
+        // ConstraintSet, which doesn't track plain dimensions the same way, is safe
         ViewGroup.LayoutParams layoutParams = view.getLayoutParams();
-        if( system_orientation == MainActivity.SystemOrientation.PORTRAIT ) {
-            int diff = (layoutParams.width-layoutParams.height)/2;
-            if( MyDebug.LOG )
-                Log.d(TAG, "diff: " + diff);
-            setMarginsForSystemUI(cs, view_id, diff+left, -diff+top, diff+right, -diff+bottom);
-        }
-        else {
-            setMarginsForSystemUI(cs, view_id, left, top, right, bottom);
-        }
+        int diff = (layoutParams.width-layoutParams.height)/2;
+        if( MyDebug.LOG )
+            Log.d(TAG, "diff: " + diff);
+        cs.setMargin(view_id, ConstraintSet.LEFT, left_margin - diff);
+        cs.setMargin(view_id, ConstraintSet.BOTTOM, bottom_margin + diff);
     }
 
     /** Adjusts just the two focus seekbars' rotation/margins on an existing (not yet applied)
@@ -1055,9 +665,9 @@ public class MainUI {
      *  change), which builds and applies its own ConstraintSet around this.
      */
     private void applyFocusSeekbarsRotation(ConstraintSet cs) {
-        setFixedRotation(cs, main_activity.findViewById(R.id.focus_seekbar), 0, navigation_gap_reverse_landscape_align_parent_bottom, 0, navigation_gap_landscape_align_parent_bottom);
-        // don't need to set margins for navigation gap landscape for focus_bracketing_target_seekbar, as it sits above the source focus_seekbar
-        setFixedRotation(cs, main_activity.findViewById(R.id.focus_bracketing_target_seekbar), 0, 0, 0, 0);
+        standOnEnd(cs, main_activity.findViewById(R.id.focus_seekbar), navigation_gap_left, 0);
+        // the focus bracketing target seekbar sits to the right of the focus seekbar, so needs no inset
+        standOnEnd(cs, main_activity.findViewById(R.id.focus_bracketing_target_seekbar), 0, 0);
     }
 
     void setFocusSeekbarsRotation() {
@@ -1112,7 +722,7 @@ public class MainUI {
             view.setPivotX(popup_width/2.0f);
             view.setPivotY(popup_height/2.0f);
         }
-        else if( ui_placement == UIPlacement.UIPLACEMENT_TOP ) {
+        else {
             view.setPivotX(0.0f);
             view.setPivotY(0.0f);
             if( ui_rotation == 90 ) {
@@ -1121,24 +731,6 @@ public class MainUI {
             }
             else if( ui_rotation == 270 ) {
                 view.setTranslationY(display_height);
-            }
-        }
-        else {
-            view.setPivotX(popup_width);
-            view.setPivotY(ui_placement == UIPlacement.UIPLACEMENT_RIGHT ? 0.0f : popup_height);
-            if( ui_placement == UIPlacement.UIPLACEMENT_RIGHT ) {
-                if( ui_rotation == 90 ) {
-                    //noinspection SuspiciousNameCombination
-                    view.setTranslationY( popup_width );
-                }
-                else if( ui_rotation == 270 )
-                    view.setTranslationX( - popup_height );
-            }
-            else {
-                if( ui_rotation == 90 )
-                    view.setTranslationX( - popup_height );
-                else if( ui_rotation == 270 )
-                    view.setTranslationY( - popup_width );
             }
         }
     }
@@ -1256,15 +848,6 @@ public class MainUI {
         return sharedPreferences.getString(PreferenceKeys.PhotoModePreferenceKey, "preference_photo_mode_std").equals("preference_photo_mode_panorama");
     }
 
-    /** Centres a view on the shutter button's band, so the buttons flanking the shutter stay on
-     *  its row wherever the shutter itself sits. Constraining both opposing sides to take_photo
-     *  leaves the view centred between them, since these buttons have a fixed size.
-     */
-    private void alignWithShutter(ConstraintSet cs, int view_id, Side align_left, Side align_right) {
-        connect(cs, view_id, align_left, R.id.take_photo, 0);
-        connect(cs, view_id, align_right, R.id.take_photo, 0);
-    }
-
     /** Centre-to-centre distance between the shutter and the buttons flanking it (gallery,
      *  camera switch), measured off the reference screenshot - see
      *  docs/design-reference/ui-spezifikation.md 7.2. (The detail spec's 64 dp can't be right:
@@ -1274,76 +857,25 @@ public class MainUI {
     /** Places a view beside the shutter on its row, its centre shutter_neighbour_distance_dp from
      *  the shutter's centre: the margin is whatever is left of that distance after half the
      *  shutter view and half this view, so views of different sizes still line up on the same
-     *  centre. side is the direction from the shutter (ui_independent_above/below = real
-     *  right/left in portrait).
+     *  centre. Tying both top and bottom to the shutter centres the (fixed-size) view on the
+     *  shutter's band, so the neighbours follow the shutter wherever it sits rather than the
+     *  screen edge.
+     *  @param right_of_shutter true for the right-hand neighbour, false for the left-hand one.
      */
-    private void flankShutter(ConstraintSet cs, View view, Side side, Side align_left, Side align_right, boolean system_orientation_portrait, float scale) {
+    private void flankShutter(ConstraintSet cs, View view, boolean right_of_shutter, float scale) {
         int view_id = view.getId();
         resetView(cs, view);
-        alignWithShutter(cs, view_id, align_left, align_right);
-        // the row runs horizontally in portrait and vertically in landscape, so it's the width
-        // or the height that counts (all these views are square anyway)
-        ViewGroup.LayoutParams shutter_params = main_activity.findViewById(R.id.take_photo).getLayoutParams();
-        ViewGroup.LayoutParams view_params = view.getLayoutParams();
-        int shutter_size = system_orientation_portrait ? shutter_params.width : shutter_params.height;
-        int view_size = system_orientation_portrait ? view_params.width : view_params.height;
+        cs.connect(view_id, ConstraintSet.TOP, R.id.take_photo, ConstraintSet.TOP, 0);
+        cs.connect(view_id, ConstraintSet.BOTTOM, R.id.take_photo, ConstraintSet.BOTTOM, 0);
+        // all these views are square, so the width is the size
+        int shutter_size = main_activity.findViewById(R.id.take_photo).getLayoutParams().width;
+        int view_size = view.getLayoutParams().width;
         int distance = (int) (shutter_neighbour_distance_dp * scale + 0.5f); // convert dps to pixels
-        connect(cs, view_id, side, R.id.take_photo, distance - shutter_size/2 - view_size/2);
-    }
-
-    /** How far the portrait arrangement of the controls has been turned on screen, in degrees
-     *  clockwise: 0 in portrait, 270 (i.e. 90 anticlockwise) in landscape, where the device's
-     *  top edge is on the left, and 90 in reverse landscape. This is the rotation applied to
-     *  anything that is meant to turn with the layout rather than stay upright, such as the
-     *  mode bar labels (see the orientation model comment in layoutUI()).
-     */
-    private static int getPortraitLayoutRotation(MainActivity.SystemOrientation system_orientation) {
-        switch( system_orientation ) {
-            case LANDSCAPE:
-                return 270;
-            case REVERSE_LANDSCAPE:
-                return 90;
-            default:
-                return 0;
-        }
-    }
-
-    /** Arranges one of the horizontal bars (zoom steps, mode bar, panorama lens pair) so that it
-     *  looks like the rigidly rotated portrait row (see the orientation model comment in
-     *  layoutUI()): side by side in portrait; stacked in landscape, and in (non-reverse)
-     *  landscape with the entries in reverse order - turning the portrait row 90 degrees
-     *  anticlockwise, which is what the screen does, puts its left end at the bottom. In reverse
-     *  landscape the turn is clockwise, so the left end lands at the top and the order stays.
-     *  Rotating the bar as a View instead would leave its layout bounds unrotated (see
-     *  setFixedRotation()), so the entries are re-stacked rather than rotated.
-     *  Only touches the view hierarchy if the order actually differs, since layoutUI() is called
-     *  often. Gaps between entries must come from LinearLayout dividers, which follow the order
-     *  automatically - per-entry margins would end up on the wrong side when reversed.
-     *  @param portrait_order The entries as they read left to right in portrait. Any entry not
-     *                        currently in the bar is added (used by ZoomStepper.update() after
-     *                        it has rebuilt its buttons).
-     */
-    void orientBar(LinearLayout bar, List<? extends View> portrait_order) {
-        MainActivity.SystemOrientation system_orientation = main_activity.getSystemOrientation();
-        boolean portrait = system_orientation == MainActivity.SystemOrientation.PORTRAIT;
-        bar.setOrientation(portrait ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
-
-        List<View> order = new ArrayList<>(portrait_order);
-        if( system_orientation == MainActivity.SystemOrientation.LANDSCAPE )
-            Collections.reverse(order);
-
-        boolean same_order = bar.getChildCount() == order.size();
-        for(int i=0;same_order && i<order.size();i++) {
-            same_order = bar.getChildAt(i) == order.get(i);
-        }
-        if( !same_order ) {
-            if( MyDebug.LOG )
-                Log.d(TAG, "orientBar: restacking " + bar.getContentDescription() + " for " + system_orientation);
-            bar.removeAllViews();
-            for(View entry : order) {
-                bar.addView(entry);
-            }
-        }
+        int margin = distance - shutter_size/2 - view_size/2;
+        if( right_of_shutter )
+            cs.connect(view_id, ConstraintSet.LEFT, R.id.take_photo, ConstraintSet.RIGHT, margin);
+        else
+            cs.connect(view_id, ConstraintSet.RIGHT, R.id.take_photo, ConstraintSet.LEFT, margin);
     }
 
     /** Applies a new photo mode preference and refreshes everything that caches it - same steps
@@ -1436,7 +968,7 @@ public class MainUI {
     }
 
     UIPlacement getUIPlacement() {
-        return this.ui_placement;
+        return UIPlacement.UIPLACEMENT_TOP;
     }
 
     public void updateRemoteConnectionIcon() {
@@ -2737,56 +2269,8 @@ public class MainUI {
                         // stop listening - only want to call this once!
                         popup_container.getViewTreeObserver().removeOnGlobalLayoutListener(this);
 
-                        UIPlacement ui_placement = computeUIPlacement();
-                        MainActivity.SystemOrientation system_orientation = main_activity.getSystemOrientation();
-                        float pivot_x;
-                        float pivot_y;
-                        switch( ui_placement ) {
-                            case UIPLACEMENT_TOP:
-                                if( main_activity.getPreview().getUIRotation() == 270 ) {
-                                    // portrait (when not locked)
-                                    pivot_x = 0.0f;
-                                    pivot_y = 1.0f;
-                                }
-                                else if( system_orientation == MainActivity.SystemOrientation.REVERSE_LANDSCAPE ) {
-                                    pivot_x = 1.0f;
-                                    pivot_y = 1.0f;
-                                }
-                                else {
-                                    pivot_x = 0.0f;
-                                    pivot_y = 0.0f;
-                                }
-                                break;
-                            case UIPLACEMENT_LEFT:
-                                if( system_orientation == MainActivity.SystemOrientation.PORTRAIT ) {
-                                    pivot_x = 0.0f;
-                                    pivot_y = 1.0f;
-                                }
-                                else if( system_orientation == MainActivity.SystemOrientation.REVERSE_LANDSCAPE ) {
-                                    pivot_x = 0.0f;
-                                    pivot_y = 0.0f;
-                                }
-                                else {
-                                    pivot_x = 1.0f;
-                                    pivot_y = 1.0f;
-                                }
-                                break;
-                            default:
-                                if( system_orientation == MainActivity.SystemOrientation.PORTRAIT ) {
-                                    pivot_x = 1.0f;
-                                    pivot_y = 1.0f;
-                                }
-                                else if( system_orientation == MainActivity.SystemOrientation.REVERSE_LANDSCAPE ) {
-                                    pivot_x = 0.0f;
-                                    pivot_y = 1.0f;
-                                }
-                                else {
-                                    pivot_x = 1.0f;
-                                    pivot_y = 0.0f;
-                                }
-                                break;
-                        }
-                        ScaleAnimation animation = new ScaleAnimation(0.0f, 1.0f, 0.0f, 1.0f, Animation.RELATIVE_TO_SELF, pivot_x, Animation.RELATIVE_TO_SELF, pivot_y);
+                        // the popup hangs below the icon row at the left, so it grows from its top left corner
+                        ScaleAnimation animation = new ScaleAnimation(0.0f, 1.0f, 0.0f, 1.0f, Animation.RELATIVE_TO_SELF, 0.0f, Animation.RELATIVE_TO_SELF, 0.0f);
                         animation.setDuration(200);
                         //popup_container.setAnimation(animation);
                         AlphaAnimation fade_animation = new AlphaAnimation(0.0f, 1.0f);
