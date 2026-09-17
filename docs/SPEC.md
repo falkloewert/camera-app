@@ -528,6 +528,14 @@ mit) und wird beim Abschluss ersetzt.
    Weitwinkel) – sofort da, aber ohne die Automatik der logischen Kamera (bei wenig
    Licht bleibt sie absichtlich auf dem Hauptsensor). Abwägungsfrage → eigener kleiner
    Feature-Chat, passt zum Zoom-Schritt (Feinjustier-Rad, 7.1 Punkt 1).
+9. **Toter Code durch `lock_to_portrait = true`:** Ponytail-Review (2026-09-18, Diff
+   `0dd4cbe7..HEAD`) fand mehrere `if(!lock_to_portrait)`/Cache-Zweige, die nie mehr
+   erreicht werden, seit `lock_to_portrait` beim Drehmodell-Umbau (`8dcd8fc3`) fest auf
+   `true` gesetzt wurde (u. a. `MainActivity.java` Zeilen 1589, 1649, 1732). Der Commit
+   begründet das damals bewusst: "kept only to stay close to upstream - they are not
+   used" (Open Cameras Original-Verhalten, Fenster dreht mit). Zu entscheiden: so lassen
+   (leichteres Upstream-Merging, wie in der Commit-Begründung angelegt) oder rausschneiden
+   (kürzerer, klarerer Code, aber weiter vom Original entfernt).
 
 ---
 
