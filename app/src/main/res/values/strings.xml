@@ -1029,6 +1029,7 @@
     <string name="panorama_lens_wide">Wide</string>
     <string name="zoom_stepper">Zoom stepper</string>
     <string name="mode_bar">Mode selector</string>
+    <string name="mode_bar_photo">Photo</string> <!-- mode bar entry for the ordinary photo mode, as the Pixel Camera labels it -->
     <string name="physical_cameras_info">&#9432; By default, a camera uses Auto Lens selection, which means the zoom level controls which lens is used. However this menu also allows you to explicitly choose which lens is being used.</string>
 
     <string name="focus_bracketing_auto_source_distance">Auto source</string>

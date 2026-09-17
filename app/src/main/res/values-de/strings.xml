@@ -937,6 +937,7 @@
     <string name="switch_multi_camera">Zwischen mehreren Kameras wechseln</string>
     <string name="panorama_lens_main">1x</string>
     <string name="panorama_lens_wide">Weitwinkel</string>
+    <string name="mode_bar_photo">Foto</string>
     <string name="preference_multi_cam_button">Tasten für mehrere Kameras</string>
     <string name="preference_multi_cam_button_summary">Falls aktiviert, werden verschiedene Tasten verwendet, um zwischen (mehreren) Front- und Rück-Kameras zu wechseln. Falls deaktiviert, rotiert die Taste zum Wechsel der Kamera durch alle Kameras hindurch.</string>
 

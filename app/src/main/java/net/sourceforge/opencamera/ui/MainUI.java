@@ -852,25 +852,23 @@ public class MainUI {
      */
     private void setupModeBar() {
         // The bar only lists the sub-modes of whatever the PhotoVideoSwitch is set to, and
-        // photo <-> video isn't switched here at all. Falk's decision (2026-09-17): no "Foto"
-        // entry either, since the switch already says "photo" - so Panorama is a toggle: tap
-        // it again to get back to the ordinary photo. Video has no sub-modes yet, so the bar
-        // is empty while filming (updateModeBar()).
-        main_activity.findViewById(R.id.mode_bar_panorama).setOnClickListener(new View.OnClickListener() {
+        // photo <-> video isn't switched here at all. While taking photos that is "Foto" (the
+        // ordinary photo) and "Panorama", as in the reference - Falk's decision (2026-09-17,
+        // revising audit step 1): a "Foto" entry is needed to get back out of Panorama, and out
+        // of whatever modes come later. Video has no sub-modes yet, so the bar is empty while
+        // filming (updateModeBar()).
+        setModeBarEntry(R.id.mode_bar_photo, "preference_photo_mode_std");
+        setModeBarEntry(R.id.mode_bar_panorama, "preference_photo_mode_panorama");
+    }
+
+    private void setModeBarEntry(int view_id, final String photo_mode_preference_value) {
+        main_activity.findViewById(view_id).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                switchPhotoMode(isPanoramaPreferred() ? "preference_photo_mode_std" : "preference_photo_mode_panorama");
+                switchPhotoMode(photo_mode_preference_value);
                 updateModeBar();
             }
         });
-    }
-
-    /** Whether panorama is the chosen photo mode - read from the preference rather than
-     *  MyApplicationInterface.getPhotoMode(), which reports Standard while in video mode.
-     */
-    private boolean isPanoramaPreferred() {
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
-        return sharedPreferences.getString(PreferenceKeys.PhotoModePreferenceKey, "preference_photo_mode_std").equals("preference_photo_mode_panorama");
     }
 
     /** Centre-to-centre distance between the shutter and the buttons flanking it (gallery,
@@ -916,8 +914,8 @@ public class MainUI {
         destroyPopup(); // popup contents depend on the photo mode
     }
 
-    /** Shows the sub-modes of the current top-level mode and highlights the active one: just
-     *  Panorama while taking photos, nothing while filming. The bar's own place is fixed
+    /** Shows the sub-modes of the current top-level mode and highlights the active one: Foto
+     *  and Panorama while taking photos, nothing while filming. The bar's own place is fixed
      *  (layoutUI()), so an empty bar moves nothing.
      */
     public void updateModeBar() {
@@ -925,8 +923,11 @@ public class MainUI {
         boolean is_panorama = !is_video &&
                 main_activity.getApplicationInterface().getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama;
 
+        TextView photo_entry = main_activity.findViewById(R.id.mode_bar_photo);
         TextView panorama_entry = main_activity.findViewById(R.id.mode_bar_panorama);
+        photo_entry.setVisibility(is_video ? View.GONE : View.VISIBLE);
         panorama_entry.setVisibility(is_video ? View.GONE : View.VISIBLE);
+        applyModeBarStyle(photo_entry, !is_video && !is_panorama);
         applyModeBarStyle(panorama_entry, is_panorama);
     }
 

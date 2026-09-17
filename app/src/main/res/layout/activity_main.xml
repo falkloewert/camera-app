@@ -867,6 +867,19 @@
         android:layout_marginBottom="16dp">
 
         <TextView
+            android:id="@+id/mode_bar_photo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textColor="@color/md_dark_on_surface"
+            android:textSize="14sp"
+            android:text="@string/mode_bar_photo"
+            />
+
+        <TextView
             android:id="@+id/mode_bar_panorama"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
