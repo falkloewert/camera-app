@@ -473,9 +473,12 @@ Pixel 9 Pro geprüft (Hochformat pixelgenau gegen die Referenz, beide Querformat
 Video Start/Stopp, Panorama). Details: Abschnitt 6 (Eintrag 2026-09-17, Audit-Schritt 1).
 
 **Für den Projektmanager-Chat aus Audit-Schritt 1 (nicht selbst entschieden):**
-1. **Drehmodell (K3) wieder offen** – Falk will den Pixel-Übergang (Hochformat-Sperre,
-   nur Glyphen drehen). Vorschlag mit korrigierter Diagnose:
-   `docs/kickoff/rotation-pixel-modell.md`.
+1. **Drehmodell (K3) wieder offen → nächster Feature-Chat** (Entscheidung Falk
+   2026-09-17 nach Video-Beleg): Hochformat-Sperre, nur Glyphen drehen. Ursachen im Video
+   belegt (Fenster-Drehanimation zeigt 1–2 Frames einen falschen Zwischenzustand; Versatz
+   von Millimetern, weil jede Lage in einem anderen Fenster-Koordinatensystem rechnet).
+   Kickoff fertig: `docs/kickoff/rotation-pixel-modell.md`, Belegbilder
+   `docs/design-reference/rotation-uebergang-2026-09-17.jpg`.
 2. **Auslöse-Verzögerung ~1–2 s** (Falk): im Kamera-Log belegt – Fokusmodus „auto" löst
    beim Tippen einen 0,7-s-Fokus-Scan aus, Blitz „auto" verhindert den ZSL-Puffer des
    Pixel-HAL („can't find a ZSL buffer … fall back to real time request"). Beides sind
@@ -729,6 +732,10 @@ Video Start/Stopp, Panorama). Details: Abschnitt 6 (Eintrag 2026-09-17, Audit-Sc
   Details in 4.5. Tests: vier Tag-Prüfungen in `TestUtils` entfernt (Content-Description
   deckt dieselben Zustände ab). Emulator `pixel_preview` bekam eine emulierte Frontkamera
   (AVD-Konfiguration), damit der Kamera-Wechsel dort testbar ist.
+  **Nachtrag:** Falk lieferte ein Video der Drehung; Frames belegen Glitsch-Zwischenzustand
+  und Versatz (siehe 4.5, Punkt 1). Falk entschied: Pixel-Drehmodell als **nächster
+  Feature-Chat**, Kickoff `docs/kickoff/rotation-pixel-modell.md` ausformuliert. Foto-
+  Verzögerung bestand fort, weil Fokus/Blitz auf dem Gerät noch auf „auto" standen.
 - **2026-09-17 (Projektmanager-Chat):** Recherche zu Milchglas/Blur-Machbarkeit
   dokumentiert (`ui-spezifikation.md` Abschnitt 7.3) – Empfehlung: erstmal 65 %
   Deckkraft ohne echten Blur, echter Blur bliebe spätere API-31+-Verbesserung.

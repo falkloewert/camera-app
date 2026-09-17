@@ -1,45 +1,122 @@
-# Kickoff-Vorschlag: Drehmodell wie die Pixel-Kamera (Hochformat-Sperre, nur Glyphen drehen)
+# Kickoff-Kontext: Drehmodell wie die Pixel-Kamera (Hochformat-Sperre, nur Glyphen drehen)
 
-Vorschlag aus dem Feature-Chat „Audit-Schritt 1 – Auslöser-Zeile" (2026-09-17), abgelegt
-für den Projektmanager-Chat gemäß SPEC.md 2.1 (app-weites Thema, nicht vom Feature-Chat
-entschieden). Auslöser: Falk hat beim Vergleich mit der Pixel-App festgestellt, dass sich
-beim Drehen „die gesamte UI-Hierarchie mitbewegt", und eine (fremde) Analyse samt Prompt
-eingebracht. **K3 in `ui-spezifikation.md` Abschnitt 9 ist damit wieder offen.**
+Teil des Material-3-Redesigns (`docs/SPEC.md` 4.5). Ersetzt den Orientierungs-Umbau vom
+2026-09-17 (Commit `2045620a`), dessen **Endlagen** stimmen, dessen **Übergang** aber nicht.
+Vorgeschlagen vom Feature-Chat „Audit-Schritt 1 – Auslöser-Zeile" (2026-09-17), von Falk am
+selben Tag als eigener Feature-Chat gewünscht. Konflikt K3 in `ui-spezifikation.md`
+Abschnitt 9 ist damit wieder offen.
 
-## Was wirklich anders ist (Diagnose gegen unseren Code geprüft)
+## Zuerst lesen
 
-| Behauptung der eingebrachten Analyse | Befund |
-|---|---|
-| „Rohe Sensordaten gehen ungedämpft an die Views", „fehlende Hysterese" | **Falsch.** Kein Sensorwert erreicht die UI. `lock_to_landscape = false` → `MainUI.onOrientationChanged()` tut nichts; die UI reagiert nur auf die diskreten System-Orientierungen (`onConfigurationChanged` → `layoutUI()`). Open Camera hat für den Sensor-Pfad sogar eine 60°-Hysterese. |
-| „Falsche Drehpunkte" | Falsch, alle Views drehen um ihre Mitte. |
-| „Google-App ist auf Hochformat gesperrt, nur Symbole/Texte drehen; bei uns dreht die ganze Hierarchie" | **Richtig, und das ist der ganze Unterschied.** Unsere Activity ist nicht gesperrt (kein `screenOrientation` im Manifest): Android dreht das ganze Fenster inkl. Sucher mit der Systemanimation, danach berechnet `layoutUI()` alle Positionen neu. Die Pixel-App sperrt auf Hochformat; die Anordnung klebt physisch am Gerät, jedes Symbol / jeder Text dreht sich an Ort und Stelle. |
+1. `docs/SPEC.md` Abschnitt 2.1 (deine Rolle & Abschlussprotokoll) und 4.5
+2. `docs/design-reference/ui-spezifikation.md` – Abschnitt 2 (Querformat-Anordnung, die
+   bleibt), Abschnitt 6 (was gebaut ist, v. a. „Auslöser-Zeile" und „Drehmodell"),
+   Abschnitt 8 (Falks Entscheidungen: feste Plätze, keine Animationen außer am Auslöser),
+   Abschnitt 9 K3
+3. `docs/design-reference/pixel-camera-detailspec.md` Abschnitt 10 („Bildschirmdrehung")
+4. `docs/design-reference/rotation-uebergang-2026-09-17.jpg` – sieben Einzelbilder aus
+   Falks Video (30 fps) beim Drehen unserer App, Beleg für das Problem (unten)
+5. `CLAUDE.md` – insbesondere die Git-Regel „Commit nur mit Dateipfaden"
 
-Die **Endlagen** beider Modelle sind identisch (das war die K3-Verifikation: Vergleich der
-Screenshots), der **Übergang** nicht. Das Pixel-Modell ist außerdem *einfacher* als unser
-heutiges: eine feste Hochformat-Anordnung statt der Orientierungs-Tabelle (`Side`-Zuordnung)
-in `layoutUI()`, kein `orientBar()`-Umstapeln, keine `RotatedTextView`-Sonderfälle – dafür
-Glyph-Rotation pro View (`setViewRotation()` existiert bereits) und Sucher-Handling wie bei
-Open Cameras `lock_to_landscape = true`, nur mit Hochformat als Basis.
+## Kurzfassung
 
-## Aufgabe (Vorschlag)
+- **Ich (Falk) habe keine Programmiererfahrung.** Erkläre bei jedem Schritt, was du tust
+  und warum.
+- **Git:** Du übernimmst add/commit/push komplett selbst – Commits **nur mit expliziter
+  Dateiangabe** (`git commit -- <Dateien>`), siehe `CLAUDE.md`.
+- **Nach Codeänderungen:** `graphify update .`
+- **Nur eine Sitzung gleichzeitig im Repo** – `git status`/`git fetch` vor Codeänderungen.
+- **Als Allererstes:** Session per `set_session_title` (`session_id: "self"`) umbenennen in
+  `camera-app – Redesign: Drehmodell`.
+- **Grundregel der UI-Spec:** eins zu eins wie in der Referenz, nichts erfinden, bei
+  Unklarheit nachfragen.
 
-1. Activity auf Hochformat sperren (`android:screenOrientation="portrait"` bzw. Open Cameras
-   `lock_to_landscape`-Mechanik auf Hochformat umstellen). Sucher darf bei physischer Drehung
-   weder neu konfiguriert noch neu gerendert werden.
-2. Orientierung nur noch aus dem vorhandenen `OrientationEventListener` in vier diskreten
-   Stufen (Hysterese ist da), `ui_rotation` daraus ableiten.
-3. `layoutUI()` auf **eine** feste Anordnung reduzieren (die heutige Hochformat-Lage);
-   pro Orientierung nur noch `setViewRotation()` auf die Blatt-Elemente (Icons, Ziffern,
-   Modus-Texte, Galerie-Bild, Umschalter-Glyphen), 300 ms, `cubic-bezier(0.2,0,0,1)`
-   (Detail-Spec 10). `PhotoVideoSwitch.setLayoutRotation()` und `orientBar()` entfallen.
-4. Alles neu am Gerät verifizieren, was der letzte Orientierungs-Umbau verifiziert hatte:
-   EXIF-Drehung von Fotos in allen vier Lagen, Video-Rotationshinweis, Panorama-Linsenpaar,
-   `DrawPreview`-Texte/Overlays, Popup, Seekbars, Immersive-Modus.
+## Das Problem, belegt
+
+Falks Anspruch (2026-09-17): *„Pixelperfekt immer an der gleichen Stelle – nicht ein
+verschiebbares Element, sondern es dreht sich einfach nur, bleibt aber auf dem Handy an der
+gleichen Stelle."* Im Video zeigen sich zwei Effekte:
+
+1. **Glitschen beim Drehen** (Bild 3 im JPG): für 1–2 Frames erscheint ein falscher
+   Zwischenzustand – die Zoom-Pille liegt plötzlich waagerecht („5 2 1×"), der Auslöser
+   fehlt, die Umschalter-Pille ist halb gezeichnet, darüber liegt das alte Bild. Ursache:
+   Androids **Fenster-Drehanimation**. Unsere Activity ist nicht gesperrt (kein
+   `screenOrientation` im Manifest), das System dreht das ganze Fenster inklusive Sucher,
+   rendert die neue Lage *bevor* `MainUI.layoutUI()` (aus `onConfigurationChanged()`) die
+   Leisten per `orientBar()` umgestapelt hat, und blendet einen Screenshot der alten Lage
+   darüber. In einer nicht gesperrten Activity nicht vermeidbar.
+2. **Versatz von einigen Millimetern zwischen den Lagen:** im Hochformat wird z. B. der
+   Auslöser in der *Fensterbreite* zentriert, im Querformat in der *Fensterhöhe* – die
+   Fenstermaße unterscheiden sich um Statusleiste, Gestenbalken und Kamera-Loch je Lage
+   (`getNavigationGap()`, `getNavigationGapLandscape()`, …). Jede Lage rechnet in einem
+   anderen Koordinatensystem; pixelgleiche Ergebnisse sind da Glück, nicht Konstruktion.
+
+Eine fremde Analyse, die Falk eingebracht hatte, nannte zusätzlich „ungedämpfte
+Sensordaten" und „fehlende Hysterese" – **das trifft nicht zu**: mit
+`MainActivity.lock_to_landscape = false` erreicht kein Sensorwert die UI
+(`MainUI.onOrientationChanged()` tut nichts), die UI reagiert nur auf die diskreten
+System-Orientierungen; Open Camera hat für den Sensor-Pfad ohnehin eine 60°-Hysterese.
+Drehpunkte stimmen (Mitte). Richtig an der Analyse ist allein der Kern: **die Pixel-App ist
+auf Hochformat gesperrt und dreht nur die Glyphen an Ort und Stelle.**
+
+## Aufgabe
+
+Die Pixel-App nachbauen, nicht nachrechnen:
+
+1. **Activity fest auf Hochformat sperren** (`android:screenOrientation="portrait"` bzw.
+   Open Cameras `lock_to_landscape`-Mechanik mit Hochformat als Basis). Der Sucher darf bei
+   physischer Drehung weder neu konfiguriert noch neu gerendert werden
+   (`Preview.setCameraDisplayOrientation()` / `getDisplayRotationDegrees()` laufen dann nur
+   noch einmal).
+2. **Ein einziges festes Layout**: die heutige Hochformat-Anordnung (Auslöser-Zeile,
+   Moduswahl, Umschalter, Zoom-Pille, alte Icon-Leiste) bleibt physisch am Gerät kleben.
+   Die Orientierungs-Tabelle in `MainUI.layoutUI()` (`Side`-Zuordnung, `align_*`,
+   `left_of`/`above`-Varianten für Quer- und umgekehrtes Querformat), `orientBar()` und
+   `PhotoVideoSwitch.setLayoutRotation()` entfallen; `RotatedTextView` wird zur normalen
+   Textansicht, die gedreht wird wie alles andere.
+3. **Nur Blatt-Elemente drehen**: Orientierung aus dem vorhandenen
+   `OrientationEventListener` (Hysterese ist da) in vier diskreten Stufen → `ui_rotation`;
+   pro Stufe `setViewRotation()` (existiert) auf Icons, Zoom-Ziffern, Modus-Text,
+   Galerie-Bild, Auslöser-Kern (Panorama-Haken), Umschalter-Glyphen; 300 ms,
+   `cubic-bezier(0.2, 0.0, 0.0, 1.0)` (Detail-Spec 10, als `PathInterpolator`). Keine
+   Layout-Parameter anfassen. Was in der Referenz *nicht* mitdreht (Pillen-Hintergründe,
+   Ring), bleibt stehen. Falks Regel gilt weiter: keine Animationen außer am Auslöser
+   selbst – die Glyph-Drehung ist die einzige Ausnahme, weil sie die Lesbarkeit sichert.
+4. **Bildausrichtung** kommt dann aus dem Sensor, nicht mehr aus dem Fenster: Foto-EXIF
+   (`Preview.getImageVideoRotation()`, `current_orientation`), Video-Rotationshinweis,
+   Panorama-Linsenpaar, `DrawPreview`-Texte/Overlays (`ui_rotation`), Popup, Seekbars,
+   Immersive-Modus. Open Camera kann das alles bereits für `lock_to_landscape = true` –
+   die Arbeit ist, es auf Hochformat als Basis umzustellen, nicht es zu erfinden.
+
+## Nicht Teil dieses Schritts
+
+Kopfzeile, restliche unterste Zeile (Einstellungen-/Regler-Button), Karussell-Mechanik der
+Moduswahl, Feinjustier-Rad, Einstellungen-Blätter, Fokus-Ring/Nivellierung, Sucher-Position
+(K4), Farben/Blur/Schrift, Auslöse-Verzögerung (Fokus-/Blitz-Standardwerte, siehe SPEC 4.5).
+
+## Vorgehen
+
+Wie gewohnt: Code-Stelle identifizieren und erklären, bevor geändert wird. Reihenfolge-
+Vorschlag: erst Sperre + festes Layout (sichtbarer Effekt: nichts verspringt mehr), dann
+Glyph-Drehung, dann die Bildausrichtung. Nach jedem sichtbaren Zwischenschritt am Pixel 9 Pro
+testen lassen; am Ende **alles neu verifizieren, was der Umbau `2045620a` verifiziert hatte**:
+EXIF in allen vier Lagen, Video-Rotation, Panorama, Immersive-Modus. Screenshot-Vergleich mit
+`docs/design-reference/pixel-original-querformat.png` (Galerie unter dem Auslöser, Wechsel
+darüber, Zoom-Pille links, Moduswahl rechts, Umschalter außen).
 
 ## Aufwand / Risiko
 
-Eine eigene Sitzung, vergleichbar mit dem Orientierungs-Umbau vom 2026-09-17
-(Commit `2045620a`), den sie ersetzt. Risiko in der Kamera-Pipeline (Sucher-Transform,
-Bildausrichtung), nicht in der Optik. Unabhängig von den übrigen Audit-Schritten – die
-Auslöser-Zeile positioniert alles relativ zum Auslöser bzw. fest am Rand und übersteht
-den Umbau unverändert.
+Eine eigene Sitzung, vergleichbar mit `2045620a`. Risiko liegt in der Kamera-Pipeline
+(Sucher-Transform, Bildausrichtung), nicht in der Optik. Die Auslöser-Zeile aus
+Audit-Schritt 1 positioniert alles relativ zum Auslöser bzw. fest am Rand und übersteht den
+Umbau unverändert – nur die Querformat-Sonderfälle (`flankShutter()` misst dort Höhen statt
+Breiten, `PhotoVideoSwitch` zeichnet senkrecht) werden überflüssig.
+
+## Abschluss
+
+- `docs/SPEC.md` 4.5 + Änderungsprotokoll, `ui-spezifikation.md` Abschnitt 2/6/8/9 (K3
+  endgültig entscheiden und den alten Punkt „Bewusst kein `View.setRotation()` auf ganze
+  Leisten" in Abschnitt 8 anpassen – er gilt dann nicht mehr, weil keine Leiste mehr gedreht
+  werden muss).
+- Abweichungen zur Spec ausdrücklich auflisten, committen (mit Dateipfaden), pushen,
+  `graphify update .`, kurze Zusammenfassung für den Projektmanager-Chat.
