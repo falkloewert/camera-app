@@ -23,6 +23,17 @@ ausführen, ohne vorher zu fragen oder die Befehle ihm zum Ausführen zu geben.
 Gilt **nur für dieses Repo**, nicht generell für andere Projekte von Falk — dort
 gilt weiterhin die normale Zurückhaltung bei Commits/Pushes.
 
+**Commit immer mit expliziter Dateiangabe** (`git commit -- <Datei(en)>`), **nie
+`git commit` ohne Pfadangabe** – auch nicht direkt nach einem gezielten `git add`.
+Vorfall 2026-09-17: Ein bereits von einer anderen, noch laufenden Sitzung
+vorgemerktes (`git add`), aber noch nicht committetes Löschen mehrerer Dateien
+wurde durch ein pfadloses `git commit` in einem fremden Commit mit-committet
+(Historie dadurch verwirrend, aber kein Datenverlust – siehe Änderungsprotokoll).
+`git commit` ohne Pfadangabe committet den **gesamten Index**, nicht nur das zuletzt
+selbst Hinzugefügte – bei potenziell aktiver Parallel-Sitzung (siehe oben, "Nur eine
+Sitzung gleichzeitig") ist das der Unterschied zwischen einem sauberen Commit und
+einem, der fremde Änderungen mitreißt.
+
 ## Feature-Chats bleiben manuell (Entscheidung 2026-09-14)
 
 Der Projektmanager-Chat plant/dokumentiert Features und bereitet Kickoff-Prompts vor,

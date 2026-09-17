@@ -664,3 +664,16 @@ erstellt.
   Roboto Flex festgelegt (Google Sans nicht frei lizenzierbar). Kickoff für
   Audit-Schritt 1 (Auslöser-Zeile) erstellt
   (`docs/kickoff/redesign-schritt1-ausloeser-zeile.md`).
+- **2026-09-17 (Projektmanager-Chat):** Recherche zu Milchglas/Blur-Machbarkeit
+  dokumentiert (`ui-spezifikation.md` Abschnitt 7.3) – Empfehlung: erstmal 65 %
+  Deckkraft ohne echten Blur, echter Blur bliebe spätere API-31+-Verbesserung.
+  Kickoff für einen `ponytail-review`-Durchlauf über den eigenen Diff seit dem
+  Fork-Basis-Commit vorbereitet (`docs/kickoff/ponytail-review.md`), noch nicht
+  ausgeführt (Auslöser-Zeile-Chat lief zu dem Zeitpunkt noch).
+  **Eigener Fehler dabei:** Ein pfadloses `git commit` hat versehentlich bereits
+  von der noch laufenden Auslöser-Zeile-Sitzung vorgemerkte Datei-Löschungen (7
+  alte Drawables) mit in den Ponytail-Kickoff-Commit gezogen (`0cdc22f6`). Kein
+  Datenverlust, die eigentlichen unfertigen Änderungen der anderen Sitzung blieben
+  unangetastet – nur die Commit-Historie ist an der Stelle unsauber. Nicht per
+  Force-Push korrigiert (Risiko höher als der Nutzen). Regel dagegen in `CLAUDE.md`
+  ergänzt: Commits in diesem Repo nur noch mit expliziter Dateiangabe.
