@@ -99,7 +99,7 @@ Projektmanager-Chat):
 | 3 | Dual-Kamera (Selfie-Bubble, unabhängiger Zoom) | Idee / Konzept | Hoch (geräteabhängig) |
 | 4 | Panorama mit Weitwinkel-Option | **Fertig** | Niedrig-Mittel |
 | 5 | Kamera während Videoaufnahme umdrehen | Idee / Notiz (nice-to-have) | Niedrig |
-| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile und Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen) gebaut (Stand 2026-09-18; Drehmodell-Abschluss/Datei-Prüfung offen, Kickoff `rotation-pixel-modell-abschluss.md`); offen: siehe `ui-spezifikation.md` Abschnitt 7 (Audit 2026-09-17) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
+| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile und Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen) gebaut und **Datei-Prüfung abgeschlossen** (Stand 2026-09-18); offen: siehe `ui-spezifikation.md` Abschnitt 7 (Audit 2026-09-17) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
 
 ### 3.1 Vereinbarte Reihenfolge (aktualisiert 2026-09-14: Material-3-Redesign vor Feature 5 vorgezogen)
 
@@ -433,15 +433,10 @@ vor – als Nächstes erstellt der Projektmanager-Chat die gestaffelten Kickoff-
 (1. Theme/Farben/ConstraintLayout-Migration, 2. Zoom-/Moduswahl-Leiste, 3.
 Settings/Icons).
 
-**Stand Orientierungs-Modell (2026-09-17, fertig):** Die Bedienoberfläche verhält sich
-beim Drehen jetzt wie beim Original – eine feste Hochformat-Anordnung, die als starrer
-Block mitdreht (Querformat = 90° gegen den Uhrzeigersinn, umgekehrtes Querformat = 90°
-im Uhrzeigersinn). Das Fenster dreht weiterhin mit (`lock_to_landscape` bleibt `false`,
-so macht es auch die Pixel-Kamera, am Gerät verifiziert). Die Positions-Zuordnung in
-`MainUI.layoutUI()` war bereits diese Drehung; umgebaut wurden nur die Inhalte der
-drei Leisten (`MainUI.orientBar()`, `RotatedTextView`). Details, Gerätetest-Ergebnisse
-(EXIF in allen vier Lagen, Video, Panorama) und verbleibende Abweichungen: Abschnitt 6
-(Eintrag 2026-09-17) und `docs/design-reference/ui-spezifikation.md` Abschnitte 2 und 8.
+**Stand Orientierungs-Modell:** siehe „Stand Pixel-Drehmodell" unten – das hier
+ursprünglich beschriebene Modell (Fenster dreht mit, `MainUI.orientBar()`,
+`RotatedTextView`) war ein **Zwischenstand vom 2026-09-17** und ist durch das
+Pixel-Drehmodell (Fenster gesperrt, nur Glyphen drehen) ersetzt.
 
 **Stand Gesamtabgleich (2026-09-17, Review-Chat):** Vollständiges Audit gegen die
 Screenshot-Spec und die neu eingebrachte Detail-Spec
@@ -472,7 +467,7 @@ Auslöser, kein „Foto"/„Video" in der Moduswahl): `ui-spezifikation.md` Absc
 Pixel 9 Pro geprüft (Hochformat pixelgenau gegen die Referenz, beide Querformate, Foto,
 Video Start/Stopp, Panorama). Details: Abschnitt 6 (Eintrag 2026-09-17, Audit-Schritt 1).
 
-**Stand Pixel-Drehmodell (2026-09-17 gebaut, 2026-09-18 Abschluss offen):** Der
+**Stand Pixel-Drehmodell (2026-09-17 gebaut, 2026-09-18 abgeschlossen):** Der
 Feature-Chat „Redesign: Drehmodell" hat den Kickoff `docs/kickoff/rotation-pixel-modell.md`
 umgesetzt – Fenster fest auf Hochformat (`8dcd8fc3`), ein einziges festes Layout ohne
 Orientierungs-Tabelle/`orientBar()`/`RotatedTextView` (`1a247924`, ~900 Zeilen weniger),
@@ -483,18 +478,25 @@ kein Panorama bei der Frontkamera (`00cd3e4c`), Bugfix Panorama-Weitwinkel nach
 Kamerawechsel (`a47d7df5`), und die Entfernung der Open-Camera-Info-Toasts (`9327410c`,
 von Falk am 2026-09-18 abgenommen). Entscheidungen Falk im Chat: Popup und
 Belichtungs-Slider drehen nicht mit (alte Elemente, die das Redesign ersetzt);
-`DrawPreview`-Overlays bleiben an Ort und Stelle. Der Chat brach vor der Datei-Prüfung ab –
-**noch offen:** EXIF/Video/Panorama in allen Lagen neu verifizieren und die Doku
-(dieser Abschnitt, Abschnitt 6, `ui-spezifikation.md` 2/6/7.2/8/9-K3) nachziehen; Kickoff
-dafür: `docs/kickoff/rotation-pixel-modell-abschluss.md`. Der Absatz „Stand
-Orientierungs-Modell (2026-09-17)" oben beschreibt das **Vorgänger**-Modell (Fenster dreht
-mit) und wird beim Abschluss ersetzt.
+`DrawPreview`-Overlays bleiben an Ort und Stelle.
+
+**Datei-Prüfung (2026-09-18, Abschluss-Chat, am Gerät bestätigt):** Vier Fotos (Hochformat,
+Querformat links, Querformat rechts, Hochformat auf dem Kopf) per `adb pull` geholt und mit
+`exiftool -Orientation -n` geprüft – vier unterschiedliche Orientation-Werte (6/1/8/3, die
+konkreten Zahlen dürfen laut Kickoff vom Vorgänger-Modell abweichen), visuell korrekt
+aufgerichtet (Falk hat es zusätzlich in der Galerie bestätigt). Ein Video im Hochformat:
+Rotations-Tag -90°, extrahierter Frame korrekt aufgerichtet. Ein Panorama: kein
+Orientation-Tag nötig (normal bei fertig gestitchten Panoramen), Bild korrekt breit und
+aufrecht. Zusätzlich am Gerät bestätigt: Immersive-Modus, Panorama-Linsenpaar in beiden
+Querlagen, schnelle 180°-Drehung ohne hängenbleiben. Damit ist Konflikt K3
+(`ui-spezifikation.md` Abschnitt 9) endgültig entschieden und umgesetzt; Doku nachgezogen
+in Abschnitt 6 unten sowie `ui-spezifikation.md` Abschnitte 2, 6, 7.2, 8, 9-K3.
 
 **Für den Projektmanager-Chat aus Audit-Schritt 1 (nicht selbst entschieden):**
-1. ~~**Drehmodell (K3) wieder offen → nächster Feature-Chat**~~ **Gebaut (2026-09-17,
-   siehe „Stand Pixel-Drehmodell" oben); Abschluss (Datei-Prüfung + Doku) offen →
-   `docs/kickoff/rotation-pixel-modell-abschluss.md`.** Ursprung: Entscheidung Falk
-   2026-09-17 nach Video-Beleg (`docs/design-reference/rotation-uebergang-2026-09-17.jpg`).
+1. ~~**Drehmodell (K3) wieder offen → nächster Feature-Chat**~~ **Erledigt (2026-09-18):**
+   gebaut am 2026-09-17, Datei-Prüfung und Doku am 2026-09-18 abgeschlossen (siehe „Stand
+   Pixel-Drehmodell" oben). Ursprung: Entscheidung Falk 2026-09-17 nach Video-Beleg
+   (`docs/design-reference/rotation-uebergang-2026-09-17.jpg`).
 2. **Auslöse-Verzögerung ~1–2 s – geklärt (2026-09-17):** im Kamera-Log belegt –
    Fokusmodus „auto" löst beim Tippen einen 0,7–0,9-s-Fokus-Scan aus, Blitz „auto"
    verhindert den ZSL-Puffer des Pixel-HAL („can't find a ZSL buffer … fall back to real
@@ -803,3 +805,24 @@ mit) und wird beim Abschluss ersetzt.
   Datei-Prüfung + Doku, kein Neubau); alter Kickoff mit Statusvermerk versehen.
   Reihenfolge danach: Ponytail-Review (`docs/kickoff/ponytail-review.md`, braucht sauberes
   Arbeitsverzeichnis – jetzt gegeben), dann die kleineren PM-Punkte aus 4.5 priorisieren.
+- **2026-09-18 (Feature-Chat „Redesign: Drehmodell (Abschluss)"):** Wiederaufnahme nach
+  `docs/kickoff/rotation-pixel-modell-abschluss.md` – **nur** Datei-Prüfung und Doku, kein
+  Neubau. Gerät neu gebaut/installiert (Arbeitsverzeichnis war bereits auf `HEAD`, alle
+  Gradle-Tasks `UP-TO-DATE`). **Datei-Prüfung bestanden:** vier Fotos in allen Lagen
+  (`exiftool -Orientation -n`: 6/1/8/3, visuell korrekt aufgerichtet, von Falk in der
+  Galerie bestätigt), ein Video im Hochformat (Rotations-Tag -90°, Frame-Extraktion
+  korrekt), ein Panorama (kein Orientation-Tag nötig, korrekt breit/aufrecht). Zusätzlich
+  am Gerät bestätigt: Immersive-Modus, Panorama-Linsenpaar in beiden Querlagen, schnelle
+  180°-Drehung ohne Hängenbleiben. Damit ist das Pixel-Drehmodell (gebaut 2026-09-17)
+  vollständig abgeschlossen, Konflikt K3 endgültig entschieden. **Doku nachgezogen:**
+  dieser Abschnitt, 4.5 (Feature-Tabelle, „Stand Pixel-Drehmodell", PM-Liste Punkt 1),
+  `ui-spezifikation.md` Abschnitte 2 (Querformat-Aufbau neu gefasst: Fenster gesperrt statt
+  mitdrehend), 6 (Technik-Absatz: `rotateGlyphs()` statt `orientBar()`/`RotatedTextView`;
+  Moduswahl „Foto · Panorama"), 7.2 (Rotation als erledigt markiert), 8 („Foto"-Eintrag als
+  zurückgenommen markiert, alter `RotatedTextView`-Punkt als überholt markiert, neue Punkte
+  Popup/Slider drehen nicht + keine Info-Toasts), 9-K3 (endgültig entschieden), sowie
+  `docs/kickoff/rotation-pixel-modell.md` (Abschluss-Commit ergänzt). Keine neuen
+  Abweichungen zur Spec festgestellt – die bereits dokumentierten Entscheidungen (Popup/
+  Slider drehen nicht, „Foto"-Eintrag zurück, keine Toasts) sind die einzigen bewussten
+  Abweichungen und waren bereits vor diesem Chat entschieden. Kein neues Feature
+  begonnen, nichts Neues beim Testen aufgefallen.

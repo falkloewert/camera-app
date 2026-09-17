@@ -59,47 +59,52 @@ die Reihenfolge Auslöser → Moduswahl bleibt identisch.
 
 ## 2. Aufbau Querformat
 
-**Drehmodell (verbindlich, seit 2026-09-17 umgesetzt):** Es gibt **eine** feste
-Anordnung – die aus Abschnitt 1. Beim Drehen des Geräts dreht sie als **starrer Block**
-mit, so als wäre das Hochformat-Layout auf eine Karte gedruckt und die Karte würde
-gedreht. Jeder Knopf behält dadurch seine körperliche Position am Gerät. Nichts wird pro
-Ausrichtung neu angeordnet. Konkret:
+**Drehmodell (verbindlich, seit 2026-09-17 als Pixel-Modell umgesetzt, Datei-Prüfung
+2026-09-18 abgeschlossen):** Das Fenster ist **fest auf Hochformat gesperrt** (wie bei
+der echten Pixel-Kamera). Es gibt dadurch nur **eine** Anordnung – die aus Abschnitt 1 –,
+die niemals neu layoutet wird. Beim Drehen des Geräts drehen sich ausschließlich die
+**Glyphen** (Icons, Zoom-Ziffern, Modus-Text, Galerie-Bild, Auslöser-Kern,
+Umschalter-Symbole) an Ort und Stelle, so als läge eine durchsichtige Folie mit den
+Symbolen über dem unbewegten Hochformat-Layout. Kein Knopf, keine Pille und kein Ring
+wechselt Position oder Größe. Konkret:
 
-- Oberkante links (das normale Querformat): Hochformat-Karte um **90° gegen den
-  Uhrzeigersinn** gedreht – oben → links, links → unten, unten → rechts, rechts → oben.
-- Oberkante rechts (umgekehrtes Querformat): um **90° im Uhrzeigersinn** – oben → rechts,
-  links → oben.
-- Hochformat auf dem Kopf bietet Android in diesem Fenstermodus nicht an; die Oberfläche
-  bleibt dann in der zuletzt zulässigen Lage stehen (gespeicherte Fotos sind trotzdem
-  richtig herum, die Drehung kommt vom Lagesensor).
-- **Symbole und Zoom-Ziffern** werden dabei zurückgedreht und stehen aufrecht;
-  **Modus-Beschriftungen nicht** – sie stehen quer, wie auf der Karte gedruckt.
-- Das Fenster selbst dreht mit (wie bei der Pixel-Kamera, am Gerät verifiziert:
-  bei erzwungener Display-Drehung liefert `screencap` 2142×960). Deshalb sitzt der
-  Gesten-Balken immer an der physischen Unterkante.
+- Oberkante links (normales Querformat): Glyphen drehen **90° gegen den Uhrzeigersinn**
+  zurück in die aufrechte Lage.
+- Oberkante rechts (umgekehrtes Querformat): Glyphen drehen **90° im Uhrzeigersinn**.
+- Hochformat auf dem Kopf (180°): Glyphen drehen entsprechend um 180°. Anders als beim
+  Vorgänger-Modell (siehe unten) bietet das gesperrte Fenster diese Lage jetzt selbst an,
+  weil nicht mehr das Fenster, sondern nur die Glyphen gedreht werden.
+- **Endlagen unverändert gegenüber dem Vorgänger-Modell:** Symbole und Zoom-Ziffern stehen
+  in jeder Lage aufrecht; **Modus-Beschriftungen nicht** – sie stehen im Querformat quer,
+  wie auf einer Karte gedruckt (unverändert, jetzt aber ohne die dafür vorher nötige
+  eigene View-Klasse, siehe Abschnitt 6).
+- Das Fenster selbst dreht **nicht** mehr mit – anders als der ursprüngliche Befund vom
+  2026-09-17 (`screencap` 2142×960 bei erzwungener Display-Drehung) nahelegte. Die
+  Pixel-Kamera-App ist tatsächlich auf Hochformat gesperrt; der damalige Befund betraf das
+  System-Verhalten allgemein, nicht die Pixel-App selbst. Der Gesten-Balken sitzt dadurch
+  immer an derselben Fensterkante (unten im Hochformat-Koordinatensystem), unabhängig von
+  der physischen Gerätelage.
 
-Ergebnis für die Elemente (Oberkante links), aus den Referenzbildern abgelesen:
+Ergebnis für die Elemente (Oberkante links), aus den Referenzbildern abgelesen – die
+**Positionen** bleiben exakt die aus Abschnitt 1 (Hochformat), nur die **Glyphen darin**
+zeigen dieses Bild:
 
-- Zoom-Stufen-Leiste **senkrecht**, Reihenfolge von oben nach unten: `5 · 2 · 1× · ,5`
-  (größter Wert oben), Ziffern aufrecht.
-- Moduswahl-Leiste als **senkrechte Spalte am rechten Rand**, Beschriftungen um 90°
-  **gedreht** (von unten nach oben lesbar), Reihenfolge von unten nach oben wie im
-  Hochformat von links nach rechts; aktiver Modus in heller **senkrechter** Pille.
-- Haupt-Bedienzeile senkrecht gestapelt am rechten Rand: Kamera-Wechsel oben, Auslöser
-  mittig, Galerie-Miniatur unten.
-- Einstellungen-/Regler-Buttons am äußersten rechten Rand, senkrecht verteilt (Regler
-  oben, Foto/Video-Umschalter mittig, Einstellungen unten).
-- Chips ("12 MP", Makro) und "?" wandern mit: Kopfzeile wird zur linken Spalte
-  ("12 MP" unten links, "?" oben links).
+- Zoom-Ziffern bleiben aufrecht, die Zoom-Pille selbst bleibt an ihrem Hochformat-Platz.
+- Modus-Beschriftungen stehen quer (90° gedreht), lesbar von unten nach oben.
+- Icons (Galerie, Kamera-Wechsel, Einstellungen, Umschalter-Glyphen) drehen zurück in die
+  aufrechte Lage.
 
-Bei Oberkante rechts alles spiegelbildlich dazu (Zoom `,5` oben, Beschriftungen von
-oben nach unten lesbar, Auslöser-Spalte links).
+Bei Oberkante rechts alles spiegelbildlich dazu (Beschriftungen von oben nach unten
+lesbar).
 
-Belege nach dem Umbau (unsere App, Pixel 9 Pro, 2026-09-17):
-`unsere-app-querformat-nach-umbau-2026-09-17.png` (Oberkante links) und
-`unsere-app-querformat-umgekehrt-nach-umbau-2026-09-17.png` (Oberkante rechts). Die
-älteren `unsere-app-*.png` ohne Datum zeigen den Zustand **vor** dem Umbau (Beweise aus
-dem Kickoff).
+**Vorgänger-Modell (2026-09-17, Commit `2045620a`, seit 2026-09-17/18 durch das
+Pixel-Modell ersetzt):** Ordnete die drei Fußzeilen bei jeder Drehung tatsächlich neu an
+(Fenster drehte mit, Inhalte klappten über `MainUI.orientBar()` um). Funktionierte in den
+Endlagen, hatte aber einen sichtbaren Zwischenzustand-Glitch beim Drehen (siehe
+`docs/kickoff/rotation-pixel-modell.md`). Die alten Belege
+`unsere-app-querformat-nach-umbau-2026-09-17.png` /
+`unsere-app-querformat-umgekehrt-nach-umbau-2026-09-17.png` zeigen dieses **Vorgänger**-
+Modell, nicht den aktuellen Stand.
 
 ## 3. Zoom-Bedienung
 
@@ -203,15 +208,21 @@ Porträt/Nachtsicht/zufügen, solange die App diese Modi nicht wirklich beherrsc
   auf den Bildschirmrand, damit sie mit ihm auf einer Linie bleiben. Im Querformat
   Beschriftungen quer und in senkrechter Pille (Abschnitt 2).
   **Einschränkung (Audit 2026-09-17, siehe 7.2):** kein Scrollen/Einrasten; Farben
-  weichen ab. Einträge seit Audit-Schritt 1: nur „Panorama" (siehe unten).
-- **Drehmodell aus Abschnitt 2** (2026-09-17): starr mitdrehende Anordnung in allen
-  drei von Android angebotenen Lagen; am Gerät geprüft inkl. EXIF-Drehung von Fotos in
-  allen vier Lagen, Video-Rotationshinweis, Panorama-Linsenpaar. Technik: die
-  Positions-Zuordnung in `MainUI.layoutUI()` (`Side`-Tabelle) war bereits die Drehung;
-  die Inhalte der drei Leisten werden von `MainUI.orientBar()` umgeklappt und in der
-  Reihenfolge gedreht, die Modus-Texte über `RotatedTextView` quer gezeichnet, Abstände
-  über `android:divider`. Bewusst **kein** `View.setRotation()` auf ganze Leisten (siehe
-  Abschnitt 8, alter Punkt).
+  weichen ab. Einträge: „Foto · Panorama" im Fotomodus (siehe unten, `86f3f3ec`), leer
+  im Videomodus.
+- **Pixel-Drehmodell aus Abschnitt 2** (gebaut 2026-09-17, Datei-Prüfung 2026-09-18
+  abgeschlossen): Fenster fest auf Hochformat gesperrt, nur die Glyphen drehen sich an
+  Ort und Stelle; am Gerät geprüft inkl. EXIF-Drehung von Fotos in allen vier Lagen,
+  Video-Rotationshinweis, Panorama. Technik: `MainActivity` sperrt das Fenster
+  (`lock_to_portrait`, Manifest `portrait`); `MainUI.layoutUI()` positioniert einmalig
+  fest, ohne Orientierungs-Tabelle; `MainActivity.onOrientationChanged()` (aus dem
+  `OrientationEventListener`, 60°-Hysterese, geviertelt) ruft
+  `MainUI.rotateGlyphs()`, das jede Glyphen-View auf `ui_rotation` dreht (300 ms,
+  `cubic-bezier(0.2, 0, 0, 1)`). `MainUI.orientBar()` und `RotatedTextView` gibt es nicht
+  mehr – Modus-Beschriftungen sind wieder eine gewöhnliche `TextView`, die wie jede
+  andere Glyphe gedreht wird. `DrawPreview`-Overlays bleiben ortsfest (nur Videozeit und
+  Selbstauslöser-Countdown drehen mit); Popup-Menü und Belichtungs-Slider drehen nicht
+  (Abschnitt 8).
 - Alter Zoom-Schieberegler entfällt, wo die Stufen-Leiste greift
 - **Auslöser-Zeile (Audit-Schritt 1, 2026-09-17)** – nach den im Referenz-Screenshot
   *gemessenen* Werten (Gerät: 960 × 2142 px bei Dichte 360 = **2,25 px/dp**; die Detail-Spec
@@ -409,10 +420,9 @@ läge im Ring). `circle_background.xml` bleibt für Pause/Schnappschuss/Panorama
   (L710), das Raster ist also normalerweise aus. Soll: 1 dp, `rgba(255,255,255,0.25)`,
   immer sichtbar (Screenshot-Spec 1b).
 
-**Rotation** (`MainUI.setViewRotation()` L199, `view_rotate_animation_duration` L84)
-- 100 ms mit `AccelerateDecelerateInterpolator`. Soll: 300 ms,
-  `cubic-bezier(0.2, 0.0, 0.0, 1.0)` (als `PathInterpolator`). Das Drehmodell selbst
-  bleibt das aus Abschnitt 2 (Konflikt K3).
+**Rotation** (`MainUI.rotateGlyphs()`) — **erledigt** (Pixel-Drehmodell, 2026-09-17/18):
+300 ms mit `PathInterpolator(0.2, 0, 0, 1)`, wie gefordert. Das Drehmodell selbst ist
+das aus Abschnitt 2 (Konflikt K3, dort endgültig entschieden).
 
 ### 7.3 Farb-, Blur- und Schrift-Abweichungen (global)
 
@@ -445,10 +455,14 @@ nicht verifizieren (closed source).
 ## 8. Bewusste Abweichungen von der Referenz
 
 - ~~**Moduswahl im Querformat:** Beschriftungen stehen aufrecht statt um 90° gedreht.~~
-  **Erledigt 2026-09-17** – nicht über den Rand-Trick (`View.setRotation()` +
+  ~~**Erledigt 2026-09-17** – nicht über den Rand-Trick (`View.setRotation()` +
   `MainUI.setFixedRotation`), sondern über eine `RotatedTextView`, die beim Messen
   Breite und Höhe vertauscht; damit stimmt der Platzbedarf und die Pille wird von selbst
-  senkrecht.
+  senkrecht.~~ **Überholt durch das Pixel-Drehmodell (2026-09-17/18):** Es wird keine
+  Leiste mehr umgeklappt und keine Reihenfolge mehr umgekehrt – das ganze Layout steht
+  fest, nur die Glyphen drehen sich (`MainUI.rotateGlyphs()`, Abschnitt 6). Die
+  `RotatedTextView` ist entfallen, die Modus-Beschriftung ist wieder eine normale
+  `TextView`, die wie jede andere Glyphe per `setRotation()` gedreht wird.
 
 ### Audit-Schritt 1 (Auslöser-Zeile, 2026-09-17) – Entscheidungen Falk
 
@@ -459,9 +473,13 @@ nicht verifizieren (closed source).
   getauscht) und die 180°-Drehung des Kamera-Wechsel-Icons (Detail-Spec 6). Geblieben:
   Feder beim Tippen und Kreis-↔-Quadrat-Morph des Auslösers, Ton, Vibration, federnder
   Knopf im Umschalter.
-- **Kein „Foto"-Eintrag in der Moduswahl** (die Referenz hat einen): die Pille darunter
-  sagt schon „Foto"; „Panorama" ist deshalb ein Umschalter. Im Videomodus ist die Leiste
-  leer (die Referenz zeigt dort ihre Video-Untermodi, die wir nicht haben).
+- ~~**Kein „Foto"-Eintrag in der Moduswahl** (die Referenz hat einen): die Pille darunter
+  sagt schon „Foto"; „Panorama" ist deshalb ein Umschalter.~~ **Zurückgenommen
+  (`86f3f3ec`, 2026-09-17, Falk):** Ohne einen eigenen „Foto"-Eintrag gab es keinen
+  klaren Ausweg aus Panorama – oder aus künftigen weiteren Modi. Die Moduswahl zeigt
+  jetzt „Foto · Panorama" nebeneinander, der aktive in der hellen Pille. Im Videomodus
+  bleibt die Leiste leer (die Referenz zeigt dort ihre Video-Untermodi, die wir nicht
+  haben).
 - **Feste Plätze statt Verkettung:** die drei Fußzeilen (Auslöser, Moduswahl, Umschalter)
   hängen jede für sich am Bildschirmrand, damit kein Ein-/Ausblenden je etwas verschiebt.
   Sichtbar gleiche Positionen wie in der Referenz, nur technisch anders verankert.
@@ -482,6 +500,17 @@ nicht verifizieren (closed source).
   sich aus der Messung über dem Sucherbild. Ob die Pixel-App dort einen minimal helleren
   Ton nutzt, ist aus den Screenshots nicht ableitbar; **Falk prüft am Gerät**, dann ggf.
   `shutter_row_scrim` anpassen.
+
+### Pixel-Drehmodell (2026-09-17/18) – Entscheidungen Falk
+
+- **Popup-Menü und Belichtungs-Slider drehen nicht mit.** Beides sind alte
+  Open-Camera-Elemente, die das Redesign ohnehin ersetzt (siehe Abschnitt 7) – der
+  Aufwand, sie an die Glyphen-Drehung anzupassen, lohnt sich für Bauteile nicht, die
+  bald verschwinden.
+- **Keine Info-Toasts mehr** (`9327410c`): weder Moduswechsel noch Kamera-/Linsenwechsel
+  noch der App-Start zeigen eine Text-Einblendung – die Mode-Leiste und der
+  Foto/Video-Umschalter zeigen den Zustand bereits an. Fehler-Toasts und die
+  einmaligen HDR-/Panorama-Infodialoge bleiben, da sie keine Zustands-Ankündigung sind.
 
 ### Beim Orientierungs-Umbau (2026-09-17) festgestellt, nicht orientierungsbedingt
 
@@ -508,7 +537,7 @@ einem offenen Punkt abhängt, ohne vorher nachzufragen.
 |---|---|---|---|---|
 | K1 | Kamera-Wechsel-Form | Kreis, 56 dp | Squircle (1b) | **Squircle** – Direktvergleich sticht Zahlen |
 | K2 | Aktive Modus-Pille | `rgba(255,255,255,0.15)`, **weißer** Text, Gewicht 600 | helles, leicht transparentes Grau, **dunkle** Schrift (1b) | **Screenshot-Spec** (helles Grau + dunkler Text) |
-| K3 | Drehmodell | Sucher fix, Bedienelemente drehen isoliert um die eigene Achse, Karussell ordnet sich an der Kante neu | starrer Block, Fenster dreht mit (2) – **am Gerät verifiziert** | ~~Screenshot-Spec (bereits so gebaut, bestätigt)~~ **Wieder offen (Falk, 2026-09-17, Audit-Schritt 1):** die Endlagen stimmen, der *Übergang* nicht – bei uns dreht Android das ganze Fenster samt Sucher, die Pixel-App ist auf Hochformat gesperrt und dreht nur die Glyphen an Ort und Stelle. Beides ist derselbe „starre Block", nur anders gebaut. Vorschlag: `docs/kickoff/rotation-pixel-modell.md`, Reihenfolge entscheidet der PM-Chat |
+| K3 | Drehmodell | Sucher fix, Bedienelemente drehen isoliert um die eigene Achse, Karussell ordnet sich an der Kante neu | starrer Block, Fenster dreht mit (2) – **am Gerät verifiziert** | **Endgültig entschieden und umgesetzt (2026-09-17/18):** Detail-Spec gewinnt. Fenster fest auf Hochformat gesperrt, nur die Glyphen drehen sich an Ort und Stelle (`MainUI.rotateGlyphs()`) – kein Karussell-Umordnen, das entfällt hier (Moduswahl ist ohnehin statisch, siehe 7.2). Datei-Prüfung (EXIF/Video/Panorama in allen vier Lagen) am 2026-09-18 bestanden, siehe SPEC.md 4.5 und 6. |
 | K4 | Sucher-Layout 4:3 | zentriert zwischen Kopf- und Fußfläche, freie Ränder, 28 dp Eckradius; 16:9 schiebt sich transluzent hinter die Leisten | Bedienelemente hängen am Bildschirmrand und liegen bei 4:3 **über** dem Bild (1a) | **Screenshot-Spec** (Grundregel eins-zu-eins) |
 | K5 | Modus-Einträge | Nachtsicht · Porträt · Foto · Video · Kinoeffekt/Pan | nur echte Modi Foto · Video · Panorama (5, Falk 2026-09-15) | bestätigt, keine Änderung |
 | K6 | Kopfzeilen-Badges | RAW / 50 MP (Foto), FHD / 4K (Video) | „12 MP" + Makro-Chip (1) | **Kein echter Widerspruch** – Badge zeigt die jeweils aktuell aktive Auflösungs-Einstellung dynamisch an; „12 MP" war nur der Standardzustand im Screenshot |
