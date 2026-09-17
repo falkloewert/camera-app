@@ -496,7 +496,7 @@ public class DrawPreview {
      *  *after* applying the rotation, when we want the top left of the icon as shown on screen.
      *  This should not be called every frame but instead should be cached, due to cost of calling
      *  view.getLocationOnScreen().
-     *  Update: For supporting landscape and portrait (if MainActivity.lock_to_landscape==false),
+     *  Update: For supporting landscape and portrait (if MainActivity.lock_to_portrait==false),
      *  instead this returns the top side if in portrait. Note though we still need to take rotation
      *  into account, as we still apply rotation to the icons when changing orienations (e.g., this
      *  is needed when rotating from reverse landscape to portrait, for on-screen text like level
@@ -1254,7 +1254,7 @@ public class DrawPreview {
         final int gap_y = (int) (0 * scale_font + 0.5f); // convert dps to pixels
         final int icon_gap_y = (int) (2 * scale_dp + 0.5f); // convert dps to pixels
         if( ui_rotation == 90 || ui_rotation == 270 ) {
-            // n.b., this is only for when lock_to_landscape==true, so we don't look at device_ui_rotation
+            // n.b., this is only for when lock_to_portrait==true, so we don't look at device_ui_rotation
             int diff = canvas.getWidth() - canvas.getHeight();
             location_x += diff/2;
             location_y -= diff/2;
@@ -2335,7 +2335,7 @@ public class DrawPreview {
         int battery_width = (int) (5 * scale_dp + 0.5f); // convert dps to pixels
         int battery_height = 4*battery_width;
         if( ui_rotation == 90 || ui_rotation == 270 ) {
-            // n.b., this is only for when lock_to_landscape==true, so we don't look at device_ui_rotation
+            // n.b., this is only for when lock_to_portrait==true, so we don't look at device_ui_rotation
             int diff = canvas.getWidth() - canvas.getHeight();
             battery_x += diff/2;
             battery_y -= diff/2;
@@ -2971,18 +2971,14 @@ public class DrawPreview {
             }
         }
 
-        // If MainActivity.lock_to_landscape==true, then the ui_rotation represents the orientation of the
-        // device; if MainActivity.lock_to_landscape==false then ui_rotation is always 0 as we don't need to
-        // apply any orientation ourselves. However, we're we do want to know the true rotation of the
-        // device, as it affects how certain elements of the UI are layed out.
-        int device_ui_rotation;
-        if( MainActivity.lock_to_landscape ) {
-            device_ui_rotation = ui_rotation;
-        }
-        else {
-            MainActivity.SystemOrientation system_orientation = main_activity.getSystemOrientation();
-            device_ui_rotation = MainActivity.getRotationFromSystemOrientation(system_orientation);
-        }
+        // device_ui_rotation is how the device is actually being held, in Open Camera's
+        // landscape-based convention (0 = landscape, 270 = portrait, see
+        // MainActivity.getRotationFromSystemOrientation()), as it affects how certain elements
+        // of the UI are laid out. It is the window's orientation plus the glyph rotation on
+        // top of it: with lock_to_portrait the window is always portrait (270) and ui_rotation
+        // carries the device rotation; without the lock the window follows the device and
+        // ui_rotation is always 0.
+        int device_ui_rotation = (MainActivity.getRotationFromSystemOrientation(main_activity.getSystemOrientation()) + ui_rotation) % 360;
 
         if( camera_controller != null && taking_picture && !front_screen_flash && take_photo_border_pref ) {
             p.setColor(Color.WHITE);

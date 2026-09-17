@@ -211,11 +211,17 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     private static final float WATER_DENSITY_SALTWATER = 1.03f;
     private float mWaterDensity = 1.0f;
 
-    // whether to lock to landscape orientation, or allow switching between portrait and landscape orientations
-    //public static final boolean lock_to_landscape = true;
-    public static final boolean lock_to_landscape = false;
+    // Rotation model (docs/design-reference/ui-spezifikation.md section 2, docs/kickoff/
+    // rotation-pixel-modell.md): like the Pixel Camera, the window is locked to portrait and
+    // never rotates - there is a single fixed arrangement of the controls, and when the device
+    // is turned only the glyphs (icons, digits, thumbnail) rotate in place, driven by the
+    // orientation sensor (MainUI.onOrientationChanged()). This is Open Camera's
+    // "lock_to_landscape" mechanism with portrait as the base orientation; the name was
+    // changed to match. The false branches are Open Camera's original window-follows-device
+    // model and are kept only to stay close to upstream - they are not used.
+    public static final boolean lock_to_portrait = true;
 
-    // handling for lock_to_landscape==false:
+    // handling for lock_to_portrait==false:
 
     public enum SystemOrientation {
         LANDSCAPE,
@@ -388,11 +394,11 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             // If locked to landscape, ROTATION_ANIMATION_SEAMLESS/JUMPCUT has the problem that when going to
             // Settings in portrait, we briefly see the UI change - this is because we set the flag
             // to no longer lock to landscape, and that change happens too quickly.
-            // This isn't a problem when lock_to_landscape==false, and we want
+            // This isn't a problem when lock_to_portrait==false, and we want
             // ROTATION_ANIMATION_SEAMLESS so that there is no/minimal pause from the preview when
             // rotating the device. However if using old camera API, we get an ugly transition with
             // ROTATION_ANIMATION_SEAMLESS (probably related to not using TextureView?)
-            if( lock_to_landscape || !preview.usingCamera2API() )
+            if( lock_to_portrait || !preview.usingCamera2API() )
                 layout.rotationAnimation = WindowManager.LayoutParams.ROTATION_ANIMATION_CROSSFADE;
             else if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.O )
                 layout.rotationAnimation = WindowManager.LayoutParams.ROTATION_ANIMATION_SEAMLESS;
@@ -434,19 +440,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
 
         // initialise state of on-screen icons
         mainUI.getOnScreenIcons().updateOnScreenIcons();
-
-        if( MainActivity.lock_to_landscape ) {
-            // listen for orientation event change (only required if lock_to_landscape==true
-            // (MainUI.onOrientationChanged() does nothing if lock_to_landscape==false)
-            orientationEventListener = new OrientationEventListener(this) {
-                @Override
-                public void onOrientationChanged(int orientation) {
-                    MainActivity.this.mainUI.onOrientationChanged(orientation);
-                }
-            };
-            if( MyDebug.LOG )
-                Log.d(TAG, "onCreate: time after setting orientation event listener: " + (System.currentTimeMillis() - debug_time));
-        }
 
         layoutChangeListener = new View.OnLayoutChangeListener() {
             @Override
@@ -1590,12 +1583,12 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     }
 
     /** Creates and registers a display listener, needed to handle switches between landscape and
-     *  reverse landscape (without going via portrait) when lock_to_landscape==false.
+     *  reverse landscape (without going via portrait) when lock_to_portrait==false.
      */
     private void registerDisplayListener() {
         if( MyDebug.LOG )
             Log.d(TAG, "registerDisplayListener");
-        if( !lock_to_landscape ) {
+        if( !lock_to_portrait ) {
             displayListener = new MyDisplayListener();
             DisplayManager displayManager = (DisplayManager) this.getSystemService(Context.DISPLAY_SERVICE);
             displayManager.registerDisplayListener(displayListener, null);
@@ -1618,7 +1611,7 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             Log.d(TAG, "onConfigurationChanged(): " + newConfig.orientation);
         // configuration change can include screen orientation (landscape/portrait) when not locked (when settings is open)
         // needed if app is paused/resumed when settings is open and device is in portrait mode
-        // update: need this all the time when lock_to_landscape==false
+        // update: need this all the time when lock_to_portrait==false
         onSystemOrientationChanged();
         super.onConfigurationChanged(newConfig);
     }
@@ -1635,7 +1628,7 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         resetCachedSystemOrientation();
 
         preview.setCameraDisplayOrientation();
-        if( !lock_to_landscape ) {
+        if( !lock_to_portrait ) {
             SystemOrientation newSystemOrientation = getSystemOrientation();
             if( hasOldSystemOrientation && oldSystemOrientation == newSystemOrientation ) {
                 if( MyDebug.LOG )
@@ -1664,11 +1657,12 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         }
     }
 
-    /** Returns the current system orientation.
-     *  Note if lock_to_landscape is true, this always returns LANDSCAPE even if called when we're
-     *  allowing configuration changes (e.g., in Settings or a dialog is showing). (This method,
-     *  and hence calls to it, were added to support lock_to_landscape==false behaviour, and we
-     *  want to avoid changing behaviour for lock_to_landscape==true behaviour.)
+    /** Returns the current system orientation, i.e. the orientation the window (and so the
+     *  layout) is in - not the way the device is being held, which is what
+     *  MainUI.onOrientationChanged() tracks.
+     *  With lock_to_portrait this always returns PORTRAIT, even if called when we're allowing
+     *  configuration changes (e.g., in Settings or a dialog is showing): the camera layout only
+     *  ever exists in portrait.
      *  Note that this also caches the orientation: firstly for performance (as this is called from
      *  DrawPreview), secondly to support REVERSE_LANDSCAPE, we don't want a sudden change if
      *  getDefaultDisplay().getRotation() changes after the configuration changes.
@@ -1677,8 +1671,8 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         if( test_force_system_orientation ) {
             return test_system_orientation;
         }
-        if( lock_to_landscape ) {
-            return SystemOrientation.LANDSCAPE;
+        if( lock_to_portrait ) {
+            return SystemOrientation.PORTRAIT;
         }
         if( has_cached_system_orientation ) {
             return cached_system_orientation;
@@ -1753,14 +1747,14 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     }
 
     /** A wrapper for getWindowManager().getDefaultDisplay().getRotation(), except if
-     *  lock_to_landscape==false && prefer_later==false, this uses a cached value.
+     *  lock_to_portrait==false && prefer_later==false, this uses a cached value.
      */
     public int getDisplayRotation(boolean prefer_later) {
         /*if( MyDebug.LOG ) {
             Log.d(TAG, "getDisplayRotationDegrees");
             Log.d(TAG, "prefer_later: " + prefer_later);
         }*/
-        if( lock_to_landscape || prefer_later ) {
+        if( lock_to_portrait || prefer_later ) {
             return getWindowManager().getDefaultDisplay().getRotation();
         }
         // we cache to reduce effect of annoying problem where rotation changes shortly before the
@@ -3917,10 +3911,10 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             setRecentsScreenshotEnabled(false);
         }
 
-        if( lock_to_landscape ) {
-            // force to landscape mode
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-            //setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE); // testing for devices with unusual sensor orientation (e.g., Nexus 5X)
+        if( lock_to_portrait ) {
+            // force to portrait (also declared in the manifest, so the very first window is
+            // already portrait; this call re-locks after Settings, which is allowed to rotate)
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         }
         else {
             // allow orientation to change for camera, even if user has locked orientation

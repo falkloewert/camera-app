@@ -39,6 +39,7 @@
         <activity
             android:name="net.sourceforge.opencamera.MainActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
+            android:screenOrientation="portrait"
             android:clearTaskOnLaunch="true"
             android:exported="true"
             >

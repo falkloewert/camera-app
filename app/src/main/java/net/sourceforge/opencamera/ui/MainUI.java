@@ -81,7 +81,7 @@ public class MainUI {
     private int navigation_gap_landscape_align_parent_bottom;
     private int navigation_gap_reverse_landscape_align_parent_bottom;
     private boolean view_rotate_animation;
-    private float view_rotate_animation_start; // for MainActivity.lock_to_landscape==false
+    private float view_rotate_animation_start; // for MainActivity.lock_to_portrait==false
     private final static int view_rotate_animation_duration = 100; // duration in ms of the icon rotation animation
     public final static int privacy_indicator_gap_dp = 24;
 
@@ -182,7 +182,7 @@ public class MainUI {
         if( !view_rotate_animation ) {
             view.setRotation(ui_rotation);
         }
-        if( !MainActivity.lock_to_landscape ) {
+        if( !MainActivity.lock_to_portrait ) {
             float start_rotation = view_rotate_animation_start + ui_rotation;
             if( start_rotation >= 360.0f )
                 start_rotation -= 360.0f;
@@ -318,7 +318,7 @@ public class MainUI {
         if( MyDebug.LOG )
             Log.d(TAG, "ui_placement: " + ui_placement);
         int relative_orientation;
-        if( MainActivity.lock_to_landscape ) {
+        if( MainActivity.lock_to_portrait ) {
             // new code for orientation fixed to landscape
             // the display orientation should be locked to landscape, but how many degrees is that?
             int rotation = main_activity.getWindowManager().getDefaultDisplay().getRotation();
@@ -1454,7 +1454,7 @@ public class MainUI {
     }
 
     // ParameterCanBeLocal warning suppressed as it's incorrect here! (Or
-    // possibly it's due to effect of MainActivity.lock_to_landscape always
+    // possibly it's due to effect of MainActivity.lock_to_portrait always
     // being false.)
     public void onOrientationChanged(@SuppressWarnings("ParameterCanBeLocal") int orientation) {
 		/*if( MyDebug.LOG ) {
@@ -1462,7 +1462,7 @@ public class MainUI {
 			Log.d(TAG, "orientation: " + orientation);
 			Log.d(TAG, "current_orientation: " + current_orientation);
 		}*/
-        if( !MainActivity.lock_to_landscape )
+        if( !MainActivity.lock_to_portrait )
             return;
         // if locked to landscape, we need to handle the orientation change ourselves
         if( orientation == OrientationEventListener.ORIENTATION_UNKNOWN )

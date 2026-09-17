@@ -9245,7 +9245,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
 
     public Pair<Integer, Integer> getFocusPos() {
         // note, we don't store the screen coordinates, as they may become out of date in the
-        // screen orientation changes (if MainActivity.lock_to_landscape==false)
+        // screen orientation changes (if MainActivity.lock_to_portrait==false)
         float [] coords = {focus_camera_x, focus_camera_y};
         final Matrix matrix = getCameraToPreviewMatrix();
         matrix.mapPoints(coords);
@@ -9315,7 +9315,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
     public CameraController.Face [] getFacesDetected() {
         if( faces_detected != null && faces_detected.length > 0 ) {
             // note, we don't store the screen coordinates, as they may become out of date in the
-            // screen orientation changes (if MainActivity.lock_to_landscape==false)
+            // screen orientation changes (if MainActivity.lock_to_portrait==false)
             final Matrix matrix = getCameraToPreviewMatrix();
             for(CameraController.Face face : faces_detected) {
                 face_rect.set(face.rect);
