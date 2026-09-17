@@ -538,6 +538,19 @@ in Abschnitt 6 unten sowie `ui-spezifikation.md` Abschnitte 2, 6, 7.2, 8, 9-K3.
    used" (Open Cameras Original-Verhalten, Fenster dreht mit). Zu entscheiden: so lassen
    (leichteres Upstream-Merging, wie in der Commit-Begründung angelegt) oder rausschneiden
    (kürzerer, klarerer Code, aber weiter vom Original entfernt).
+   **Die beiden weiteren Funde** des Reviews (Layout per Java statt XML; doppelter
+   „ausgewählt"-Stil) stehen mit PM-Empfehlung in
+   `docs/reviews/2026-09-18-ponytail-review.md` – kein eigener Fix-Chat: Layout-Umzug erst
+   nach dem Kopfzeile/Dock-Schritt (sonst zweimal Arbeit), Stil-Dopplung als Beifang im
+   Farb-Schritt (7.3).
+10. **Reihenfolge der Audit-Schritte (PM-Entscheidung 2026-09-18, Falk noch nicht
+    widersprochen):** Nach dem Drehmodell zuerst das **Feinjustier-Rad**
+    (`docs/kickoff/redesign-feinjustier-rad.md`, nimmt Punkte 3 und 8 mit), **dann**
+    Kopfzeile + unterste Zeile – abweichend von der Empfehlung in `ui-spezifikation.md`
+    Abschnitt 7, weil die Kopfzeile am noch nicht gebauten Einstellungen-Blatt hängt
+    (die Funktionen der alten Icon-Leiste brauchen ein Ziel) und offene Fragen hat
+    („?"-Button, Regler-Button, Makro-Chip, „…"-Button im Blatt), die vorher mit Falk
+    zu klären sind. Das Rad hat keine offenen Entscheidungen.
 
 ---
 
@@ -826,3 +839,10 @@ in Abschnitt 6 unten sowie `ui-spezifikation.md` Abschnitte 2, 6, 7.2, 8, 9-K3.
   Slider drehen nicht, „Foto"-Eintrag zurück, keine Toasts) sind die einzigen bewussten
   Abweichungen und waren bereits vor diesem Chat entschieden. Kein neues Feature
   begonnen, nichts Neues beim Testen aufgefallen.
+- **2026-09-18 (Projektmanager-Chat):** Ponytail-Review gelaufen (eigener Chat, Bericht
+  vollständig in `docs/reviews/2026-09-18-ponytail-review.md`; der Review-Chat hatte nur
+  Fund 1 als PM-Punkt 9 eingetragen). Drehmodell-Abschluss-Chat fertig (`9f6fac32`), Repo
+  sauber. Nächster Feature-Chat festgelegt: **Feinjustier-Rad** vor Kopfzeile/Dock
+  (Begründung PM-Punkt 10), Kickoff `docs/kickoff/redesign-feinjustier-rad.md` mit vier
+  Vorab-Fragen, die Falk am echten Pixel klärt (Pillen-Anzeige nach Loslassen über 5×,
+  Selfie-Stufen, Rad-Screenshots zum Messen, Morph-Animation ja/nein).
