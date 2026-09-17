@@ -496,12 +496,11 @@ public class DrawPreview {
      *  *after* applying the rotation, when we want the top left of the icon as shown on screen.
      *  This should not be called every frame but instead should be cached, due to cost of calling
      *  view.getLocationOnScreen().
-     *  Update: For supporting landscape and portrait (if MainActivity.lock_to_portrait==false),
-     *  instead this returns the top side if in portrait. Note though we still need to take rotation
-     *  into account, as we still apply rotation to the icons when changing orienations (e.g., this
-     *  is needed when rotating from reverse landscape to portrait, for on-screen text like level
-     *  angle to be offset correctly above the shutter button (see take_photo_top) when the preview
-     *  has a wide aspect ratio.
+     *  Update: For supporting landscape and portrait, instead this returns the top side if in
+     *  portrait (always the case with MainActivity.lock_to_portrait). Note though we still need
+     *  to take rotation into account, as the icons are rotated in place when the device is
+     *  turned (e.g., this is needed for on-screen text like level angle to be offset correctly
+     *  above the shutter button (see take_photo_top) when the preview has a wide aspect ratio).
      */
     private int getViewOnScreenX(View view) {
         view.getLocationOnScreen(gui_location);
@@ -1253,12 +1252,6 @@ public class DrawPreview {
         final int gap_x = (int) (8 * scale_font + 0.5f); // convert dps to pixels
         final int gap_y = (int) (0 * scale_font + 0.5f); // convert dps to pixels
         final int icon_gap_y = (int) (2 * scale_dp + 0.5f); // convert dps to pixels
-        if( ui_rotation == 90 || ui_rotation == 270 ) {
-            // n.b., this is only for when lock_to_portrait==true, so we don't look at device_ui_rotation
-            int diff = canvas.getWidth() - canvas.getHeight();
-            location_x += diff/2;
-            location_y -= diff/2;
-        }
         if( device_ui_rotation == 90 ) {
             location_y = canvas.getHeight() - location_y - (int) (20 * scale_font + 0.5f);
         }
@@ -1857,8 +1850,9 @@ public class DrawPreview {
         boolean system_orientation_portrait = system_orientation == MainActivity.SystemOrientation.PORTRAIT;
         int text_base_y = 0;
 
+        // n.b., the canvas is NOT rotated by ui_rotation here (see onDrawPreview()): everything
+        // below stays where it is on the portrait layout, only individual texts turn in place
         canvas.save();
-        canvas.rotate(ui_rotation, canvas.getWidth()/2.0f, canvas.getHeight()/2.0f);
 
         if( camera_controller != null  ) {
 			/*canvas.drawText("PREVIEW", canvas.getWidth() / 2,
@@ -2054,7 +2048,11 @@ public class DrawPreview {
                     else {
                         time_s = getTimeStringFromSeconds(remaining_time);
                     }
+                    // turns on the spot so it reads upright however the device is held
+                    canvas.save();
+                    canvas.rotate(ui_rotation, canvas.getWidth() / 2.0f, canvas.getHeight() / 2.0f);
                     applicationInterface.drawTextWithBackground(canvas, p, time_s, Color.rgb(244, 67, 54), Color.BLACK, canvas.getWidth() / 2, canvas.getHeight() / 2); // Red 500
+                    canvas.restore();
                 }
             }
             else if( preview.isVideoRecording() && !is_preview_paused ) {
@@ -2066,6 +2064,10 @@ public class DrawPreview {
                 p.setTextAlign(Paint.Align.CENTER);
                 int pixels_offset_y = 2*text_y; // avoid overwriting the zoom
                 int color = Color.rgb(244, 67, 54); // Red 500
+                // the video time and whatever is stacked above it turn on the spot, about the
+                // time's own anchor, so they read upright however the device is held
+                canvas.save();
+                canvas.rotate(ui_rotation, canvas.getWidth() / 2.0f, text_base_y - pixels_offset_y);
                 if( main_activity.isScreenLocked() ) {
                     // writing in reverse order, bottom to top
                     applicationInterface.drawTextWithBackground(canvas, p, getContext().getResources().getString(R.string.screen_lock_message_2), color, Color.BLACK, canvas.getWidth() / 2, text_base_y - pixels_offset_y);
@@ -2131,6 +2133,7 @@ public class DrawPreview {
                         p.setColor(Color.WHITE);
                     }
                 }
+                canvas.restore();
             }
             else if( taking_picture && capture_started && !is_preview_paused ) {
                 if( camera_controller.isCapturingBurst() ) {
@@ -2334,12 +2337,6 @@ public class DrawPreview {
         int battery_y = top_y + (int) (5 * scale_dp + 0.5f);
         int battery_width = (int) (5 * scale_dp + 0.5f); // convert dps to pixels
         int battery_height = 4*battery_width;
-        if( ui_rotation == 90 || ui_rotation == 270 ) {
-            // n.b., this is only for when lock_to_portrait==true, so we don't look at device_ui_rotation
-            int diff = canvas.getWidth() - canvas.getHeight();
-            battery_x += diff/2;
-            battery_y -= diff/2;
-        }
         if( device_ui_rotation == 90 ) {
             battery_y = canvas.getHeight() - battery_y - battery_height;
         }
@@ -2971,14 +2968,16 @@ public class DrawPreview {
             }
         }
 
-        // device_ui_rotation is how the device is actually being held, in Open Camera's
-        // landscape-based convention (0 = landscape, 270 = portrait, see
-        // MainActivity.getRotationFromSystemOrientation()), as it affects how certain elements
-        // of the UI are laid out. It is the window's orientation plus the glyph rotation on
-        // top of it: with lock_to_portrait the window is always portrait (270) and ui_rotation
-        // carries the device rotation; without the lock the window follows the device and
-        // ui_rotation is always 0.
-        int device_ui_rotation = (MainActivity.getRotationFromSystemOrientation(main_activity.getSystemOrientation()) + ui_rotation) % 360;
+        // device_ui_rotation says which way round the on-screen elements are laid out, in Open
+        // Camera's landscape-based convention (0 = landscape, 270 = portrait, see
+        // MainActivity.getRotationFromSystemOrientation()). The overlays are drawn as printed
+        // on the fixed portrait layout (rotation model, ui-spezifikation.md section 2): they do
+        // NOT turn as a block when the device is turned - that would carry them into another
+        // corner, over the icon row or the shutter row - so the placement is always the
+        // portrait one, whatever ui_rotation says. The few single-line texts that have to stay
+        // readable while the device is on its side (video time, self-timer countdown) turn on
+        // the spot instead, see drawUI().
+        int device_ui_rotation = MainActivity.getRotationFromSystemOrientation(main_activity.getSystemOrientation());
 
         if( camera_controller != null && taking_picture && !front_screen_flash && take_photo_border_pref ) {
             p.setColor(Color.WHITE);

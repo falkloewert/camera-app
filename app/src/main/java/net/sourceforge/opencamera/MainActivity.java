@@ -96,7 +96,6 @@ import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowManager;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
@@ -176,7 +175,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     private final ToastBoxer audio_control_toast = new ToastBoxer();
     private boolean block_startup_toast = false; // used when returning from Settings/Popup - if we're displaying a toast anyway, don't want to display the info toast too
     private String push_info_toast_text; // can be used to "push" extra text to the info text for showPhotoVideoToast()
-    private boolean push_switched_camera = false; // whether to display animation for switching front/back cameras
 
     // application shortcuts:
     static private final String ACTION_SHORTCUT_CAMERA = "net.sourceforge.opencamera.SHORTCUT_CAMERA";
@@ -437,6 +435,18 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
 
         // initialise state of on-screen icons
         mainUI.getOnScreenIcons().updateOnScreenIcons();
+
+        // The window is locked to portrait (lock_to_portrait), so the only way the UI learns how
+        // the device is being held is this sensor listener: MainUI turns the glyphs to match.
+        // (Enabled in onResume(), disabled in onPause().)
+        orientationEventListener = new OrientationEventListener(this) {
+            @Override
+            public void onOrientationChanged(int orientation) {
+                MainActivity.this.mainUI.onOrientationChanged(orientation);
+            }
+        };
+        if( MyDebug.LOG )
+            Log.d(TAG, "onCreate: time after setting orientation event listener: " + (System.currentTimeMillis() - debug_time));
 
         layoutChangeListener = new View.OnLayoutChangeListener() {
             @Override
@@ -1428,7 +1438,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             this.announceCameraForAccessibility(cameraId, cameraIdSPhysical);
         }
 
-        push_switched_camera = false; // just in case
 
         if( MyDebug.LOG ) {
             Log.d(TAG, "onResume: total time to resume: " + (System.currentTimeMillis() - debug_time));
@@ -2079,8 +2088,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                 preview.clearActiveFakeToast();
             }
             userSwitchToCamera(cameraId, null);
-
-            push_switched_camera = true;
         }
     }
 
@@ -4010,7 +4017,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         // similarly we close the camera
         preview.onPause(false);
 
-        push_switched_camera = false; // just in case
     }
 
     private void showWhenLocked(boolean show) {
@@ -5405,12 +5411,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             Log.d(TAG, "cameraSetup: total time for cameraSetup: " + (System.currentTimeMillis() - debug_time));
 
         this.getApplicationInterface().getDrawPreview().setDimPreview(false);
-
-        if( push_switched_camera ) {
-            push_switched_camera = false;
-            View switchCameraButton = findViewById(R.id.switch_camera);
-            switchCameraButton.animate().rotationBy(180).setDuration(250).setInterpolator(new AccelerateDecelerateInterpolator()).start();
-        }
     }
 
     /** For Camera2 only. Sets whether the zoom ratios should be sticky or not (see documentation of

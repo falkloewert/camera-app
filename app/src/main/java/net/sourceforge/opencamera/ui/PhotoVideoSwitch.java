@@ -2,6 +2,7 @@ package net.sourceforge.opencamera.ui;
 
 import net.sourceforge.opencamera.R;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -48,6 +49,9 @@ public class PhotoVideoSwitch extends View {
     private boolean video;
     /** Where the knob is along the pill: 0 at the photo end, 1 at the video end. */
     private float knob_position;
+    /** Clockwise rotation of the two glyphs about their own centres, see setGlyphRotation(). */
+    private float glyph_rotation;
+    private ValueAnimator glyph_rotation_animator;
 
     private static final FloatPropertyCompat<PhotoVideoSwitch> KNOB_POSITION = new FloatPropertyCompat<PhotoVideoSwitch>("knobPosition") {
         @Override
@@ -100,6 +104,34 @@ public class PhotoVideoSwitch extends View {
         }
     }
 
+    /** Turns the two glyphs on the spot so they read upright however the device is held - the
+     *  pill and knob stay put. Same contract as MainUI.setViewRotation(): the shorter way round,
+     *  at once when laying out or with the shared ease when the device has just been turned.
+     */
+    public void setGlyphRotation(int degrees, boolean animate) {
+        if( glyph_rotation_animator != null ) {
+            glyph_rotation_animator.cancel();
+            glyph_rotation_animator = null;
+        }
+        float rotate_by = MainUI.shortestTurn(degrees - glyph_rotation);
+        if( !animate || rotate_by == 0.0f ) {
+            glyph_rotation = degrees;
+            invalidate();
+            return;
+        }
+        glyph_rotation_animator = ValueAnimator.ofFloat(glyph_rotation, glyph_rotation + rotate_by);
+        glyph_rotation_animator.setDuration(MainUI.glyph_rotation_duration_ms);
+        glyph_rotation_animator.setInterpolator(MainUI.glyph_rotation_interpolator);
+        glyph_rotation_animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                glyph_rotation = (float) animation.getAnimatedValue();
+                invalidate();
+            }
+        });
+        glyph_rotation_animator.start();
+    }
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         setMeasuredDimension(Math.round(dp(PILL_LENGTH_DP)), Math.round(dp(KNOB_DP)));
@@ -134,6 +166,9 @@ public class PhotoVideoSwitch extends View {
         int half = Math.round(dp(GLYPH_DP) / 2);
         glyph.setBounds(Math.round(x) - half, Math.round(y) - half, Math.round(x) + half, Math.round(y) + half);
         glyph.setTint(on_knob ? glyph_on_knob_color : glyph_color);
+        canvas.save();
+        canvas.rotate(glyph_rotation, x, y);
         glyph.draw(canvas);
+        canvas.restore();
     }
 }

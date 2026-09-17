@@ -8,6 +8,7 @@ import net.sourceforge.opencamera.PreferenceKeys;
 import net.sourceforge.opencamera.preview.Preview;
 import net.sourceforge.opencamera.R;
 
+import android.animation.TimeInterpolator;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -29,11 +30,11 @@ import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver.OnGlobalLayoutListener;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.AnimationUtils;
+import android.view.animation.PathInterpolator;
 import android.view.animation.ScaleAnimation;
 import android.widget.Button;
 import android.widget.HorizontalScrollView;
@@ -69,6 +70,7 @@ public class MainUI {
     private boolean force_destroy_popup = false; // if true, then the popup isn't cached for only the next time the popup is closed
 
     private int current_orientation; // how far the device has been turned clockwise from portrait, in steps of 90 degrees (onOrientationChanged())
+    private int ui_rotation; // the rotation that makes a glyph read upright for the user, see updateUIRotation()
     /** Where the old icon row sits. There is only one fixed layout now (see layoutUI()), with
      *  the icons along the top edge; the enum survives for DrawPreview, which positions its
      *  on-screen text relative to the icons. */
@@ -79,8 +81,11 @@ public class MainUI {
     }
     private View top_icon = null;
     private int navigation_gap_left; // inset along the left edge, remembered for setFocusSeekbarsRotation()
-    private boolean view_rotate_animation;
-    private final static int view_rotate_animation_duration = 100; // duration in ms of the icon rotation animation
+    /** How the glyphs turn when the device is turned: the reference's 300 ms with
+     *  cubic-bezier(0.2, 0.0, 0.0, 1.0) (docs/design-reference/pixel-camera-detailspec.md
+     *  section 10). Shared with PhotoVideoSwitch, which turns its glyphs itself. */
+    final static int glyph_rotation_duration_ms = 300;
+    final static TimeInterpolator glyph_rotation_interpolator = new PathInterpolator(0.2f, 0.0f, 0.0f, 1.0f);
     public final static int privacy_indicator_gap_dp = 24;
 
     private boolean immersive_mode;
@@ -174,28 +179,106 @@ public class MainUI {
         }
     }
 
-    /** Similar view.setRotation(ui_rotation), but achieves this via an animation.
+    /** Turns a glyph on the spot to ui_rotation, the shortest way round: at once when laying
+     *  out, or with the reference's ease when the device has just been turned (animate). Only
+     *  the view's drawing turns - View.setRotation() leaves its layout bounds alone - which is
+     *  what keeps every control at its physical spot on the device.
      */
-    private void setViewRotation(View view, float ui_rotation) {
-        if( !view_rotate_animation ) {
+    private void setViewRotation(View view, int ui_rotation, boolean animate) {
+        float rotate_by = shortestTurn(ui_rotation - view.getRotation());
+        if( !animate ) {
+            view.animate().cancel(); // in case a turn is still under way
             view.setRotation(ui_rotation);
         }
-        float rotate_by = ui_rotation - view.getRotation();
-        if( rotate_by > 181.0f )
-            rotate_by -= 360.0f;
-        else if( rotate_by < -181.0f )
-            rotate_by += 360.0f;
-        // view.animate() modifies the view's rotation attribute, so it ends up equivalent to view.setRotation()
-        // we use rotationBy() instead of rotation(), so we get the minimal rotation for clockwise vs anti-clockwise
-        /*if( main_activity.is_test && Build.VERSION.SDK_INT <= Build.VERSION_CODES.JELLY_BEAN_MR2 ) {
-            // We randomly get a java.lang.ArrayIndexOutOfBoundsException crash when running MainTests suite
-            // on Android emulator with Android 4.3, from deep below ViewPropertyAnimator.start().
-            // Unclear why this is - I haven't seen this on real devices and can't find out info about it.
-            view.setRotation(ui_rotation);
+        else if( rotate_by != 0.0f ) {
+            // view.animate() modifies the view's rotation attribute, so it ends up equivalent to view.setRotation()
+            // we use rotationBy() instead of rotation(), so we get the minimal rotation for clockwise vs anti-clockwise
+            view.animate().rotationBy(rotate_by).setDuration(glyph_rotation_duration_ms).setInterpolator(glyph_rotation_interpolator).start();
         }
-        else*/ {
-            view.animate().rotationBy(rotate_by).setDuration(view_rotate_animation_duration).setInterpolator(new AccelerateDecelerateInterpolator()).start();
+    }
+
+    /** Brings a turn in degrees into (-180, 180], i.e. the shorter of the two ways round. */
+    static float shortestTurn(float degrees) {
+        degrees = degrees % 360.0f;
+        if( degrees > 180.0f )
+            degrees -= 360.0f;
+        else if( degrees <= -180.0f )
+            degrees += 360.0f;
+        return degrees;
+    }
+
+    /** The rotation that makes a glyph read upright for the user, in degrees clockwise: 0 with
+     *  the device upright, 90 with its top edge on the left, and so on - see updateUIRotation(). */
+    int getUIRotation() {
+        return ui_rotation;
+    }
+
+    /** Recomputes ui_rotation from current_orientation and hands it to the Preview, whose
+     *  overlays (DrawPreview) turn with it too.
+     *  current_orientation is how far the device has been turned clockwise from its natural
+     *  (portrait) position (onOrientationChanged()), so the glyph has to turn the same amount
+     *  the other way. The window's own rotation is added in case the natural orientation isn't
+     *  portrait (a tablet held on end): for a phone it's 0.
+     */
+    private void updateUIRotation() {
+        int rotation = main_activity.getWindowManager().getDefaultDisplay().getRotation();
+        int degrees = 0;
+        switch (rotation) {
+            case Surface.ROTATION_0: degrees = 0; break;
+            case Surface.ROTATION_90: degrees = 90; break;
+            case Surface.ROTATION_180: degrees = 180; break;
+            case Surface.ROTATION_270: degrees = 270; break;
+            default:
+                break;
         }
+        // getRotation is anti-clockwise, but current_orientation is clockwise, so we add rather than subtract
+        int relative_orientation = (current_orientation + degrees) % 360;
+        this.ui_rotation = (360 - relative_orientation) % 360;
+        if( MyDebug.LOG ) {
+            Log.d(TAG, "    current_orientation = " + current_orientation);
+            Log.d(TAG, "    degrees = " + degrees);
+            Log.d(TAG, "    ui_rotation = " + ui_rotation);
+        }
+        main_activity.getPreview().setUIRotation(ui_rotation);
+    }
+
+    /** Everything that turns in place when the device is turned (rotation model,
+     *  ui-spezifikation.md section 2): the icons of the top row, the shutter row and its
+     *  stand-ins during video/panorama, the panorama lens pair and the zoom step digits. Each
+     *  is a square view holding a single glyph - or a circle - so turning the whole view is the
+     *  same as turning just the glyph. What is NOT here stays as printed on the fixed layout:
+     *  the pills behind the zoom steps, mode bar and photo/video switch (the switch turns its
+     *  two glyphs itself, see rotateGlyphs()), the mode bar labels, the popup menu and the
+     *  exposure sliders (both old Open Camera elements the redesign replaces).
+     */
+    private List<View> glyphViews() {
+        List<View> views = new ArrayList<>();
+        views.add(main_activity.findViewById(R.id.settings));
+        views.add(main_activity.findViewById(R.id.popup));
+        views.add(main_activity.findViewById(R.id.exposure));
+        onScreenIcons.addOnScreenIcons(views);
+        views.add(main_activity.findViewById(R.id.kraken_icon));
+        views.add(main_activity.findViewById(R.id.trash));
+        views.add(main_activity.findViewById(R.id.share));
+        views.add(main_activity.findViewById(R.id.take_photo));
+        views.add(main_activity.findViewById(R.id.switch_camera));
+        views.add(main_activity.findViewById(R.id.switch_multi_camera));
+        views.add(main_activity.findViewById(R.id.gallery));
+        views.add(main_activity.findViewById(R.id.pause_video));
+        views.add(main_activity.findViewById(R.id.cancel_panorama));
+        views.add(main_activity.findViewById(R.id.take_photo_when_video_recording));
+        views.add(main_activity.findViewById(R.id.panorama_lens_wide));
+        views.add(main_activity.findViewById(R.id.panorama_lens_1x));
+        views.addAll(zoomStepper.getStepButtons());
+        return views;
+    }
+
+    /** Turns all the glyphs to the current ui_rotation - see glyphViews() and setViewRotation(). */
+    private void rotateGlyphs(boolean animate) {
+        for(View view : glyphViews())
+            setViewRotation(view, ui_rotation, animate);
+        PhotoVideoSwitch photoVideoSwitch = main_activity.findViewById(R.id.photo_video_switch);
+        photoVideoSwitch.setGlyphRotation(ui_rotation, animate);
     }
 
     public void layoutUI() {
@@ -256,33 +339,9 @@ public class MainUI {
         // (MainActivity.lock_to_portrait), so there is exactly ONE arrangement of the controls,
         // laid out below in real screen directions - nothing here depends on how the device is
         // held. Turning the device only changes ui_rotation, which turns the glyphs in place
-        // via setViewRotation() and never touches a layout parameter; that is what keeps every
+        // (rotateGlyphs()) and never touches a layout parameter; that is what keeps every
         // control pixel-exact at its physical spot on the device, as in the Pixel Camera.
-        //
-        // ui_rotation is the rotation that makes a glyph read upright for the user:
-        // current_orientation is how far the device has been turned clockwise from its natural
-        // (portrait) position (MainUI.onOrientationChanged()), so the glyph has to turn the
-        // same amount the other way. The window's own rotation is added in case the natural
-        // orientation isn't portrait (a tablet held on end): for a phone it's 0.
-        int rotation = main_activity.getWindowManager().getDefaultDisplay().getRotation();
-        int degrees = 0;
-        switch (rotation) {
-            case Surface.ROTATION_0: degrees = 0; break;
-            case Surface.ROTATION_90: degrees = 90; break;
-            case Surface.ROTATION_180: degrees = 180; break;
-            case Surface.ROTATION_270: degrees = 270; break;
-            default:
-                break;
-        }
-        // getRotation is anti-clockwise, but current_orientation is clockwise, so we add rather than subtract
-        int relative_orientation = (current_orientation + degrees) % 360;
-        final int ui_rotation = (360 - relative_orientation) % 360;
-        if( MyDebug.LOG ) {
-            Log.d(TAG, "    current_orientation = " + current_orientation);
-            Log.d(TAG, "    degrees = " + degrees);
-            Log.d(TAG, "    ui_rotation = " + ui_rotation);
-        }
-        main_activity.getPreview().setUIRotation(ui_rotation);
+        updateUIRotation();
 
         final ConstraintLayout constraint_root = getConstraintRoot();
         final ConstraintSet cs = new ConstraintSet();
@@ -331,7 +390,6 @@ public class MainUI {
             resetView(cs, view);
             cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, 0);
             cs.connect(view_id, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 0);
-            setViewRotation(view, ui_rotation);
             View previous_view = view;
 
             // the gallery thumbnail is no longer one of these icons - it sits on the shutter row,
@@ -355,7 +413,6 @@ public class MainUI {
                 resetView(cs, this_view);
                 cs.connect(this_id, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 0);
                 cs.connect(this_id, ConstraintSet.RIGHT, previous_view.getId(), ConstraintSet.LEFT, 0);
-                setViewRotation(this_view, ui_rotation);
                 previous_view = this_view;
             }
 
@@ -440,7 +497,6 @@ public class MainUI {
             resetView(cs, view);
             centerHorizontally(cs, view_id);
             pinToBottom(cs, view_id, navigation_gap, (int) (167 * scale + 0.5f)); // 241 dp centre - 50 dp half view - 24 dp inset
-            setViewRotation(view, ui_rotation);
 
             // The shutter's neighbours: camera switch on its right, gallery thumbnail on its
             // left, each the reference distance from the shutter's centre and lined up with it
@@ -449,11 +505,9 @@ public class MainUI {
             // same way, so nothing shifts when they appear.
             view = main_activity.findViewById(R.id.switch_camera);
             flankShutter(cs, view, true, scale);
-            setViewRotation(view, ui_rotation);
 
             view = main_activity.findViewById(R.id.gallery);
             flankShutter(cs, view, false, scale);
-            setViewRotation(view, ui_rotation);
 
             // the multi-camera switch sits just above the camera switch, lined up with it
             view = main_activity.findViewById(R.id.switch_multi_camera);
@@ -462,7 +516,6 @@ public class MainUI {
             placeAbove(cs, view_id, R.id.switch_camera, (int) (5 * scale + 0.5f));
             cs.connect(view_id, ConstraintSet.LEFT, R.id.switch_camera, ConstraintSet.LEFT, 0);
             cs.connect(view_id, ConstraintSet.RIGHT, R.id.switch_camera, ConstraintSet.RIGHT, 0);
-            setViewRotation(view, ui_rotation);
 
             // panorama_lens_row (containing the "wide" and "1x" buttons) sits centred above the
             // shutter, with a gap so the two don't visually merge (Falk confirmed he wants it
@@ -473,7 +526,6 @@ public class MainUI {
             resetView(cs, view);
             centerHorizontally(cs, view_id);
             placeAbove(cs, view_id, R.id.take_photo, (int) (16 * scale + 0.5f));
-            setViewRotation(view, ui_rotation);
 
             // The mode bar, below the shutter row. Its labels are plain TextViews that never
             // turn: when the device is held on its side they read sideways, printed on the
@@ -491,7 +543,6 @@ public class MainUI {
             resetView(cs, view);
             centerHorizontally(cs, view_id);
             pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f)); // 85 dp centre - 24 dp half view - 24 dp inset
-            setViewRotation(view, ui_rotation);
 
             // the zoom steps pill, centred just above the shutter
             view = main_activity.findViewById(R.id.zoom_stepper);
@@ -499,21 +550,17 @@ public class MainUI {
             resetView(cs, view);
             centerHorizontally(cs, view_id);
             placeAbove(cs, view_id, R.id.take_photo, (int) (12 * scale + 0.5f));
-            setViewRotation(view, ui_rotation);
 
             view = main_activity.findViewById(R.id.pause_video);
             flankShutter(cs, view, true, scale);
-            setViewRotation(view, ui_rotation);
 
             view = main_activity.findViewById(R.id.cancel_panorama);
             flankShutter(cs, view, true, scale);
-            setViewRotation(view, ui_rotation);
 
             // switch_video stays hidden (see activity_main.xml), so it isn't positioned any more
 
             view = main_activity.findViewById(R.id.take_photo_when_video_recording);
             flankShutter(cs, view, false, scale);
-            setViewRotation(view, ui_rotation);
 
             // The seekbars stand on end along the left edge (see standOnEnd()): the zoom
             // seekbar in the bottom left corner (kept only for tests, it's invisible where the
@@ -556,9 +603,9 @@ public class MainUI {
             int height_pixels = (int) (height_dp * scale + 0.5f); // convert dps to pixels
 
             // the container is centred on screen by the XML; shift it down so it doesn't sit
-            // right over the middle of the preview
+            // right over the middle of the preview. It doesn't turn with the device (an old
+            // Open Camera element, see glyphViews()).
             View view = main_activity.findViewById(R.id.sliders_container);
-            setViewRotation(view, ui_rotation);
             view.setTranslationX(0.0f);
             view.setTranslationY(2*height_pixels);
 
@@ -604,13 +651,9 @@ public class MainUI {
                         public void onGlobalLayout() {
                             if( MyDebug.LOG )
                                 Log.d(TAG, "onGlobalLayout()");
-                            // We need to call setPopupViewRotation after the above layout param changes
-                            // have taken effect, otherwise we can have problems due to popup_height being incorrect.
-                            // Example bugs (from the days the layout could turn):
-                            // Left-handed UI, portrait: Restart and open popup, it doesn't appear until device is rotated.
-                            // Top UI, reverse-portrait: Restart and open popup, it appears in wrong location.
-                            // Top UI, reverse-landscape: Restart and open popup, it appears in wrong location.
-                            setPopupViewRotation(ui_rotation, display_width);
+                            // We need to call onPopupLaidOut after the above layout param changes
+                            // have taken effect, otherwise popup_height would be incorrect.
+                            onPopupLaidOut();
 
                             // stop listening - only want to call this once!
                             view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
@@ -626,6 +669,9 @@ public class MainUI {
         cs.applyTo(constraint_root);
 
         if( !popup_container_only ) {
+            // the glyphs (including any the zoom stepper has just rebuilt) take the current
+            // rotation straight away - the animated turn is only for when the device is turned
+            rotateGlyphs(false);
             setTakePhotoIcon();
             // no need to call setSwitchCameraContentDescription()
         }
@@ -678,14 +724,14 @@ public class MainUI {
         cs.applyTo(constraint_root);
     }
 
-    private void setPopupViewRotation(int ui_rotation, int display_height) {
+    /** Remembers the popup's laid-out size (for the tests) and checks it against the size the
+     *  popup asked for. The popup itself doesn't turn with the device: it is one of the old
+     *  Open Camera elements the redesign replaces with a bottom sheet (ui-spezifikation.md 7.1).
+     */
+    private void onPopupLaidOut() {
         if( MyDebug.LOG )
-            Log.d(TAG, "setPopupViewRotation");
+            Log.d(TAG, "onPopupLaidOut");
         View view = main_activity.findViewById(R.id.popup_container);
-        setViewRotation(view, ui_rotation);
-        // reset:
-        view.setTranslationX(0.0f);
-        view.setTranslationY(0.0f);
 
         int popup_width = view.getWidth();
         int popup_height = view.getHeight();
@@ -708,30 +754,9 @@ public class MainUI {
             // devices.
             Log.e(TAG, "### popup view is too big?!");
             force_destroy_popup = true;
-			/*popup_width = popup_view.getTotalWidth();
-			ViewGroup.LayoutParams params = new RelativeLayout.LayoutParams(
-					popup_width,
-					RelativeLayout.LayoutParams.WRAP_CONTENT);
-			view.setLayoutParams(params);*/
         }
         else {
             force_destroy_popup = false;
-        }
-
-        if( ui_rotation == 0 || ui_rotation == 180 ) {
-            view.setPivotX(popup_width/2.0f);
-            view.setPivotY(popup_height/2.0f);
-        }
-        else {
-            view.setPivotX(0.0f);
-            view.setPivotY(0.0f);
-            if( ui_rotation == 90 ) {
-                //noinspection SuspiciousNameCombination
-                view.setTranslationX(popup_height);
-            }
-            else if( ui_rotation == 270 ) {
-                view.setTranslationY(display_height);
-            }
         }
     }
 
@@ -985,18 +1010,19 @@ public class MainUI {
 
     }
 
-    // ParameterCanBeLocal warning suppressed as it's incorrect here! (Or
-    // possibly it's due to effect of MainActivity.lock_to_portrait always
-    // being false.)
-    public void onOrientationChanged(@SuppressWarnings("ParameterCanBeLocal") int orientation) {
+    /** Fed by MainActivity's OrientationEventListener with the device's tilt in degrees
+     *  (0 upright, growing clockwise). The window never turns (MainActivity.lock_to_portrait), so
+     *  this is where the app learns how the device is being held: the tilt is snapped to the
+     *  nearest quarter turn, with a 60 degree hysteresis so a phone held near 45 degrees doesn't
+     *  flicker between two states, and the glyphs are turned to match (rotateGlyphs()). Photos
+     *  and videos don't depend on this: Preview has its own listener for their orientation.
+     */
+    public void onOrientationChanged(int orientation) {
 		/*if( MyDebug.LOG ) {
 			Log.d(TAG, "onOrientationChanged()");
 			Log.d(TAG, "orientation: " + orientation);
 			Log.d(TAG, "current_orientation: " + current_orientation);
 		}*/
-        if( !MainActivity.lock_to_portrait )
-            return;
-        // if locked to landscape, we need to handle the orientation change ourselves
         if( orientation == OrientationEventListener.ORIENTATION_UNKNOWN )
             return;
         int diff = Math.abs(orientation - current_orientation);
@@ -1011,22 +1037,15 @@ public class MainUI {
                 if( MyDebug.LOG ) {
                     Log.d(TAG, "current_orientation is now: " + current_orientation);
                 }
-                view_rotate_animation = true;
-                layoutUI();
-                view_rotate_animation = false;
+                updateUIRotation();
+                rotateGlyphs(true);
 
                 // Call DrawPreview.updateSettings() so that we reset calculations that depend on
                 // getLocationOnScreen() - since the result is affected by a View's rotation, we need
                 // to recompute - this also means we need to delay slightly until after the rotation
                 // animation is complete.
-                // To reproduce issues, rotate from upside-down-landscape to portrait, and observe
-                // the info-text placement (when using icons-along-top), or with on-screen angle
-                // displayed when in 16:9 preview.
                 // Potentially we could use Animation.setAnimationListener(), but we set a separate
                 // animation for every icon.
-                // Note, this seems to be unneeded due to the fix in DrawPreview for
-                // "getRotation() == 180.0f", but good to clear the cached values (e.g., in case we
-                // compute them during when the icons are being rotated).
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
@@ -1036,7 +1055,7 @@ public class MainUI {
 
                         main_activity.getApplicationInterface().getDrawPreview().updateSettings();
                     }
-                }, view_rotate_animation_duration+20);
+                }, glyph_rotation_duration_ms+20);
             }
         }
     }

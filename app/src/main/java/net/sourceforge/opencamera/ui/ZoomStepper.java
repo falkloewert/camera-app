@@ -83,6 +83,8 @@ public class ZoomStepper {
             step_zoom_factors.add(zoom_factor);
             step_ratios.add(preview.getZoomRatio(zoom_factor));
             Button button = createStepButton(preview.getZoomRatio(zoom_factor), zoom_factor, step_index);
+            // a new digit starts out turned the way the device is currently held, like the others
+            button.setRotation(main_activity.getMainUI().getUIRotation());
             step_buttons.add(button);
             container.addView(button);
         }
