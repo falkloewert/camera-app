@@ -499,7 +499,14 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             @SuppressLint("ClickableViewAccessibility")
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
-                if( motionEvent.getAction() == MotionEvent.ACTION_UP ) {
+                int action = motionEvent.getAction();
+                // press feedback (spring to 92 % and back) lives in ShutterButton, but is fed
+                // from here since a view has only one touch listener
+                if( action == MotionEvent.ACTION_DOWN )
+                    mainUI.getShutterButton().setPressed(true);
+                else if( action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL )
+                    mainUI.getShutterButton().setPressed(false);
+                if( action == MotionEvent.ACTION_UP ) {
                     if( MyDebug.LOG )
                         Log.d(TAG, "takePhotoButton ACTION_UP");
                     takePhotoButtonLongClickCancelled();
@@ -512,6 +519,9 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
 
         // set up gallery button long click
         View galleryButton = findViewById(R.id.gallery);
+        // the thumbnail is clipped to the rounded square of the button's background (the view's
+        // outline comes from that drawable), leaving the background showing as a 2 dp frame
+        galleryButton.setClipToOutline(true);
         galleryButton.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
@@ -1821,6 +1831,9 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     public void clickedTakePhoto(View view) {
         if( MyDebug.LOG )
             Log.d(TAG, "clickedTakePhoto");
+        // heavy click on the shutter, whatever it triggers (photo, video start or stop,
+        // panorama start or finish) - detail spec section 10
+        mainUI.performHeavyClick();
         this.takePicture(false);
     }
 
@@ -4191,6 +4204,7 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             update_gallery_future.cancel(true);
         }
         ImageButton galleryButton = this.findViewById(R.id.gallery);
+        // plain swap, no cross-fade or bounce - Falk wants the thumbnail simply updated (2026-09-17)
         galleryButton.setImageBitmap(thumbnail);
         gallery_bitmap = thumbnail;
     }

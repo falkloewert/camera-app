@@ -27,34 +27,37 @@
          ever shown, same as these views simply had no position at all under the old
          RelativeLayout (which also defaults unconstrained views to the top-left corner). -->
 
+    <!-- Auslöser: der Ring ist der Hintergrund (shutter_ring.xml, 86 dp), den Kern (Scheibe
+         bzw. Stopp-Quadrat) zeichnet ui/ShutterButton zur Laufzeit und zentriert ihn über
+         scaleType=center. Die 100 dp bleiben als Touch-Fläche. Kein stateListAnimator: das
+         Tap-Feedback ist eine Feder in ShutterButton. -->
     <ImageButton
         android:id="@+id/take_photo"
         android:layout_width="100dp"
         android:layout_height="100dp"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
+        android:scaleType="center"
         android:contentDescription="@string/take_photo"
-        app:srcCompat="@drawable/take_photo_selector"
-        android:stateListAnimator="@animator/button_animation"
         android:onClick="clickedTakePhoto"
-        android:background="@null"
+        android:background="@drawable/shutter_ring"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         />
 
+    <!-- Kamera-Wechsel: 56-dp-Squircle rechts vom Auslöser, Pfeil-Glyph 24 dp. Die PNG-Grafik
+         hat ringsum Leerraum (der Glyph füllt 66 von 96 px), darum 35 dp Bildfläche mit 10,5 dp
+         Padding statt 24 dp mit 16 dp. Kein stateListAnimator: die Rückmeldung beim Antippen
+         ist die halbe Drehung des Icons (MainUI.animateSwitchCamera()), ein gleichzeitiges
+         Aufblähen hat die Referenz nicht. -->
     <ImageButton
         android:id="@+id/switch_camera"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:padding="10dp"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:padding="10.5dp"
         android:scaleType="fitCenter"
         android:contentDescription="@string/switch_to_front_camera"
         app:srcCompat="@drawable/switch_camera"
-        android:stateListAnimator="@animator/button_animation"
         android:onClick="clickedSwitchCamera"
-        android:background="@drawable/circle_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
+        android:background="@drawable/squircle_background"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         />
@@ -177,6 +180,10 @@
 
     <!-- Monochrom (dunkler Kreis + weißes Symbol) wie switch_camera und wie die
          Pixel-Kamera-Referenz - vorher ein blaues PNG (@drawable/take_video). -->
+    <!-- Seit Audit-Schritt 1 unsichtbar: seinen Platz links vom Auslöser hat die Galerie, Foto
+         <-> Video wird wie in der Referenz über die Moduswahl-Leiste umgeschaltet (und später
+         über die Pille in der untersten Zeile, Audit-Schritt 2). Der Button bleibt nur im
+         Layout, weil die Instrumented-Tests und setTakePhotoIcon() ihn noch ansprechen. -->
     <ImageButton
         android:id="@+id/switch_video"
         android:layout_width="60dp"
@@ -185,11 +192,9 @@
         android:scaleType="fitCenter"
         android:contentDescription="@string/switch_to_video"
         app:srcCompat="@drawable/ic_videocam_white_48dp"
-        android:stateListAnimator="@animator/button_animation"
         android:onClick="clickedSwitchVideo"
         android:background="@drawable/circle_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
+        android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         />
@@ -202,7 +207,7 @@
         android:padding="14dp"
         android:scaleType="fitCenter"
         android:contentDescription="@string/take_photo"
-        app:srcCompat="@drawable/take_photo_selector"
+        app:srcCompat="@drawable/video_snapshot_disc"
         android:stateListAnimator="@animator/button_animation"
         android:onClick="clickedTakePhotoVideoSnapshot"
         android:background="@null"
@@ -272,17 +277,19 @@
         when the thumbnail aspect ratio doesn't match the button aspect ratio, to avoid showing a
         shaded background
         -->
+    <!-- Galerie-Miniatur: 56-dp-Squircle links vom Auslöser (Referenz, ui-spezifikation.md 1b).
+         Das Padding lässt 2 dp des Squircle-Hintergrunds als Rahmen um das Bild stehen, wie im
+         Screenshot vermessen; das Bild selbst wird per clipToOutline (MainActivity.onCreate)
+         auf die Squircle-Form beschnitten. -->
     <ImageButton
         android:id="@+id/gallery"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:padding="0dp"
-        android:scaleType="fitCenter"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:padding="2dp"
+        android:scaleType="centerCrop"
         android:contentDescription="@string/gallery"
         app:srcCompat="@drawable/baseline_photo_library_white_48"
-        android:background="#00000000"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
+        android:background="@drawable/squircle_background"
         android:onClick="clickedGallery"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -835,6 +842,19 @@
          im Projekt schon als fragil dokumentiert, deshalb bewusst nicht gewaehlt. Der
          Abstand zwischen den Eintraegen kommt als Trenner (showDividers), damit er bei
          umgekehrter Reihenfolge automatisch an der richtigen Stelle bleibt. -->
+    <!-- Foto/Video-Umschalter aus der untersten Zeile der Referenz (Audit-Schritt 1 nimmt nur
+         dieses eine Element vorweg, die Buttons links und rechts davon kommen mit Schritt 2).
+         Größe und Ausrichtung bestimmt die View selbst, Position MainUI.layoutUI(). -->
+    <net.sourceforge.opencamera.ui.PhotoVideoSwitch
+        android:id="@+id/photo_video_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/switch_to_video"
+        android:onClick="clickedSwitchVideo"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        />
+
     <LinearLayout
         android:id="@+id/mode_bar"
         android:layout_width="wrap_content"
@@ -848,34 +868,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginBottom="16dp">
-
-        <net.sourceforge.opencamera.ui.RotatedTextView
-            android:id="@+id/mode_bar_video"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:textColor="@color/md_dark_on_surface"
-            android:textSize="14sp"
-            android:text="@string/video"
-            />
-
-        <net.sourceforge.opencamera.ui.RotatedTextView
-            android:id="@+id/mode_bar_photo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:background="@drawable/pill_selected_background"
-            android:textColor="@color/md_dark_surface"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:text="@string/photo"
-            />
 
         <net.sourceforge.opencamera.ui.RotatedTextView
             android:id="@+id/mode_bar_panorama"

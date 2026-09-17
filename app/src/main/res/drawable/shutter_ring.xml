@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Der feste Außenring des Auslösers (Hintergrund von take_photo). Der Kern in der Mitte
+     wird von ui/ShutterButton gezeichnet und animiert. Maße aus dem Referenz-Screenshot
+     (docs/design-reference/ui-spezifikation.md 7.2): Ring 6 dp breit um den 74-dp-Kern,
+     also außen 86 dp; Farbe siehe shutter_row_scrim. Der Button selbst ist größer (100 dp)
+     als der Ring, damit die Touch-Fläche bleibt - daher gravity=center. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="86dp"
+        android:height="86dp"
+        android:gravity="center">
+        <shape android:shape="oval">
+            <solid android:color="@color/shutter_row_scrim"/>
+        </shape>
+    </item>
+</layer-list>

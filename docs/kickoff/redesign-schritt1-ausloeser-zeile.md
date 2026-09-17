@@ -1,5 +1,11 @@
 # Kickoff-Kontext: Material-3-Redesign, Audit-Schritt 1 – Auslöser-Zeile
 
+> **Status: erledigt (2026-09-17).** Ergebnis, Abweichungen und Folgepunkte:
+> `docs/SPEC.md` 4.5 („Stand Audit-Schritt 1") und Abschnitt 6,
+> `docs/design-reference/ui-spezifikation.md` Abschnitte 6 und 8. Der Foto/Video-Umschalter
+> aus der untersten Zeile wurde hier vorgezogen; das Drehmodell ist wieder offen
+> (`docs/kickoff/rotation-pixel-modell.md`).
+
 Teil des laufenden Material-3-Redesigns (siehe `docs/SPEC.md` Abschnitt 4.5). Dies ist
 Schritt 1 der im Audit (`docs/design-reference/ui-spezifikation.md` Abschnitt 7)
 empfohlenen Reihenfolge: kleinster Eingriff, größter sichtbarer Effekt.

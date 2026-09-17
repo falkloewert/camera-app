@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hintergrund der Nachbarn des Auslösers (Kamera-Wechsel, Galerie-Rahmen): das abgerundete
+     Quadrat der Referenz. Gerade Kanten mit Kreisbogen-Ecken von 12 dp - so im Screenshot
+     vermessen (docs/design-reference/ui-spezifikation.md 7.2); die 22 dp der Detail-Spec
+     sind sichtbar zu rund, eine echte Superellipse hätte gewölbte Kanten, die die Referenz
+     nicht hat. Farbe: dasselbe transluzente Schwarz wie der Auslöser-Ring. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/shutter_row_scrim"/>
+    <corners android:radius="12dp"/>
+</shape>

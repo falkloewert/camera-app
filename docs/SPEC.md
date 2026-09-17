@@ -460,9 +460,40 @@ Ruler-Hauptmarken nach Detail-Spec (mit „,5"), K8 Doppel-Tap-Verhalten bleibt 
 wie heute (Foto auslösen). Schriftfamilie ebenfalls geklärt: Roboto Flex statt Google
 Sans (Lizenzgrund, keine Rückfrage nötig).
 
-**Nächster Schritt:** Kickoff für Audit-Schritt 1 (Auslöser-Zeile: Auslöser-Ring,
-Kamera-Wechsel-Form/-Abstand, Galerie-Miniatur an der richtigen Position, Haptik)
-erstellt.
+**Stand Audit-Schritt 1 – Auslöser-Zeile (2026-09-17, fertig):** Auslöser (transluzenter
+Ring, Kern als animierbare Form, Feder-Tap, Aufnahme-Morph, Heavy Click), Kamera-Wechsel
+als Squircle, Galerie-Miniatur links vom Auslöser, **Foto/Video-Umschalter-Pille** (aus
+der untersten Zeile vorgezogen, ersetzt `switch_video`), Moduswahl auf „Panorama" reduziert,
+alle drei Fußzeilen auf den im Referenz-Screenshot gemessenen Höhen und jede für sich
+fest am Bildschirmrand. Werte durchgängig **gemessen** (2,25 px/dp) statt aus der
+Detail-Spec, weil diese an fünf Stellen sichtbar abweicht (Entscheidung Falk); Liste der
+Abweichungen und Falks Vereinfachungs-Entscheidungen (keine Animationen außer am
+Auslöser, kein „Foto"/„Video" in der Moduswahl): `ui-spezifikation.md` Abschnitt 8. Am
+Pixel 9 Pro geprüft (Hochformat pixelgenau gegen die Referenz, beide Querformate, Foto,
+Video Start/Stopp, Panorama). Details: Abschnitt 6 (Eintrag 2026-09-17, Audit-Schritt 1).
+
+**Für den Projektmanager-Chat aus Audit-Schritt 1 (nicht selbst entschieden):**
+1. **Drehmodell (K3) wieder offen** – Falk will den Pixel-Übergang (Hochformat-Sperre,
+   nur Glyphen drehen). Vorschlag mit korrigierter Diagnose:
+   `docs/kickoff/rotation-pixel-modell.md`.
+2. **Auslöse-Verzögerung ~1–2 s** (Falk): im Kamera-Log belegt – Fokusmodus „auto" löst
+   beim Tippen einen 0,7-s-Fokus-Scan aus, Blitz „auto" verhindert den ZSL-Puffer des
+   Pixel-HAL („can't find a ZSL buffer … fall back to real time request"). Beides sind
+   Open-Camera-Standardwerte; Pixel-Verhalten hieße Standard auf kontinuierlichen Fokus
+   (+ Blitz aus/ZSL). Verhaltens-Entscheidung, kein Optik-Thema.
+3. **Selfie-Weitwinkel:** die Frontkamera meldet Zoom 0,896×–10×; `ZoomStepper` filtert
+   Stufen unter 1,25-facher Weite (0,9× wäre ein Fast-Duplikat von 1×). Zu klären: was
+   zeigt die Pixel-App im Selfie-Modus in der Zoom-Pille? Dann ggf. Schwelle anpassen
+   (Zoom-Schritt).
+4. **Panorama im Selfie-Modus** technisch möglich, wohl sinnlos – prüfen, ob die
+   Pixel-App es anbietet; sonst bei der Frontkamera ausblenden (Moduswahl-Schritt).
+5. **Galerie leer nach Aufwachen über den Sperrbildschirm** (Open-Camera-Altverhalten:
+   Datenschutz, lädt erst beim nächsten Resume nach) – aufgefallen, nicht angefasst.
+6. **Sichtbarkeit von Ring/Squircles auf Schwarz** (Videomodus): transluzentes Schwarz ist
+   dort unsichtbar; Falk vergleicht mit der Pixel-App, ggf. `shutter_row_scrim` heller.
+7. **Sucher-Position (K4/1a):** im Fotomodus (4:3) endet unser Sucher oberhalb der
+   Moduswahl, in der Referenz reicht er bis unter die Auslöser-Zeile – gehört zu 7.1
+   Punkt 8 / K4, nicht zu diesem Schritt.
 
 ---
 
@@ -664,6 +695,40 @@ erstellt.
   Roboto Flex festgelegt (Google Sans nicht frei lizenzierbar). Kickoff für
   Audit-Schritt 1 (Auslöser-Zeile) erstellt
   (`docs/kickoff/redesign-schritt1-ausloeser-zeile.md`).
+- **2026-09-17 (Feature-Chat Audit-Schritt 1, Auslöser-Zeile):** Fertig und am Pixel 9 Pro
+  geprüft. **Vorgehen:** Referenz-Screenshot pixelgenau vermessen (Gerät läuft mit
+  960 × 2142 px bei Dichte 360 = 2,25 px/dp; Galerie und Kamera-Wechsel messen exakt 56 dp,
+  was die Umrechnung bestätigt); dabei fünf Widersprüche zur Detail-Spec gefunden
+  (Auslöser 74/6/86 statt 72/8/88 dp, Squircle-Radius 12 statt 22 dp, Nachbar-Abstand 124
+  statt 64 dp – 64 läge im Ring –, Nachbar-Hintergrund Schwarz 60 % statt Weiß 12 %,
+  Umschalter-Pille 92 × 40 / Knopf 48 statt 96 × 40 / 34 dp); Falk entschied: Messung gilt.
+  **Gebaut:** `ui/ShutterButton` (Ring als Hintergrund `shutter_ring.xml`, Kern als
+  `GradientDrawable` mit Feder-Morph Kreis ↔ 32-dp-Quadrat bei Videoaufnahme, Feder-Tap auf
+  92 %, `androidx.dynamicanimation` kommt transitiv mit Material), Heavy Click
+  (`MainUI.performHeavyClick()`, `HapticFeedbackConstants.CONFIRM`), `squircle_background.xml`
+  (Radius 12 dp, `shutter_row_scrim` `#99000000`) für Kamera-Wechsel und Galerie,
+  `MainUI.flankShutter()` (Nachbarn 124 dp vom Auslöser-Zentrum, auch Pause /
+  Schnappschuss / Panorama-Abbruch), Galerie mit 2-dp-Rahmen per `clipToOutline`,
+  `ui/PhotoVideoSwitch` (selbstzeichnende Pille, Querformat senkrecht), drei Fußzeilen auf
+  Referenzhöhen (Zentren 241 / 149 / 85 dp vom Rand) jede für sich am Rand verankert.
+  Alte Drawables `take_photo_*` / `take_video_*` gelöscht, `switch_video` unsichtbar.
+  **Unterwegs korrigiert:** Absturz durch freigegebenes Bitmap im Cross-Fade (dann mit
+  dem Cross-Fade ganz gestrichen), Wechsel-Icon zu klein (PNG-Leerraum, Padding 10,5 dp),
+  Auslöser-Zeile sprang beim Fotografieren an den Rand (Moduswahl ging `GONE`, Auslöser
+  hing daran – jetzt `INVISIBLE` und ohnehin nicht mehr verkettet).
+  **Falks Entscheidungen im Chat:** Messung vor Detail-Spec; Umschalter „wie in der
+  Referenz" = Pille in der untersten Zeile (zuerst als Moduswahl-Eintrag missverstanden);
+  keine Animationen außer am Auslöser (Flug in die Galerie, Cross-Fade/Bounce, Icon-Drehung
+  gestrichen); kein „Foto"/„Video" in der Moduswahl, dort nur Untermodi des aktiven
+  Hauptmodus (Panorama als Umschalter, Video leer); Bedienelemente dürfen einander nie
+  verschieben. Abweichungsliste: `ui-spezifikation.md` Abschnitt 8.
+  **Offen für den PM-Chat:** Drehmodell K3 wieder offen (Kickoff-Vorschlag
+  `docs/kickoff/rotation-pixel-modell.md`), Auslöse-Verzögerung durch Fokus-/Blitz-Standard
+  (im HAL-Log belegt), Selfie-Weitwinkel (0,896× gefiltert), Panorama bei Frontkamera,
+  Galerie leer nach Sperrbildschirm, Sichtbarkeit auf Schwarz, Sucher-Position (K4) –
+  Details in 4.5. Tests: vier Tag-Prüfungen in `TestUtils` entfernt (Content-Description
+  deckt dieselben Zustände ab). Emulator `pixel_preview` bekam eine emulierte Frontkamera
+  (AVD-Konfiguration), damit der Kamera-Wechsel dort testbar ist.
 - **2026-09-17 (Projektmanager-Chat):** Recherche zu Milchglas/Blur-Machbarkeit
   dokumentiert (`ui-spezifikation.md` Abschnitt 7.3) – Empfehlung: erstmal 65 %
   Deckkraft ohne echten Blur, echter Blur bliebe spätere API-31+-Verbesserung.

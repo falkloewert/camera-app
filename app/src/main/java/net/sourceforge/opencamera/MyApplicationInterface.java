@@ -19,6 +19,7 @@ import net.sourceforge.opencamera.preview.BasicApplicationInterface;
 import net.sourceforge.opencamera.preview.Preview;
 import net.sourceforge.opencamera.preview.VideoProfile;
 import net.sourceforge.opencamera.ui.DrawPreview;
+import net.sourceforge.opencamera.ui.ShutterButton;
 
 import android.app.Activity;
 import android.content.ContentValues;
@@ -1166,7 +1167,9 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     }
 
     public boolean getThumbnailAnimationPref() {
-        return sharedPreferences.getBoolean(PreferenceKeys.ThumbnailAnimationPreferenceKey, true);
+        // off by default since audit step 1: the reference just updates the thumbnail, and Falk
+        // wants nothing beyond that (2026-09-17); still available as an opt-in setting
+        return sharedPreferences.getBoolean(PreferenceKeys.ThumbnailAnimationPreferenceKey, false);
     }
 
     @Override
@@ -2141,10 +2144,7 @@ public class MyApplicationInterface extends BasicApplicationInterface {
             main_activity.lockScreen();
         }
         main_activity.stopAudioListeners(); // important otherwise MediaRecorder will fail to start() if we have an audiolistener! Also don't want to have the speech recognizer going off
-        ImageButton view = main_activity.findViewById(R.id.take_photo);
-        view.setImageResource(R.drawable.take_video_recording);
-        view.setContentDescription( getContext().getResources().getString(R.string.stop_video) );
-        view.setTag(R.drawable.take_video_recording); // for testing
+        main_activity.getMainUI().setShutterState(ShutterButton.State.VIDEO_RECORDING, true);
         main_activity.getMainUI().destroyPopup(); // as the available popup options change while recording video
     }
 
@@ -2458,10 +2458,7 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         if( MyDebug.LOG )
             Log.d(TAG, "stoppingVideo()");
         main_activity.unlockScreen();
-        ImageButton view = main_activity.findViewById(R.id.take_photo);
-        view.setImageResource(R.drawable.take_video_selector);
-        view.setContentDescription( getContext().getResources().getString(R.string.start_video) );
-        view.setTag(R.drawable.take_video_selector); // for testing
+        main_activity.getMainUI().setShutterState(ShutterButton.State.VIDEO, true);
 
         main_activity.setZoomSticky(true); // reenable the zoom sticky available (for Camera2 API)
     }

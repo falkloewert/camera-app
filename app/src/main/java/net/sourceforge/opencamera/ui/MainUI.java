@@ -63,6 +63,7 @@ public class MainUI {
     private final OnScreenIcons onScreenIcons;
 
     private final ZoomStepper zoomStepper;
+    private final ShutterButton shutterButton;
 
     private volatile boolean popup_view_is_open; // must be volatile for test project reading the state
     private PopupView popup_view;
@@ -120,6 +121,7 @@ public class MainUI {
 
         this.onScreenIcons = new OnScreenIcons(main_activity);
         this.zoomStepper = new ZoomStepper(main_activity);
+        this.shutterButton = new ShutterButton((ImageButton)main_activity.findViewById(R.id.take_photo));
 
         this.setSeekbarColors();
         this.setupModeBar();
@@ -131,6 +133,10 @@ public class MainUI {
 
     public ZoomStepper getZoomStepper() {
         return this.zoomStepper;
+    }
+
+    public ShutterButton getShutterButton() {
+        return this.shutterButton;
     }
 
     private void setSeekbarColors() {
@@ -489,36 +495,11 @@ public class MainUI {
         else {
             navigation_gap_reverse_landscape_align_parent_bottom = 0;
         }
-        int gallery_navigation_gap = navigation_gap;
-
-        int gallery_top_gap = 0;
-        {
-            // Leave space for the Android 12+ camera privacy indicator, as gallery icon would
-            // otherwise overlap when in landscape orientation.
-            // In theory we should use WindowInsets.getPrivacyIndicatorBounds() for this, but it seems
-            // to give a much larger value when required (leaving to a much larger gap), as well as
-            // obviously changing depending on orientation - but whilst this is only an issue for
-            // landscape orientation, it looks better to keep the position consistent for any
-            // orientation (otherwise the icons jump about when changing orientation, which looks
-            // especially bad for UIPLACEMENT_RIGHT.
-            // Not needed for UIPLACEMENT_LEFT - although still adjust the right hand side margin
-            // for consistency.
-            // We do for all Android versions for consistency (avoids testing overhead due to
-            // different behaviour on different Android versions).
-            if( ui_placement != UIPlacement.UIPLACEMENT_LEFT ) {
-                // if we did want to do this for UIPLACEMENT_LEFT for consistency, it'd be the
-                // "bottom" margin we need to change.
-                gallery_top_gap = (int) (privacy_indicator_gap_dp * scale + 0.5f); // convert dps to pixels
-            }
-            int privacy_indicator_gap = (int) (privacy_indicator_gap_dp * scale + 0.5f); // convert dps to pixels
-            gallery_navigation_gap += privacy_indicator_gap;
-        }
         test_navigation_gap = navigation_gap;
         test_navigation_gap_landscape = navigation_gap_landscape;
         test_navigation_gap_reversed_landscape = navigation_gap_reverse_landscape;
         if( MyDebug.LOG ) {
             Log.d(TAG, "navigation_gap: " + navigation_gap);
-            Log.d(TAG, "gallery_navigation_gap: " + gallery_navigation_gap);
         }
 
         if( !popup_container_only )
@@ -535,20 +516,9 @@ public class MainUI {
             setViewRotation(view, ui_rotation);
             View previous_view = view;
 
+            // the gallery thumbnail is no longer one of these icons - it sits on the shutter row
+            // in every UI placement, see below
             List<View> buttons_permanent = new ArrayList<>();
-            if( ui_placement == UIPlacement.UIPLACEMENT_TOP ) {
-                // not part of the icon panel in TOP mode
-                view = main_activity.findViewById(R.id.gallery);
-                view_id = view.getId();
-                resetView(cs, view);
-                connect(cs, view_id, align_parent_right, ConstraintSet.PARENT_ID, 0);
-                connect(cs, view_id, align_parent_top, ConstraintSet.PARENT_ID, 0);
-                setMarginsForSystemUI(cs, view_id, 0, gallery_top_gap, gallery_navigation_gap, 0);
-                setViewRotation(view, ui_rotation);
-            }
-            else {
-                buttons_permanent.add(main_activity.findViewById(R.id.gallery));
-            }
             buttons_permanent.add(main_activity.findViewById(R.id.settings));
             buttons_permanent.add(main_activity.findViewById(R.id.popup));
             buttons_permanent.add(main_activity.findViewById(R.id.exposure));
@@ -655,19 +625,12 @@ public class MainUI {
             }
             else {
                 // need to reset size/margins to their default
-                // except for gallery, which still needs its margins set for navigation gap! (and we
-                // shouldn't change it's size, which isn't necessarily button_size)
-                // other icons still needs margins set for navigation_gap_landscape and navigation_gap_reverse_landscape
-                view = main_activity.findViewById(R.id.gallery);
-                view_id = view.getId();
-                setMarginsForSystemUI(cs, view_id, 0, Math.max(gallery_top_gap, navigation_gap_reverse_landscape), gallery_navigation_gap, navigation_gap_landscape);
+                // icons still need margins set for navigation_gap_landscape and navigation_gap_reverse_landscape
                 for(View this_view : buttons_permanent) {
-                    if( this_view != view ) {
-                        int this_id = this_view.getId();
-                        setMarginsForSystemUI(cs, this_id, 0, navigation_gap_reverse_landscape, 0, navigation_gap_landscape);
-                        cs.constrainWidth(this_id, button_size);
-                        cs.constrainHeight(this_id, button_size);
-                    }
+                    int this_id = this_view.getId();
+                    setMarginsForSystemUI(cs, this_id, 0, navigation_gap_reverse_landscape, 0, navigation_gap_landscape);
+                    cs.constrainWidth(this_id, button_size);
+                    cs.constrainHeight(this_id, button_size);
                 }
             }
 
@@ -677,27 +640,35 @@ public class MainUI {
             // portrait, a column beyond it in landscape), so the shutter sits one slot in from
             // the screen edge rather than being pinned to it - see
             // docs/design-reference/ui-spezifikation.md.
+            // The three bottom rows - shutter row, mode bar, photo/video switch - each hang
+            // off the screen edge on their own, at fixed distances measured off the reference
+            // screenshot (ui-spezifikation.md section 6: centres 241 / 149 / 85 dp from the
+            // bottom edge, of which 24 dp is the gesture inset). Deliberately NOT chained to
+            // one another: nothing that appears or disappears may ever push another row
+            // about (Falk, 2026-09-17).
             view = main_activity.findViewById(R.id.take_photo);
             view_id = view.getId();
             resetView(cs, view);
-            connect(cs, view_id, ui_independent_left_of, R.id.mode_bar, 0);
             centerLogicalVertical(cs, view_id, center_is_real_vertical);
+            connect(cs, view_id, align_parent_right, ConstraintSet.PARENT_ID, 0);
             {
-                int margin = (int) (12 * scale + 0.5f); // convert dps to pixels
-                setMarginsForSystemUI(cs, view_id, 0, 0, margin, 0);
+                int margin = (int) (167 * scale + 0.5f); // convert dps to pixels: 241 dp centre - 50 dp half view - 24 dp inset
+                setMarginsForSystemUI(cs, view_id, 0, 0, navigation_gap + margin, 0);
             }
-            // if the mode bar is hidden (while capturing, or in immersive mode) it collapses to
-            // the screen edge, so keep the shutter clear of the system navigation bar
-            cs.setGoneMargin(view_id, ui_independent_left_of.view_side, navigation_gap);
             setViewRotation(view, ui_rotation);
 
-            // the buttons flanking the shutter line up with it rather than with the screen edge,
-            // since the shutter no longer sits at the edge itself (the mode bar does)
+            // The shutter's neighbours: camera switch on its right (ui_independent_above is real
+            // right in portrait), gallery thumbnail on its left, each the reference distance from
+            // the shutter's centre and lined up with it rather than with the screen edge, since
+            // the shutter no longer sits at the edge itself (the mode bar does). The buttons that
+            // take over those two spots while recording video (pause / photo snapshot) or a
+            // panorama (cancel) are placed the same way, so nothing shifts when they appear.
             view = main_activity.findViewById(R.id.switch_camera);
-            view_id = view.getId();
-            resetView(cs, view);
-            alignWithShutter(cs, view_id, align_left, align_right);
-            connect(cs, view_id, ui_independent_above, R.id.take_photo, 0);
+            flankShutter(cs, view, ui_independent_above, align_left, align_right, system_orientation_portrait, scale);
+            setViewRotation(view, ui_rotation);
+
+            view = main_activity.findViewById(R.id.gallery);
+            flankShutter(cs, view, ui_independent_below, align_left, align_right, system_orientation_portrait, scale);
             setViewRotation(view, ui_rotation);
 
             view = main_activity.findViewById(R.id.switch_multi_camera);
@@ -744,18 +715,14 @@ public class MainUI {
             }
             setViewRotation(view, ui_rotation);
 
-            // The mode bar takes the outermost slot, pinned to the screen edge: below the main
-            // button row in portrait, a column beyond it in landscape - the shutter is anchored
-            // to it above (see take_photo).
+            // The mode bar: below the shutter row in portrait, a column beyond it in landscape.
             view = main_activity.findViewById(R.id.mode_bar);
             // Like the panorama lens row, the mode bar sits side by side in portrait and stacks
             // in landscape (see orientBar()). Unlike the zoom steps, its labels are laid on
             // their side in landscape too, exactly as the reference does it - a RotatedTextView
             // takes care of the text and its layout bounds.
             {
-                List<RotatedTextView> mode_entries = Arrays.asList(
-                        (RotatedTextView)main_activity.findViewById(R.id.mode_bar_video),
-                        (RotatedTextView)main_activity.findViewById(R.id.mode_bar_photo),
+                List<RotatedTextView> mode_entries = Collections.singletonList(
                         (RotatedTextView)main_activity.findViewById(R.id.mode_bar_panorama));
                 orientBar((LinearLayout)view, mode_entries);
                 int text_rotation = getPortraitLayoutRotation(system_orientation);
@@ -766,7 +733,25 @@ public class MainUI {
             resetView(cs, view);
             centerLogicalVertical(cs, view_id, center_is_real_vertical);
             connect(cs, view_id, align_parent_right, ConstraintSet.PARENT_ID, 0);
-            setMarginsForSystemUI(cs, view_id, 0, 0, navigation_gap, 0);
+            {
+                int margin = (int) (109 * scale + 0.5f); // convert dps to pixels: reference pill bottom edge 133 dp from the screen edge - 24 dp inset
+                setMarginsForSystemUI(cs, view_id, 0, 0, navigation_gap + margin, 0);
+            }
+            setViewRotation(view, ui_rotation);
+
+            // The photo/video switch is the outermost element (the reference's bottom row; its
+            // other two buttons come with audit step 2). It draws itself along the turned
+            // axis, so it only needs to be told the layout rotation - see PhotoVideoSwitch.
+            view = main_activity.findViewById(R.id.photo_video_switch);
+            ((PhotoVideoSwitch)view).setLayoutRotation(getPortraitLayoutRotation(system_orientation));
+            view_id = view.getId();
+            resetView(cs, view);
+            centerLogicalVertical(cs, view_id, center_is_real_vertical);
+            connect(cs, view_id, align_parent_right, ConstraintSet.PARENT_ID, 0);
+            {
+                int margin = (int) (37 * scale + 0.5f); // convert dps to pixels: 85 dp centre - 24 dp half view - 24 dp inset
+                setMarginsForSystemUI(cs, view_id, 0, 0, navigation_gap + margin, 0);
+            }
             setViewRotation(view, ui_rotation);
 
             view = main_activity.findViewById(R.id.zoom_stepper);
@@ -785,31 +770,17 @@ public class MainUI {
             setViewRotation(view, ui_rotation);
 
             view = main_activity.findViewById(R.id.pause_video);
-            view_id = view.getId();
-            resetView(cs, view);
-            alignWithShutter(cs, view_id, align_left, align_right);
-            connect(cs, view_id, ui_independent_above, R.id.take_photo, 0);
+            flankShutter(cs, view, ui_independent_above, align_left, align_right, system_orientation_portrait, scale);
             setViewRotation(view, ui_rotation);
 
             view = main_activity.findViewById(R.id.cancel_panorama);
-            view_id = view.getId();
-            resetView(cs, view);
-            alignWithShutter(cs, view_id, align_left, align_right);
-            connect(cs, view_id, above, R.id.take_photo, 0);
+            flankShutter(cs, view, above, align_left, align_right, system_orientation_portrait, scale);
             setViewRotation(view, ui_rotation);
 
-            view = main_activity.findViewById(R.id.switch_video);
-            view_id = view.getId();
-            resetView(cs, view);
-            alignWithShutter(cs, view_id, align_left, align_right);
-            connect(cs, view_id, ui_independent_below, R.id.take_photo, 0);
-            setViewRotation(view, ui_rotation);
+            // switch_video stays hidden (see activity_main.xml), so it isn't positioned any more
 
             view = main_activity.findViewById(R.id.take_photo_when_video_recording);
-            view_id = view.getId();
-            resetView(cs, view);
-            alignWithShutter(cs, view_id, align_left, align_right);
-            connect(cs, view_id, ui_independent_below, R.id.take_photo, 0);
+            flankShutter(cs, view, ui_independent_below, align_left, align_right, system_orientation_portrait, scale);
             setViewRotation(view, ui_rotation);
 
             view = main_activity.findViewById(R.id.zoom_seekbar);
@@ -1179,43 +1150,82 @@ public class MainUI {
         if( MyDebug.LOG )
             Log.d(TAG, "setTakePhotoIcon()");
         if( main_activity.getPreview() != null ) {
-            ImageButton view = main_activity.findViewById(R.id.take_photo);
-            int resource;
-            int content_description;
+            ShutterButton.State state;
             int switch_video_content_description;
             if( main_activity.getPreview().isVideo() ) {
                 if( MyDebug.LOG )
                     Log.d(TAG, "set icon to video");
-                resource = main_activity.getPreview().isVideoRecording() ? R.drawable.take_video_recording : R.drawable.take_video_selector;
-                content_description = main_activity.getPreview().isVideoRecording() ? R.string.stop_video : R.string.start_video;
+                state = main_activity.getPreview().isVideoRecording() ? ShutterButton.State.VIDEO_RECORDING : ShutterButton.State.VIDEO;
                 switch_video_content_description = R.string.switch_to_photo;
             }
             else if( main_activity.getApplicationInterface().getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama &&
                     main_activity.getApplicationInterface().getGyroSensor().isRecording() ) {
                 if( MyDebug.LOG )
                     Log.d(TAG, "set icon to recording panorama");
-                resource = R.drawable.baseline_check_white_48;
-                content_description = R.string.finish_panorama;
+                state = ShutterButton.State.PANORAMA_RECORDING;
                 switch_video_content_description = R.string.switch_to_video;
             }
             else {
                 if( MyDebug.LOG )
                     Log.d(TAG, "set icon to photo");
-                resource = R.drawable.take_photo_selector;
-                content_description = R.string.take_photo;
+                state = ShutterButton.State.PHOTO;
                 switch_video_content_description = R.string.switch_to_video;
             }
-            view.setImageResource(resource);
-            view.setContentDescription( main_activity.getResources().getString(content_description) );
-            view.setTag(resource); // for testing
+            setShutterState(state, false);
 
-            view = main_activity.findViewById(R.id.switch_video);
+            PhotoVideoSwitch photoVideoSwitch = main_activity.findViewById(R.id.photo_video_switch);
+            photoVideoSwitch.setVideo(main_activity.getPreview().isVideo(), true);
+            photoVideoSwitch.setContentDescription( main_activity.getResources().getString(switch_video_content_description) );
+
+            ImageButton view = main_activity.findViewById(R.id.switch_video);
             view.setContentDescription( main_activity.getResources().getString(switch_video_content_description) );
             // monochrome glyphs rather than the old blue take_photo/take_video icons, to match
             // the Pixel Camera reference (docs/design-reference/pixel-camera-screenshots.md)
-            resource = main_activity.getPreview().isVideo() ? R.drawable.ic_photo_camera_white_48dp : R.drawable.ic_videocam_white_48dp;
+            int resource = main_activity.getPreview().isVideo() ? R.drawable.ic_photo_camera_white_48dp : R.drawable.ic_videocam_white_48dp;
             view.setImageResource(resource);
             view.setTag(resource); // for testing
+        }
+    }
+
+    /** Puts the shutter button into the given state, including its content description. Video
+     *  start/stop pass animate=true so the core morphs between disc and stop square; they call
+     *  this directly rather than setTakePhotoIcon(), because at that moment
+     *  Preview.isVideoRecording() doesn't yet reflect the new state.
+     */
+    public void setShutterState(ShutterButton.State state, boolean animate) {
+        shutterButton.setState(state, animate);
+        int content_description;
+        switch( state ) {
+            case VIDEO:
+                content_description = R.string.start_video;
+                break;
+            case VIDEO_RECORDING:
+                content_description = R.string.stop_video;
+                break;
+            case PANORAMA_RECORDING:
+                content_description = R.string.finish_panorama;
+                break;
+            default:
+                content_description = R.string.take_photo;
+                break;
+        }
+        View view = main_activity.findViewById(R.id.take_photo);
+        view.setContentDescription( main_activity.getResources().getString(content_description) );
+    }
+
+    /** The "heavy click" the reference gives on the shutter (photo taken, video started or
+     *  stopped), if haptic feedback is allowed in the settings. HapticFeedbackConstants.CONFIRM
+     *  is what Android maps to VibrationEffect.EFFECT_HEAVY_CLICK, and unlike driving the
+     *  Vibrator directly it needs no VIBRATE permission.
+     */
+    public void performHeavyClick() {
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
+        if( sharedPreferences.getBoolean(PreferenceKeys.AllowHapticFeedbackPreferenceKey, true) ) {
+            View view = main_activity.findViewById(R.id.take_photo);
+            if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.R )
+                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM);
+            else
+                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
         }
     }
 
@@ -1224,24 +1234,26 @@ public class MainUI {
      *  Only modes the app actually implements are offered here.
      */
     private void setupModeBar() {
-        main_activity.findViewById(R.id.mode_bar_photo).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if( main_activity.getApplicationInterface().getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama )
-                    switchPhotoMode("preference_photo_mode_std");
-                updateModeBar();
-            }
-        });
+        // The bar only lists the sub-modes of whatever the PhotoVideoSwitch is set to, and
+        // photo <-> video isn't switched here at all. Falk's decision (2026-09-17): no "Foto"
+        // entry either, since the switch already says "photo" - so Panorama is a toggle: tap
+        // it again to get back to the ordinary photo. Video has no sub-modes yet, so the bar
+        // is empty while filming (updateModeBar()).
         main_activity.findViewById(R.id.mode_bar_panorama).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if( main_activity.getApplicationInterface().getPhotoMode() != MyApplicationInterface.PhotoMode.Panorama )
-                    switchPhotoMode("preference_photo_mode_panorama");
+                switchPhotoMode(isPanoramaPreferred() ? "preference_photo_mode_std" : "preference_photo_mode_panorama");
                 updateModeBar();
             }
         });
-        // Video is currently the only video sub-mode, so its entry has nothing to switch to.
-        // Photo <-> video isn't done here at all - that's the button beside the shutter.
+    }
+
+    /** Whether panorama is the chosen photo mode - read from the preference rather than
+     *  MyApplicationInterface.getPhotoMode(), which reports Standard while in video mode.
+     */
+    private boolean isPanoramaPreferred() {
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
+        return sharedPreferences.getString(PreferenceKeys.PhotoModePreferenceKey, "preference_photo_mode_std").equals("preference_photo_mode_panorama");
     }
 
     /** Centres a view on the shutter button's band, so the buttons flanking the shutter stay on
@@ -1251,6 +1263,32 @@ public class MainUI {
     private void alignWithShutter(ConstraintSet cs, int view_id, Side align_left, Side align_right) {
         connect(cs, view_id, align_left, R.id.take_photo, 0);
         connect(cs, view_id, align_right, R.id.take_photo, 0);
+    }
+
+    /** Centre-to-centre distance between the shutter and the buttons flanking it (gallery,
+     *  camera switch), measured off the reference screenshot - see
+     *  docs/design-reference/ui-spezifikation.md 7.2. (The detail spec's 64 dp can't be right:
+     *  the neighbour would sit inside the 86 dp ring.) */
+    private static final int shutter_neighbour_distance_dp = 124;
+
+    /** Places a view beside the shutter on its row, its centre shutter_neighbour_distance_dp from
+     *  the shutter's centre: the margin is whatever is left of that distance after half the
+     *  shutter view and half this view, so views of different sizes still line up on the same
+     *  centre. side is the direction from the shutter (ui_independent_above/below = real
+     *  right/left in portrait).
+     */
+    private void flankShutter(ConstraintSet cs, View view, Side side, Side align_left, Side align_right, boolean system_orientation_portrait, float scale) {
+        int view_id = view.getId();
+        resetView(cs, view);
+        alignWithShutter(cs, view_id, align_left, align_right);
+        // the row runs horizontally in portrait and vertically in landscape, so it's the width
+        // or the height that counts (all these views are square anyway)
+        ViewGroup.LayoutParams shutter_params = main_activity.findViewById(R.id.take_photo).getLayoutParams();
+        ViewGroup.LayoutParams view_params = view.getLayoutParams();
+        int shutter_size = system_orientation_portrait ? shutter_params.width : shutter_params.height;
+        int view_size = system_orientation_portrait ? view_params.width : view_params.height;
+        int distance = (int) (shutter_neighbour_distance_dp * scale + 0.5f); // convert dps to pixels
+        connect(cs, view_id, side, R.id.take_photo, distance - shutter_size/2 - view_size/2);
     }
 
     /** How far the portrait arrangement of the controls has been turned on screen, in degrees
@@ -1321,26 +1359,18 @@ public class MainUI {
         destroyPopup(); // popup contents depend on the photo mode
     }
 
-    /** Shows the sub-modes of whichever top level mode is active - photo sub-modes while taking
-     *  photos, video sub-modes while filming - and highlights the current one. Slow motion should
-     *  never appear while you're taking photos, the way the reference app does it.
+    /** Shows the sub-modes of the current top-level mode and highlights the active one: just
+     *  Panorama while taking photos, nothing while filming. The bar's own place is fixed
+     *  (layoutUI()), so an empty bar moves nothing.
      */
     public void updateModeBar() {
         boolean is_video = main_activity.getPreview().isVideo();
         boolean is_panorama = !is_video &&
                 main_activity.getApplicationInterface().getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama;
 
-        TextView photo_entry = main_activity.findViewById(R.id.mode_bar_photo);
         TextView panorama_entry = main_activity.findViewById(R.id.mode_bar_panorama);
-        TextView video_entry = main_activity.findViewById(R.id.mode_bar_video);
-
-        photo_entry.setVisibility(is_video ? View.GONE : View.VISIBLE);
         panorama_entry.setVisibility(is_video ? View.GONE : View.VISIBLE);
-        video_entry.setVisibility(is_video ? View.VISIBLE : View.GONE);
-
-        applyModeBarStyle(photo_entry, !is_panorama);
         applyModeBarStyle(panorama_entry, is_panorama);
-        applyModeBarStyle(video_entry, true);
     }
 
     private void applyModeBarStyle(TextView view, boolean selected) {
@@ -1494,7 +1524,6 @@ public class MainUI {
                 // n.b., don't hide share and trash buttons, as they require immediate user input for us to continue
                 View switchCameraButton = main_activity.findViewById(R.id.switch_camera);
                 View switchMultiCameraButton = main_activity.findViewById(R.id.switch_multi_camera);
-                View switchVideoButton = main_activity.findViewById(R.id.switch_video);
                 View exposureButton = main_activity.findViewById(R.id.exposure);
                 View popupButton = main_activity.findViewById(R.id.popup);
                 View galleryButton = main_activity.findViewById(R.id.gallery);
@@ -1512,7 +1541,6 @@ public class MainUI {
                 if( panorama_lens_buttons_shown ) {
                     panoramaLensRow.setVisibility(visibility);
                 }
-                switchVideoButton.setVisibility(visibility);
                 if( main_activity.supportsExposureButton() )
                     exposureButton.setVisibility(visibility);
                 onScreenIcons.setVisibility(visibility, visibility);
@@ -1527,7 +1555,9 @@ public class MainUI {
                     zoomSeekBar.setVisibility(visibility);
                 }
                 main_activity.findViewById(R.id.zoom_stepper).setVisibility(zoomStepper.hasSteps() ? visibility : View.GONE);
-                main_activity.findViewById(R.id.mode_bar).setVisibility(visibility);
+                int mode_visibility = immersive_mode ? View.INVISIBLE : View.VISIBLE;
+                main_activity.findViewById(R.id.mode_bar).setVisibility(mode_visibility);
+                main_activity.findViewById(R.id.photo_video_switch).setVisibility(mode_visibility);
                 if( main_activity.showManualFocusSeekbar(false) )
                     focusSeekBar.setVisibility(visibility);
                 if( main_activity.showManualFocusSeekbar(true) )
@@ -1595,7 +1625,7 @@ public class MainUI {
                 View settingsButton = main_activity.findViewById(R.id.settings);
                 View switchCameraButton = main_activity.findViewById(R.id.switch_camera);
                 View switchMultiCameraButton = main_activity.findViewById(R.id.switch_multi_camera);
-                View switchVideoButton = main_activity.findViewById(R.id.switch_video);
+                View galleryButton = main_activity.findViewById(R.id.gallery);
                 View exposureButton = main_activity.findViewById(R.id.exposure);
                 View popupButton = main_activity.findViewById(R.id.popup);
                 settingsButton.setVisibility(visibility_video); // still allow settings when recording video - arguably we shouldn't, but looks wierd given that the other default icons aren't hidden when recording video
@@ -1625,14 +1655,21 @@ public class MainUI {
                 else {
                     panoramaLensRow.setVisibility(View.GONE);
                 }
-                switchVideoButton.setVisibility(visibility);
+                // the gallery thumbnail gives way to the photo snapshot button while recording
+                // video (both sit left of the shutter); switch_video is never shown any more
+                galleryButton.setVisibility(show_gui_video ? View.VISIBLE : View.GONE);
                 if( main_activity.supportsExposureButton() )
                     exposureButton.setVisibility(visibility_video); // still allow exposure when recording video
                 onScreenIcons.setVisibility(visibility, visibility_video);
                 // zoom steps only make sense where zoom is allowed at all (e.g. not in panorama
                 // mode, see MyApplicationInterface.allowZoom())
                 main_activity.findViewById(R.id.zoom_stepper).setVisibility(zoomStepper.hasSteps() ? visibility : View.GONE);
-                main_activity.findViewById(R.id.mode_bar).setVisibility(visibility);
+                // Taking a photo leaves the mode bar and the photo/video switch alone (as the
+                // reference does); while recording a video or a panorama they're INVISIBLE -
+                // out of sight and untouchable, without anything moving.
+                int mode_visibility = (is_panorama_recording || !show_gui_video) ? View.INVISIBLE : View.VISIBLE;
+                main_activity.findViewById(R.id.mode_bar).setVisibility(mode_visibility);
+                main_activity.findViewById(R.id.photo_video_switch).setVisibility(mode_visibility);
                 updateModeBar();
                 if( !(show_gui_photo && show_gui_video) ) {
                     closePopup(); // we still allow the popup when recording video, but need to update the UI (so it only shows flash options), so easiest to just close

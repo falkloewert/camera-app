@@ -202,8 +202,8 @@ Porträt/Nachtsicht/zufügen, solange die App diese Modi nicht wirklich beherrsc
   (Video-Umschalter, Pause, Panorama-Abbruch) sind auf den Auslöser ausgerichtet statt
   auf den Bildschirmrand, damit sie mit ihm auf einer Linie bleiben. Im Querformat
   Beschriftungen quer und in senkrechter Pille (Abschnitt 2).
-  **Einschränkung (Audit 2026-09-17, siehe 7.2):** "Video" ist dort nur Anzeige, kein
-  Umschalt-Eintrag; kein Scrollen/Einrasten; Farben weichen ab.
+  **Einschränkung (Audit 2026-09-17, siehe 7.2):** kein Scrollen/Einrasten; Farben
+  weichen ab. Einträge seit Audit-Schritt 1: nur „Panorama" (siehe unten).
 - **Drehmodell aus Abschnitt 2** (2026-09-17): starr mitdrehende Anordnung in allen
   drei von Android angebotenen Lagen; am Gerät geprüft inkl. EXIF-Drehung von Fotos in
   allen vier Lagen, Video-Rotationshinweis, Panorama-Linsenpaar. Technik: die
@@ -213,6 +213,44 @@ Porträt/Nachtsicht/zufügen, solange die App diese Modi nicht wirklich beherrsc
   über `android:divider`. Bewusst **kein** `View.setRotation()` auf ganze Leisten (siehe
   Abschnitt 8, alter Punkt).
 - Alter Zoom-Schieberegler entfällt, wo die Stufen-Leiste greift
+- **Auslöser-Zeile (Audit-Schritt 1, 2026-09-17)** – nach den im Referenz-Screenshot
+  *gemessenen* Werten (Gerät: 960 × 2142 px bei Dichte 360 = **2,25 px/dp**; die Detail-Spec
+  weicht an mehreren Stellen ab, Entscheidung Falk: Messung gilt, Abweichungen in
+  Abschnitt 8):
+  - **Auslöser:** Kern ⌀ 74 dp Reinweiß, Ring 6 dp breit (außen ⌀ 86 dp) aus
+    **Schwarz mit 60 % Deckkraft** (`shutter_row_scrim` `#99000000`; an einem dunklen und
+    einem hellen Hintergrund gelöst). Ring = Hintergrund des Buttons
+    (`shutter_ring.xml`), Kern = zur Laufzeit gezeichnetes `GradientDrawable`
+    (`ui/ShutterButton`), Touch-Fläche bleibt 100 dp. Video: Kern `#E53935`; Aufnahme
+    läuft: Feder-Morph zu 32 × 32 dp / Radius 8 dp und zurück (Detail-Spec 6, nicht
+    messbar). Tap: Feder auf 92 % und zurück (Stiffness 300, Dämpfung 0,58 – Lesart der
+    Spec-Angabe „tension 300, friction 20"). Heavy Click per
+    `HapticFeedbackConstants.CONFIRM` (= `EFFECT_HEAVY_CLICK` in Androids Zuordnung, ohne
+    VIBRATE-Berechtigung) bei jedem Auslöser-Tipp (Foto, Video-Start/-Stopp, Panorama).
+  - **Kamera-Wechsel:** 56-dp-Squircle mit **Kreisbogen-Ecken 12 dp** (gemessen; 22 dp
+    sichtbar zu rund, Superellipse hätte gewölbte Kanten), Hintergrund dasselbe Schwarz
+    60 %, Pfeil-Glyph 24 dp (Padding 10,5 dp, weil die PNG-Grafik Leerraum hat). Zentrum
+    **124 dp** rechts vom Auslöser-Zentrum (`MainUI.flankShutter()`).
+  - **Galerie:** 56-dp-Squircle (Radius 12 dp) links vom Auslöser, Zentrum 124 dp, Bild
+    `centerCrop` mit 2 dp Rahmen im selben Schwarz 60 % (per `clipToOutline` auf die
+    Squircle-Form beschnitten). Bei neuem Medium wird das Bild schlicht getauscht (siehe 8).
+    Während Videoaufnahme ausgeblendet – ihren Platz nimmt der Foto-Schnappschuss-Knopf.
+  - **Foto/Video-Umschalter (Element aus der untersten Zeile, vorgezogen):**
+    `ui/PhotoVideoSwitch`, gemessen: Pille 92 × 40 dp `#333333`, weißer Knopf ⌀ **48 dp**
+    (überragt die Pille um 4 dp), Glyphen ~20 dp, Zentren 26 dp vom jeweiligen Pillenende,
+    Glyph auf dem Knopf `#1B1B1B`, sonst weiß; Knopf federt beim Umschalten. Zeichnet sich
+    selbst entlang der gedrehten Achse (Querformat: Pille senkrecht, Glyphen aufrecht).
+    Der alte `switch_video`-Button neben dem Auslöser ist unsichtbar (bleibt nur für Tests
+    im Layout).
+  - **Feste Plätze der drei Fußzeilen** (Zentren von unten, Referenz gemessen): Umschalter
+    85 dp, Moduswahl 149 dp, Auslöser 241 dp (bei 24 dp Gesten-Inset). Jede Zeile hängt
+    **einzeln** am Bildschirmrand, nichts ist aneinander gekettet – Entscheidung Falk:
+    Bedienelemente dürfen einander nie verschieben. Moduswahl und Umschalter werden bei
+    Video-/Panorama-Aufnahme nur `INVISIBLE` (Platz bleibt), beim Fotografieren gar nicht
+    ausgeblendet.
+  - **Moduswahl:** zeigt nur die Untermodi des aktuellen Hauptmodus – im Fotomodus
+    „Panorama" (nochmal antippen = zurück zum normalen Foto), im Videomodus leer; kein
+    „Foto"- und kein „Video"-Eintrag (Entscheidung Falk, siehe 8).
 
 ## 7. Was noch fehlt — Abweichungs-Audit vom 2026-09-17
 
@@ -262,7 +300,11 @@ Soll-Werte aus der Detail-Spec, außer wo die Screenshot-Spec etwas anderes sagt
    96 × 40 dp, Fotoapparat-Icon links / Filmkamera-Icon rechts je 20 dp, weißer (oder
    Mint-) Schieber ⌀ 34 dp mit Federanimation, aktives Icon schwarz, inaktives hellgrau.
    Rechts: Kreis 40 dp wie links, Icon „drei senkrechte Reglerstifte" → Pro-Panel (was
-   genau, ist in 4b offen). Folge: `switch_video` verschwindet von der Auslöser-Zeile.
+   genau, ist in 4b offen). ~~Folge: `switch_video` verschwindet von der Auslöser-Zeile.~~
+   **Teilweise erledigt (Audit-Schritt 1):** der Umschalter in der Mitte ist gebaut
+   (`PhotoVideoSwitch`, gemessene Maße in Abschnitt 6 – Pille 92 × 40 dp, Knopf 48 dp,
+   nicht 96 × 40 / 34 dp), `switch_video` ist weg. Offen: die beiden Kreis-Buttons links
+   und rechts.
 4. **Kopfzeile (Abschnitt 1, Punkt 1).** Fehlt. Stattdessen läuft die alte Icon-Leiste
    (`settings`, `popup`, `exposure`, `exposure_lock` …, je `onscreen_button_size` = 60 dp,
    `MainUI.layoutUI()` L537–650) samt `PopupView` (Drei-Punkte-Menü). Soll: 56–64 dp hoch,
@@ -272,12 +314,10 @@ Soll-Werte aus der Detail-Spec, außer wo die Screenshot-Spec etwas anderes sagt
    gruppiert. Beim Bau mitbedenken: das `DrawPreview`-Info-Overlay oben links
    (Batterie/Blitz, Abschnitt 8) und wohin die Funktionen der alten Icons (Belichtung,
    Lock, Popup-Optionen) wandern – in das Blatt aus Punkt 2.
-5. **Galerie-Miniatur auf der Auslöser-Zeile.** Ist: 44 dp Rechteck, bei `ui_top` Teil
-   der alten Icon-Leiste (`MainUI.layoutUI()` L539–546), im Hochformat-Screenshot rechts
-   unten; Speichern-Animation ist nur ein pulsierender Farbfilter
-   (`MainActivity.savingImage()` L4388). Soll: 56 × 56 dp Squircle, Radius 22 dp,
-   beschnitten, Inhalt `centerCrop`, Zentrum 64 dp links vom Auslöser-Zentrum; bei neuem
-   Medium Scale-Bounce 1,1 → 1,0 plus Cross-Fade.
+5. ~~**Galerie-Miniatur auf der Auslöser-Zeile.**~~ **Erledigt (Audit-Schritt 1)**, mit
+   gemessenen Werten statt der Detail-Spec: Radius 12 dp (nicht 22), Zentrum 124 dp (nicht
+   64 – das wäre im Ring), 2-dp-Rahmen. Bounce/Cross-Fade bewusst weggelassen (Abschnitt 8).
+   Der pulsierende Farbfilter beim Speichern (`savingImage()`) ist geblieben.
 6. **Fokus-Ring, Belichtungs-Slider, AE/AF-Sperre (Detail-Spec 3).** Ist: gelbes
    Rechteck, Yellow 500 (`DrawPreview` L1233 f.). Soll: Ring ⌀ 64 dp, Kontur 1,5 dp
    (Farbe: Konflikt K9), erscheint am Berührungspunkt, Puls 1,15 → 1,0, verschwindet
@@ -298,12 +338,14 @@ Soll-Werte aus der Detail-Spec, außer wo die Screenshot-Spec etwas anderes sagt
 9. **Smart Chips.** Fehlen. Soll: Pille 36 dp hoch, Padding 6 dp / 14 dp, `#1E1E1E`,
    1 dp Border 10 % Weiß; Icon 16 dp | Text 12 dp Weiß | ✕ 14 dp Hellgrau; Slide-Up
    12 px + Fade-In, weg nach 4 s; ca. 80 dp über dem Auslöser-Zentrum.
-10. **Haptik-Profil.** Ist: die einzigen Aufrufe sind die alten SeekBar-Ticks
-    (`MainUI.performHapticFeedback()` L3359). Soll: Heavy Click beim Auslösen und bei
-    Video-Start/-Stopp; `CLOCK_TICK` bei Zoom-Stufe, Ruler-Strich, Modus-Snap; `CONFIRM`
-    beim Einrasten von Horizont bzw. Fadenkreuz.
-11. **Kamera-Wechsel-Animation.** Fehlt. Soll: 180° Drehung, 350 ms,
-    `cubic-bezier(0.4, 0.0, 0.2, 1)`.
+10. **Haptik-Profil.** Ist: SeekBar-Ticks (`MainUI.performHapticFeedback()`) und – seit
+    Audit-Schritt 1 – **Heavy Click beim Auslösen / Video-Start/-Stopp**
+    (`MainUI.performHeavyClick()`). Offen: `CLOCK_TICK` bei Zoom-Stufe, Ruler-Strich,
+    Modus-Snap; `CONFIRM` beim Einrasten von Horizont bzw. Fadenkreuz.
+11. ~~**Kamera-Wechsel-Animation.** Fehlt. Soll: 180° Drehung, 350 ms,
+    `cubic-bezier(0.4, 0.0, 0.2, 1)`.~~ **Bewusst nicht gebaut** (war kurz drin, wieder
+    entfernt – Entscheidung Falk 2026-09-17, keine Animationen außer am Auslöser selbst,
+    Abschnitt 8).
 12. **Doppel-Tap.** Ist: löst Foto aus (`Preview.onDoubleTap()` L884, per Preference).
     Detail-Spec: Kamerawechsel oder Sprung auf 2×. Konflikt K8.
 13. **Hardware-Tasten.** Lautstärke = Auslösen gibt es als Preference; „Halten startet
@@ -311,33 +353,23 @@ Soll-Werte aus der Detail-Spec, außer wo die Screenshot-Spec etwas anderes sagt
 
 ### 7.2 Abweichungen an vorhandenen Bausteinen (Ist → Soll)
 
-**Auslöser** (`take_photo`, `take_photo_shutter.xml`, `take_video_*.xml`,
-`animator/button_animation.xml`)
-- Geometrie ist invertiert: View 100 dp mit 10 dp Padding → 80 dp **weißer Vollkreis mit
-  5 dp dunklem Rand `#1B1B1B`**. Soll: Außenring ⌀ 88 dp mit weißer 2-dp-Kontur, 4 dp
-  transparente Lücke, Kern ⌀ 72 dp Reinweiß. (Screenshot-Spec 1b: „breiter,
-  halbtransparenter grauer Außenring" – Konflikt K10; einig sind sich beide, dass der
-  harte dunkle Rand weg muss.)
-- Tap-Feedback: Scale **1,1** (wächst), 100 ms linear, hin und zurück. Soll: Scale 0,92
-  mit Feder-Rückstellung (tension 300, friction 20).
-- Video-Kern: `#F44336` → `#E53935`. `take_video_shutter.xml` legt einen 16-dp-Stroke
-  auf ein 48-dp-Shape, vom Rot bleibt ein Punkt → gleiche Ringgeometrie wie Foto, Kern rot.
-- Aufnahme läuft: harter Drawable-Tausch auf rotes Quadrat mit Radius 3 dp
-  (`take_video_recording.xml`). Soll: Feder-Morph zu 32 × 32 dp, Radius 8 dp.
+**Auslöser** – ~~alle vier Punkte~~ **erledigt (Audit-Schritt 1)**, siehe Abschnitt 6.
+Gemessen statt Detail-Spec: Kern 74 dp / Ring 6 dp / außen 86 dp (nicht 72 / 8 / 88);
+Ring ist Schwarz 60 %, keine weiße Kontur (K10). Die alten Drawables
+`take_photo_*.xml` / `take_video_*.xml` sind gelöscht, den Kern zeichnet `ui/ShutterButton`.
 
-**Kamera-Wechsel** (`switch_camera`, `circle_background.xml`)
-- 60 dp Kreis, Hintergrund `icons_background` = `#20000000` (12,5 % **Schwarz**),
-  Padding 10 dp. Soll: 56 dp, `rgba(255,255,255,0.12)`, Icon 24 dp Weiß.
-- Klebt mit 0 dp am Auslöser (`MainUI.layoutUI()` L696–701) → Zentrumsabstand 80 dp.
-  Soll: 64 dp.
-- Form Kreis vs. Squircle: Konflikt K1.
-- Links vom Auslöser sitzt `switch_video`, nicht die Galerie (7.1 Punkte 3 und 5).
+**Kamera-Wechsel** – **erledigt (Audit-Schritt 1)**, siehe Abschnitt 6. Gemessen statt
+Detail-Spec: Hintergrund Schwarz 60 % (nicht `rgba(255,255,255,0.12)` – der Button ist in
+der Referenz *dunkler* als das Motiv), Eckradius 12 dp, Zentrumsabstand 124 dp (64 dp
+läge im Ring). `circle_background.xml` bleibt für Pause/Schnappschuss/Panorama-Abbruch.
 
 **Zoom-Stufen-Pille** (`zoom_stepper`, `ZoomStepper.java`, `dimens.xml`,
 `pill_background.xml`, `pill_selected_background.xml`)
 - Stufe `zoom_step_size` 44 dp + `zoom_step_margin` 4 dp → Pille **52 dp** hoch, aktiver
   Kreis **44 dp**. Soll: Pille 40 dp hoch, 180–220 dp breit, aktiver Kreis ⌀ 36 dp.
-- Abstand zum Auslöser 12 dp (`MainUI.layoutUI()` L782). Soll: ca. 32 dp.
+- Abstand zum Auslöser 12 dp zum 100-dp-View (= 19 dp zum Ring). Detail-Spec sagt ca.
+  32 dp, **im Screenshot gemessen: 24 dp** zwischen Pillen-Unterkante und Ring-Oberkante
+  (Audit-Schritt 1) – Screenshot gilt.
 - Hintergrund `zoom_stepper_background` `#99000000`, flach. Soll: `rgba(20,20,20,0.65)`
   mit Blur 20 px (Blur: siehe 7.3).
 - Aktive Füllung `#F2F2F2`, Text `#1B1B1B`. Soll: `#D3E8D8` (Salbei, Material You) bzw.
@@ -354,16 +386,23 @@ Soll-Werte aus der Detail-Spec, außer wo die Screenshot-Spec etwas anderes sagt
 - Ist ein `LinearLayout`: kein Scrollen, kein Snap-to-Center, keine Alpha-Verläufe an
   den Rändern. Soll: waagerechtes Paging mit Magnet-Effekt, Tipp auf ein Nachbarwort
   scrollt es in die Mitte, `CLOCK_TICK` beim Einrasten.
-- **„Video" ist kein Eintrag, sondern eine Anzeige:** im Fotomodus sind nur Foto/Panorama
-  sichtbar, im Videomodus nur „Video" allein (L1337–1340); Tipp auf Video tut nichts
-  (Kommentar L1243), Foto ↔ Video läuft über `switch_video`. Soll: Foto · Video · Panorama
-  immer sichtbar, Tipp auf Video schaltet um.
+- **Einträge (Stand Audit-Schritt 1):** nur „Panorama" im Fotomodus (Umschalter: nochmal
+  tippen = normales Foto), im Videomodus leer. Foto ↔ Video läuft über die
+  `PhotoVideoSwitch`-Pille darunter. Entscheidung Falk 2026-09-17 (Abschnitt 8): kein
+  „Foto"-Eintrag (die Pille sagt schon „Foto"), kein „Video"-Eintrag (der
+  Referenz-Screenshot zeigt im Karussell „zufügen · Porträt · Foto · Nachtsicht · Pan…",
+  kein „Video" – die Anmerkung unter Abschnitt 9, die Detail-Spec und Referenz hätten beide
+  „Video" im Karussell, stimmt für den Screenshot nicht). Wenn später Video-Untermodi
+  kommen, stehen sie in derselben Leiste an derselben Stelle.
 - Inaktiv `#F2F2F2` (`md_dark_on_surface`), normal. Soll: `#8E918F`, 14 dp, Gewicht 500.
 - Aktiv: Volltonfüllung `#F2F2F2` + dunkler Text `#1B1B1B` + `BOLD` 700. Beide Specs sagen
   **nicht volltonweiß** – Detail-Spec `rgba(255,255,255,0.15)` + weißer Text 600,
   Screenshot-Spec helles transparentes Grau + dunkle Schrift (Konflikt K2).
 - Passt: Padding 8 dp senkrecht / 16 dp waagerecht, 14 sp, Pillen-Radius 9999.
-- Klebt im Querformat mit 0 dp am Rand, weil die unterste Zeile fehlt (7.1 Punkt 3).
+- ~~Klebt im Querformat mit 0 dp am Rand, weil die unterste Zeile fehlt.~~ Erledigt: sitzt
+  jetzt auf der Referenzhöhe (Zentrum 149 dp vom Rand), die Pille darunter (7.1 Punkt 3).
+- Pillenhöhe: bei uns ~39 dp (8 dp Padding), Referenz gemessen **32 dp** – Zentrum liegt
+  dadurch 4 dp zu hoch; erledigt sich mit der Pillen-Anpassung in Audit-Schritt 3.
 
 **Drittel-Raster** (`DrawPreview` L972–977)
 - `Color.WHITE` mit voller Deckkraft; Standard der Preference ist `preference_grid_none`
@@ -385,7 +424,7 @@ Soll-Werte aus der Detail-Spec, außer wo die Screenshot-Spec etwas anderes sagt
 | Inaktive Icons / Sekundärtext | `#F2F2F2` bzw. Weiß | `#C4C7C5` bzw. `rgba(255,255,255,0.7)`; Modus-Karussell inaktiv `#8E918F` |
 | Nivellierung dynamisch | Grün `#14e715` (Preference) | Signalgelb `#FEE75C` / `#F9AB00` |
 | Fokus | Yellow 500 `#FFEB3B`, Rechteck | Weiß 1,5 dp Ring (Detail-Spec) / dünn goldgelb (Screenshot) – K9 |
-| Video-Rot | `#F44336` | `#E53935` |
+| Video-Rot | ~~`#F44336`~~ `#E53935` (erledigt, Audit-Schritt 1) | `#E53935` |
 | Schriftfamilie | keine deklariert (kein `fontFamily`, kein `res/font/`) | Google Sans / Roboto Flex. Google Sans ist nicht frei lizenziert → Roboto Flex (OFL) als Font-Ressource bündeln oder Systemschrift bewusst akzeptieren – Entscheidung Falk |
 | Schriftgewicht 600 | `Typeface.BOLD` = 700 | 600 über `Typeface.create(tf, 600, false)` (API 28+, hier verfügbar) |
 | Dezimal-Komma | `Locale.getDefault()` in `ZoomStepper.formatRatio()` – stimmt nur, weil das Gerät auf `de` steht | ausdrücklich deutsch formatieren, oder bewusst so lassen und im Code vermerken |
@@ -411,17 +450,48 @@ nicht verifizieren (closed source).
   Breite und Höhe vertauscht; damit stimmt der Platzbedarf und die Pille wird von selbst
   senkrecht.
 
+### Audit-Schritt 1 (Auslöser-Zeile, 2026-09-17) – Entscheidungen Falk
+
+- **Keine Animationen außer am Auslöser selbst.** Falk will es „so simpel wie möglich":
+  weggelassen sind die Open-Camera-Flug-Animation des Fotos in die Galerie (Standard der
+  Einstellung `preference_thumbnail_animation` jetzt aus, Option bleibt), der
+  Cross-Fade/Scale-Bounce der Galerie-Miniatur (Detail-Spec 6; das Bild wird schlicht
+  getauscht) und die 180°-Drehung des Kamera-Wechsel-Icons (Detail-Spec 6). Geblieben:
+  Feder beim Tippen und Kreis-↔-Quadrat-Morph des Auslösers, Ton, Vibration, federnder
+  Knopf im Umschalter.
+- **Kein „Foto"-Eintrag in der Moduswahl** (die Referenz hat einen): die Pille darunter
+  sagt schon „Foto"; „Panorama" ist deshalb ein Umschalter. Im Videomodus ist die Leiste
+  leer (die Referenz zeigt dort ihre Video-Untermodi, die wir nicht haben).
+- **Feste Plätze statt Verkettung:** die drei Fußzeilen (Auslöser, Moduswahl, Umschalter)
+  hängen jede für sich am Bildschirmrand, damit kein Ein-/Ausblenden je etwas verschiebt.
+  Sichtbar gleiche Positionen wie in der Referenz, nur technisch anders verankert.
+- **Kamera-Wechsel ohne Aufbläh-Effekt beim Tippen** (der alte `stateListAnimator` mit
+  Scale 1,1 ist entfernt; die Referenz zeigt keinen) – gilt nur für diesen Button, die
+  übrigen alten Buttons haben ihn noch.
+- **Auslöser-Tipp färbt den Kern nicht mehr grau** (`shutter_icon_pressed` entfernt; die
+  Spec nennt nur die Feder).
+- **Panorama-Abschluss-Haken** (Check-Icon) sitzt jetzt innerhalb des transluzenten
+  Rings statt frei; Panorama ist in der Referenz nicht abgebildet.
+- **Gemessene Werte schlagen die Detail-Spec** (Entscheidung Falk, K10-Präzedenz):
+  Auslöser 74/6/86 dp statt 72/8/88; Squircle-Radius 12 dp statt 22; Nachbar-Abstand
+  124 dp statt 64; Nachbar-Hintergrund Schwarz 60 % statt Weiß 12 %; Umschalter-Pille
+  92 × 40 / Knopf 48 dp statt 96 × 40 / 34 dp. Die Detail-Spec bleibt wörtlich, die
+  Zahlen in Abschnitt 6 sind maßgeblich.
+- **Sichtbarkeit auf Schwarz:** Ring, Squircles und Galerie-Rahmen sind transluzentes
+  Schwarz und darum auf der schwarzen Fläche (16:9, Videomodus) unsichtbar – so ergibt es
+  sich aus der Messung über dem Sucherbild. Ob die Pixel-App dort einen minimal helleren
+  Ton nutzt, ist aus den Screenshots nicht ableitbar; **Falk prüft am Gerät**, dann ggf.
+  `shutter_row_scrim` anpassen.
+
 ### Beim Orientierungs-Umbau (2026-09-17) festgestellt, nicht orientierungsbedingt
 
 Diese Punkte sind Folgen noch nicht gebauter Teile aus Abschnitt 7, keine
 Entscheidungen. Sie lösen sich auf, wenn die jeweiligen Elemente kommen:
 
-- **Moduswahl klebt im Querformat am Bildschirmrand** (Abstand 0), weil die unterste
-  Zeile (Einstellungen/Umschalter/Regler) noch fehlt, die in der Referenz
-  außen daneben sitzt (7.1 Punkt 3). Im Hochformat ist es der Gesten-Balken-Abstand.
-- **Auslöser-Spalte:** bei uns Kamera-Wechsel / Auslöser / **Video-Umschalter**, in der
-  Referenz Kamera-Wechsel / Auslöser / **Galerie** (7.1 Punkt 5; der Umschalter gehört in
-  die unterste Zeile, 7.1 Punkt 3).
+- ~~**Moduswahl klebt im Querformat am Bildschirmrand**~~ Erledigt in Audit-Schritt 1
+  (feste Referenzhöhe, Umschalter außen daneben).
+- ~~**Auslöser-Spalte:** bei uns Kamera-Wechsel / Auslöser / **Video-Umschalter**~~
+  Erledigt in Audit-Schritt 1: Kamera-Wechsel / Auslöser / Galerie, Umschalter darunter.
 - **Info-Overlay der Vorschau** (Batterie-/Blitz-Anzeige, von `DrawPreview` auf die
   Leinwand gezeichnet) sitzt in jeder Lage oben links, dreht also nicht mit. Das
   Gegenstück in der Referenz sind die Kopfzeilen-Chips (7.1 Punkt 4), die mitdrehen. Beim
@@ -438,7 +508,7 @@ einem offenen Punkt abhängt, ohne vorher nachzufragen.
 |---|---|---|---|---|
 | K1 | Kamera-Wechsel-Form | Kreis, 56 dp | Squircle (1b) | **Squircle** – Direktvergleich sticht Zahlen |
 | K2 | Aktive Modus-Pille | `rgba(255,255,255,0.15)`, **weißer** Text, Gewicht 600 | helles, leicht transparentes Grau, **dunkle** Schrift (1b) | **Screenshot-Spec** (helles Grau + dunkler Text) |
-| K3 | Drehmodell | Sucher fix, Bedienelemente drehen isoliert um die eigene Achse, Karussell ordnet sich an der Kante neu | starrer Block, Fenster dreht mit (2) – **am Gerät verifiziert** | **Screenshot-Spec** (bereits so gebaut, bestätigt) |
+| K3 | Drehmodell | Sucher fix, Bedienelemente drehen isoliert um die eigene Achse, Karussell ordnet sich an der Kante neu | starrer Block, Fenster dreht mit (2) – **am Gerät verifiziert** | ~~Screenshot-Spec (bereits so gebaut, bestätigt)~~ **Wieder offen (Falk, 2026-09-17, Audit-Schritt 1):** die Endlagen stimmen, der *Übergang* nicht – bei uns dreht Android das ganze Fenster samt Sucher, die Pixel-App ist auf Hochformat gesperrt und dreht nur die Glyphen an Ort und Stelle. Beides ist derselbe „starre Block", nur anders gebaut. Vorschlag: `docs/kickoff/rotation-pixel-modell.md`, Reihenfolge entscheidet der PM-Chat |
 | K4 | Sucher-Layout 4:3 | zentriert zwischen Kopf- und Fußfläche, freie Ränder, 28 dp Eckradius; 16:9 schiebt sich transluzent hinter die Leisten | Bedienelemente hängen am Bildschirmrand und liegen bei 4:3 **über** dem Bild (1a) | **Screenshot-Spec** (Grundregel eins-zu-eins) |
 | K5 | Modus-Einträge | Nachtsicht · Porträt · Foto · Video · Kinoeffekt/Pan | nur echte Modi Foto · Video · Panorama (5, Falk 2026-09-15) | bestätigt, keine Änderung |
 | K6 | Kopfzeilen-Badges | RAW / 50 MP (Foto), FHD / 4K (Video) | „12 MP" + Makro-Chip (1) | **Kein echter Widerspruch** – Badge zeigt die jeweils aktuell aktive Auflösungs-Einstellung dynamisch an; „12 MP" war nur der Standardzustand im Screenshot |
@@ -451,6 +521,9 @@ einem offenen Punkt abhängt, ohne vorher nachzufragen.
 **Schriftfamilie (Zeile in 7.3, kein K-Punkt):** Google Sans ist nicht frei lizenzierbar
 → **Roboto Flex (OFL)** als gebündelte Font-Ressource, keine weitere Rückfrage nötig.
 
-Kein Konflikt, nur zur Klarheit: Die Detail-Spec hat **sowohl** „Video" im Karussell
+~~Kein Konflikt, nur zur Klarheit: Die Detail-Spec hat **sowohl** „Video" im Karussell
 **als auch** den Foto/Video-Umschalter im Dock – so ist es auch in der Referenz, beides
-bauen.
+bauen.~~ **Korrigiert in Audit-Schritt 1:** der Referenz-Screenshot zeigt im Karussell
+kein „Video" (Abschnitt 1: „zufügen · Porträt · Foto · Nachtsicht · Pan…"), nur den
+Umschalter im Dock. Gebaut ist der Umschalter; das Karussell hat keinen Video-Eintrag
+(Abschnitt 8).

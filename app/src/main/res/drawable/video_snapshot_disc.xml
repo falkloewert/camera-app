@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon des Foto-Schnappschuss-Buttons während einer Videoaufnahme
+     (take_photo_when_video_recording): ein kleiner weißer Kreis, wie ein Mini-Auslöser.
+     Vorher nutzte der Button die alte Auslöser-Grafik mit; die ist seit Audit-Schritt 1
+     kein Bild mehr, sondern wird von ui/ShutterButton gezeichnet. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/shutter_icon"/>
+</shape>

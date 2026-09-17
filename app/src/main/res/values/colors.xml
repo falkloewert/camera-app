@@ -3,12 +3,22 @@
     <color name="seekbar_background">#30000000</color>
     <color name="icons_background">#20000000</color> <!-- when used as background color for imagebutton, the rgb color seems to be ignored for Android 6 onwards, but still relevant for older versions -->
     <color name="icons_background_tint">#ff000000</color>
-    <!-- Auslöser ist monochrom (weiß mit dunklem Ring) wie bei der Pixel-Kamera, siehe
-         docs/design-reference/pixel-camera-screenshots.md - früher blau (#2F9CF2). Rot
-         bleibt für "nimmt gerade auf" erhalten, das ist ein Signalzustand, keine Deko. -->
+    <!-- Auslöser-Zeile (docs/design-reference/ui-spezifikation.md 7.2): Kern reinweiß im
+         Fotomodus, Signalrot im Videomodus (Detail-Spec 1, "Videomodus-Akzent"); früher war
+         der Auslöser blau (#2F9CF2). Ring, Kamera-Wechsel-Squircle und Galerie-Rahmen sind
+         in der Referenz ein und dasselbe Material: Schwarz mit 60 % Deckkraft - aus dem
+         Referenz-Screenshot an einem dunklen und einem hellen Hintergrund gelöst
+         (Audit-Schritt 1, 2026-09-17), NICHT das rgba(255,255,255,0.12) der Detail-Spec,
+         das über dem Sucherbild heller statt dunkler wäre. -->
     <color name="shutter_icon">#FFFFFF</color>
-    <color name="shutter_icon_pressed">#C6C6C6</color>
-    <color name="shutter_icon_video_recording">#F44336</color>
+    <color name="shutter_icon_video">#E53935</color>
+    <color name="shutter_row_scrim">#99000000</color>
+    <!-- Foto/Video-Umschalter (ui/PhotoVideoSwitch), Farben aus dem Referenz-Screenshot:
+         dunkelgraue Pille, weißer Knopf, Symbol auf dem Knopf fast schwarz, das andere weiß. -->
+    <color name="photo_video_switch_pill">#333333</color>
+    <color name="photo_video_switch_knob">#FFFFFF</color>
+    <color name="photo_video_switch_glyph_on_knob">#1B1B1B</color>
+    <color name="photo_video_switch_glyph">#FFFFFF</color>
     <color name="scrollview">#999999</color>
 
     <!-- Material 3 dark camera chrome (SPEC.md 4.5): dark neutral surface (not pure black),
