@@ -390,10 +390,18 @@ Soll-Werte aus der Detail-Spec, außer wo die Screenshot-Spec etwas anderes sagt
 | Schriftgewicht 600 | `Typeface.BOLD` = 700 | 600 über `Typeface.create(tf, 600, false)` (API 28+, hier verfügbar) |
 | Dezimal-Komma | `Locale.getDefault()` in `ZoomStepper.formatRatio()` – stimmt nur, weil das Gerät auf `de` steht | ausdrücklich deutsch formatieren, oder bewusst so lassen und im Code vermerken |
 
-Zu Blur: `View.setRenderEffect(RenderEffect.createBlurEffect(…))` (Android 12+)
-zeichnet nur den Inhalt der View selbst weich, nicht das, was dahinter liegt. „Milchglas"
-über der Kamera-Vorschau braucht eine eigene Lösung (Vorschau-Ausschnitt kopieren und
-blurren) und kostet Frames. Vor dem Bau prüfen, ob 65 % Deckkraft ohne Blur genügt.
+**Zu Blur – geklärt durch Recherche-Agent (2026-09-17), Details siehe unten:**
+`View.setRenderEffect(RenderEffect.createBlurEffect(…))` (Android 12+/API 31+) zeichnet
+nur den Inhalt der View selbst weich, nicht das, was dahinter liegt. „Milchglas" über
+der Kamera-Vorschau (App nutzt `MyTextureView` via Camera2, siehe `Preview.java`
+Z. 470–486) braucht einen Snapshot-Umweg (RenderNode + RenderEffect auf API 31+) und
+funktioniert auf API 23–30 praktisch nicht (TextureView/SurfaceView dort nicht
+blurrbar). **Empfehlung: erstmal ohne Blur bauen** – 65 % Deckkraft ohne
+Weichzeichnung (eine `alpha`/`ColorDrawable`-Zeile, API-unabhängig, kein
+Performance-Risiko). Optischer Unterschied bei kleinen Pillen-/Chip-Flächen gering;
+echter Blur bliebe eine spätere API-31+-Verbesserung mit Opacity-Fallback für
+API 23–30, keine Grundvoraussetzung. Wie die echte Pixel-Kamera das löst, ließ sich
+nicht verifizieren (closed source).
 
 ## 8. Bewusste Abweichungen von der Referenz
 
