@@ -7,7 +7,9 @@
     <!-- used for the on-screen icons, e.g., Settings etc -->
 	<dimen name="onscreen_button_size">60dp</dimen>
 
-    <!-- one step in the zoom stepper (see ZoomStepper.java) -->
+    <!-- one step in the zoom stepper (see ZoomStepper.java): measured in the reference
+         screenshot (2.25 px/dp) - active circle 44 dp in a 48 dp cell, so the pill is 48 dp
+         high and 4 x 48 = 192 dp wide -->
     <dimen name="zoom_step_size">44dp</dimen>
-    <dimen name="zoom_step_margin">4dp</dimen>
+    <dimen name="zoom_step_margin">2dp</dimen>
 </resources>

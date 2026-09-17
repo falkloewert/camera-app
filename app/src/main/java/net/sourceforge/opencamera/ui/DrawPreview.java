@@ -675,7 +675,9 @@ public class DrawPreview {
         show_free_memory_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowFreeMemoryPreferenceKey, false);
         show_iso_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowISOPreferenceKey, false);
         show_video_max_amp_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowVideoMaxAmpPreferenceKey, false);
-        show_zoom_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowZoomPreferenceKey, true);
+        // off by default: the zoom steps pill (and the fine adjustment wheel) already show the
+        // zoom, the reference has no extra text in the viewfinder; the option stays available
+        show_zoom_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowZoomPreferenceKey, false);
         show_battery_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowBatteryPreferenceKey, true);
 
         show_angle_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowAnglePreferenceKey, false);

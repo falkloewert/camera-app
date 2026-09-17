@@ -544,12 +544,14 @@ public class MainUI {
             centerHorizontally(cs, view_id);
             pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f)); // 85 dp centre - 24 dp half view - 24 dp inset
 
-            // the zoom steps pill, centred just above the shutter
+            // the zoom steps pill, centred above the shutter: measured in the reference, its
+            // bottom edge is 36 dp above the shutter ring, and the 86 dp ring sits 7 dp inside
+            // the 100 dp take_photo view
             view = main_activity.findViewById(R.id.zoom_stepper);
             view_id = view.getId();
             resetView(cs, view);
             centerHorizontally(cs, view_id);
-            placeAbove(cs, view_id, R.id.take_photo, (int) (12 * scale + 0.5f));
+            placeAbove(cs, view_id, R.id.take_photo, (int) (29 * scale + 0.5f));
 
             view = main_activity.findViewById(R.id.pause_video);
             flankShutter(cs, view, true, scale);
