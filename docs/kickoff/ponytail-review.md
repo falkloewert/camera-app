@@ -10,6 +10,10 @@ Zeitpunkt nochmal mit diesem Prompt (Basis-Commit ggf. anpassen).
 sauber ist** (unfertige, uncommittete Änderungen eines anderen, evtl. noch laufenden
 Chats) **oder `HEAD` nicht auf `origin/master` steht: sofort stoppen und mir sagen,
 dass gewartet werden muss.** Kein Review über einen halbfertigen Stand.
+**Ausnahme (ergänzt 2026-09-18):** uncommittete Änderungen, die ausschließlich unter
+`docs/` liegen (z. B. vom parallel laufenden Doku-Abschluss eines Feature-Chats), sind
+für ein Code-Review unkritisch – dann weitermachen, bewertet wird ohnehin nur der
+committete Stand `HEAD`.
 
 ## Kontext
 
