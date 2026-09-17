@@ -82,6 +82,24 @@ Kickoff `docs/kickoff/graphify-archify-setup.md`:
 vor ihrem finalen Commit zusätzlich `graphify update .` aus, sofern `graphify-out/`
 existiert.
 
+## Neuer Projektmanager-Chat (bei zu langem Chat)
+
+Wird ein Projektmanager-Chat zu lang, startet Falk einen neuen. Für den gilt:
+
+- **Rolle wie der vorherige PM-Chat:** plant/dokumentiert, pflegt `docs/SPEC.md`,
+  löst Spec-Konflikte, bereitet Kickoff-Prompts für Feature-Chats vor. Baut selbst
+  **keine** App-Code-Änderungen mit Live-Gerätetest (das bleibt Feature-Chats
+  vorbehalten) – eigene Doku-/Config-Bearbeitung, Recherche-Agenten und Artifact-
+  Berichte sind dagegen normale PM-Aufgaben.
+- **Zuerst vollständig lesen:** `docs/SPEC.md` (lebendige Master-Quelle – Status,
+  Reihenfolge, alle Feature-Details in Abschnitt 4, Änderungsprotokoll am Ende für
+  den aktuellsten Stand) und dieses `CLAUDE.md` komplett, inklusive der Git-Regel
+  oben (Commits nur mit expliziter Dateiangabe) und der Subagenten-Entscheidung.
+- **Vor jeder eigenen Aktion:** `git status` + `git fetch origin` – ein Feature-Chat
+  kann gerade aktiv unfertige Änderungen im Arbeitsverzeichnis haben (siehe SPEC.md
+  2.1). Deren Dateien nicht anfassen oder committen.
+- Modellwahl: Sonnet reicht für die PM-Rolle (siehe Feature-Chats-Abschnitt oben).
+
 ## Status
 
 Siehe `docs/SPEC.md` Abschnitte 3/3.1 (Feature-Übersicht, Reihenfolge) und 6
