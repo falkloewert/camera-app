@@ -86,12 +86,19 @@
          MyApplicationInterface.allowZoom()). The two buttons are grouped in one LinearLayout so
          they can be positioned as a single centred unit (see MainUI.java) - centering two
          independent siblings on a third view isn't straightforward, but a wrapping
-         LinearLayout sidesteps that. -->
+         LinearLayout sidesteps that. The gap between the two buttons is a divider rather
+         than a margin, so it stays between them when MainUI.orientBar() reverses their
+         order in landscape. The buttons zero their padding and minimum size because under
+         the Material 3 theme a <Button> inflates as a MaterialButton with 24dp side padding,
+         which wrapped "1x" onto two lines inside the 60dp circle (same fix as in
+         ZoomStepper.createStepButton()). -->
     <LinearLayout
         android:id="@+id/panorama_lens_row"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:divider="@drawable/panorama_lens_gap"
+        android:showDividers="middle"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -100,6 +107,9 @@
             android:id="@+id/panorama_lens_wide"
             android:layout_width="60dp"
             android:layout_height="60dp"
+            android:padding="0dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
             android:textColor="@android:color/white"
             android:textAllCaps="false"
             android:textSize="15sp"
@@ -117,6 +127,9 @@
             android:id="@+id/panorama_lens_1x"
             android:layout_width="60dp"
             android:layout_height="60dp"
+            android:padding="0dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
             android:textColor="@android:color/white"
             android:textAllCaps="false"
             android:textSize="15sp"
@@ -814,24 +827,29 @@
         android:layout_marginBottom="16dp"
         />
 
-    <!-- Eine LinearLayout-Leiste (keine ScrollView), damit sie im Querformat einfach auf
-         senkrecht umklappen kann - derselbe Mechanismus wie beim Panorama-Objektiv-Paar aus
-         Feature 4. Die Alternative (View drehen und ihre Layout-Groesse per Rand-Trick
-         korrigieren, siehe MainUI.setFixedRotation) ist im Projekt schon als fragil
-         dokumentiert, deshalb bewusst nicht gewaehlt. -->
+    <!-- Eine LinearLayout-Leiste (keine ScrollView). Im Querformat wird sie von
+         MainUI.orientBar() zur Spalte umgeklappt, mit umgekehrter Reihenfolge und quer
+         gestellten Beschriftungen (RotatedTextView) - so sieht sie aus wie die starr
+         mitgedrehte Hochformat-Leiste der Referenz. Die Alternative (ganze View drehen und
+         ihre Layout-Groesse per Rand-Trick korrigieren, siehe MainUI.setFixedRotation) ist
+         im Projekt schon als fragil dokumentiert, deshalb bewusst nicht gewaehlt. Der
+         Abstand zwischen den Eintraegen kommt als Trenner (showDividers), damit er bei
+         umgekehrter Reihenfolge automatisch an der richtigen Stelle bleibt. -->
     <LinearLayout
         android:id="@+id/mode_bar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
+        android:divider="@drawable/mode_bar_gap"
+        android:showDividers="middle"
         android:contentDescription="@string/mode_bar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginBottom="16dp">
 
-        <TextView
+        <net.sourceforge.opencamera.ui.RotatedTextView
             android:id="@+id/mode_bar_video"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -844,7 +862,7 @@
             android:text="@string/video"
             />
 
-        <TextView
+        <net.sourceforge.opencamera.ui.RotatedTextView
             android:id="@+id/mode_bar_photo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -859,7 +877,7 @@
             android:text="@string/photo"
             />
 
-        <TextView
+        <net.sourceforge.opencamera.ui.RotatedTextView
             android:id="@+id/mode_bar_panorama"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

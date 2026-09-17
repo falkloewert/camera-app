@@ -47,6 +47,8 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -339,6 +341,20 @@ public class MainUI {
         final int ui_rotation = (360 - relative_orientation) % 360;
         main_activity.getPreview().setUIRotation(ui_rotation);
         // naming convention for variables is for system_orientation==LANDSCAPE, right-handed UI
+        //
+        // Orientation model (docs/design-reference/ui-spezifikation.md, section 2): there is ONE
+        // fixed arrangement of the controls, and the whole thing turns rigidly with the device -
+        // as if the portrait layout were printed on a card that rotates with the phone, so every
+        // button keeps its physical spot on the device. The mapping below expresses exactly that:
+        // the "logical" directions are named from the landscape point of view, and portrait is
+        // that same arrangement turned 90 degrees clockwise (logical right -> real bottom,
+        // logical top -> real right). Read the other way round, landscape (device top on the
+        // left) is the portrait arrangement turned 90 degrees anticlockwise, which is how the
+        // reference behaves. Reverse landscape is the 180 degree turn of landscape, handled by
+        // the swaps further down. So do NOT rebuild this mapping per orientation - it already is
+        // the rotation. What the mapping can't do is turn the contents of the LinearLayout bars
+        // (zoom steps, mode bar, panorama lens pair), since rotating a View doesn't rotate its
+        // layout bounds; those are re-stacked to look rotated in orientBar() instead.
         Side align_left = system_orientation_portrait ? new Side(ConstraintSet.TOP, ConstraintSet.TOP) : new Side(ConstraintSet.LEFT, ConstraintSet.LEFT);
         Side align_right = system_orientation_portrait ? new Side(ConstraintSet.BOTTOM, ConstraintSet.BOTTOM) : new Side(ConstraintSet.RIGHT, ConstraintSet.RIGHT);
         Side align_top = system_orientation_portrait ? new Side(ConstraintSet.RIGHT, ConstraintSet.RIGHT) : new Side(ConstraintSet.TOP, ConstraintSet.TOP);
@@ -711,21 +727,12 @@ public class MainUI {
             //   take_photo rather than above it).
             view = main_activity.findViewById(R.id.panorama_lens_row);
             // The row itself is a horizontal pair of buttons in portrait, but a vertical stack in
-            // landscape - matching how the pair would look if it simply rotated by 90 degrees
-            // together with the rest of the (also rotation-aware) UI. The gap between the two
-            // buttons is set to match: a horizontal gap (marginEnd) in portrait, a vertical one
-            // (marginBottom) in landscape.
-            ((LinearLayout)view).setOrientation(system_orientation_portrait ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
-            {
-                View panoramaLensWideButton = main_activity.findViewById(R.id.panorama_lens_wide);
-                LinearLayout.LayoutParams wideParams = (LinearLayout.LayoutParams)panoramaLensWideButton.getLayoutParams();
-                int inner_gap = (int) (14 * scale + 0.5f); // convert dps to pixels
-                if( system_orientation_portrait )
-                    wideParams.setMargins(0, 0, inner_gap, 0);
-                else
-                    wideParams.setMargins(0, 0, 0, inner_gap);
-                panoramaLensWideButton.setLayoutParams(wideParams);
-            }
+            // landscape, ordered as if the pair had simply rotated together with the rest of
+            // the UI - see orientBar(). The gap between the two buttons is a divider set in the
+            // XML, so it needs no per-orientation handling here.
+            orientBar((LinearLayout)view, Arrays.asList(
+                    main_activity.findViewById(R.id.panorama_lens_wide),
+                    main_activity.findViewById(R.id.panorama_lens_1x)));
             view_id = view.getId();
             resetView(cs, view);
             centerLogicalVertical(cs, view_id, center_is_real_vertical);
@@ -741,13 +748,19 @@ public class MainUI {
             // button row in portrait, a column beyond it in landscape - the shutter is anchored
             // to it above (see take_photo).
             view = main_activity.findViewById(R.id.mode_bar);
-            // like the panorama lens row, the mode bar sits side by side in portrait and stacks
-            // in landscape, rather than being rotated (which wouldn't shrink its layout width)
-            ((LinearLayout)view).setOrientation(system_orientation_portrait ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+            // Like the panorama lens row, the mode bar sits side by side in portrait and stacks
+            // in landscape (see orientBar()). Unlike the zoom steps, its labels are laid on
+            // their side in landscape too, exactly as the reference does it - a RotatedTextView
+            // takes care of the text and its layout bounds.
             {
-                int gap = (int) (8 * scale + 0.5f); // convert dps to pixels
-                setModeBarItemGap(R.id.mode_bar_video, system_orientation_portrait, gap);
-                setModeBarItemGap(R.id.mode_bar_photo, system_orientation_portrait, gap);
+                List<RotatedTextView> mode_entries = Arrays.asList(
+                        (RotatedTextView)main_activity.findViewById(R.id.mode_bar_video),
+                        (RotatedTextView)main_activity.findViewById(R.id.mode_bar_photo),
+                        (RotatedTextView)main_activity.findViewById(R.id.mode_bar_panorama));
+                orientBar((LinearLayout)view, mode_entries);
+                int text_rotation = getPortraitLayoutRotation(system_orientation);
+                for(RotatedTextView entry : mode_entries)
+                    entry.setTextRotation(text_rotation);
             }
             view_id = view.getId();
             resetView(cs, view);
@@ -757,9 +770,10 @@ public class MainUI {
             setViewRotation(view, ui_rotation);
 
             view = main_activity.findViewById(R.id.zoom_stepper);
-            // the steps sit side by side in portrait and stack in landscape, matching how the
-            // rest of the rotation-aware UI reorients
-            ((LinearLayout)view).setOrientation(system_orientation_portrait ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+            // the steps sit side by side in portrait and stack in landscape, ordered as if the
+            // row had rotated with the rest of the UI (see orientBar()); the digits themselves
+            // stay upright, as in the reference
+            orientBar((LinearLayout)view, zoomStepper.getStepButtons());
             view_id = view.getId();
             resetView(cs, view);
             centerLogicalVertical(cs, view_id, center_is_real_vertical);
@@ -1239,16 +1253,59 @@ public class MainUI {
         connect(cs, view_id, align_right, R.id.take_photo, 0);
     }
 
-    /** Puts the gap between two mode bar entries on whichever side separates them for the
-     *  current orientation. */
-    private void setModeBarItemGap(int item_id, boolean system_orientation_portrait, int gap) {
-        View item = main_activity.findViewById(item_id);
-        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams)item.getLayoutParams();
-        if( system_orientation_portrait )
-            params.setMargins(0, 0, gap, 0);
-        else
-            params.setMargins(0, 0, 0, gap);
-        item.setLayoutParams(params);
+    /** How far the portrait arrangement of the controls has been turned on screen, in degrees
+     *  clockwise: 0 in portrait, 270 (i.e. 90 anticlockwise) in landscape, where the device's
+     *  top edge is on the left, and 90 in reverse landscape. This is the rotation applied to
+     *  anything that is meant to turn with the layout rather than stay upright, such as the
+     *  mode bar labels (see the orientation model comment in layoutUI()).
+     */
+    private static int getPortraitLayoutRotation(MainActivity.SystemOrientation system_orientation) {
+        switch( system_orientation ) {
+            case LANDSCAPE:
+                return 270;
+            case REVERSE_LANDSCAPE:
+                return 90;
+            default:
+                return 0;
+        }
+    }
+
+    /** Arranges one of the horizontal bars (zoom steps, mode bar, panorama lens pair) so that it
+     *  looks like the rigidly rotated portrait row (see the orientation model comment in
+     *  layoutUI()): side by side in portrait; stacked in landscape, and in (non-reverse)
+     *  landscape with the entries in reverse order - turning the portrait row 90 degrees
+     *  anticlockwise, which is what the screen does, puts its left end at the bottom. In reverse
+     *  landscape the turn is clockwise, so the left end lands at the top and the order stays.
+     *  Rotating the bar as a View instead would leave its layout bounds unrotated (see
+     *  setFixedRotation()), so the entries are re-stacked rather than rotated.
+     *  Only touches the view hierarchy if the order actually differs, since layoutUI() is called
+     *  often. Gaps between entries must come from LinearLayout dividers, which follow the order
+     *  automatically - per-entry margins would end up on the wrong side when reversed.
+     *  @param portrait_order The entries as they read left to right in portrait. Any entry not
+     *                        currently in the bar is added (used by ZoomStepper.update() after
+     *                        it has rebuilt its buttons).
+     */
+    void orientBar(LinearLayout bar, List<? extends View> portrait_order) {
+        MainActivity.SystemOrientation system_orientation = main_activity.getSystemOrientation();
+        boolean portrait = system_orientation == MainActivity.SystemOrientation.PORTRAIT;
+        bar.setOrientation(portrait ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+
+        List<View> order = new ArrayList<>(portrait_order);
+        if( system_orientation == MainActivity.SystemOrientation.LANDSCAPE )
+            Collections.reverse(order);
+
+        boolean same_order = bar.getChildCount() == order.size();
+        for(int i=0;same_order && i<order.size();i++) {
+            same_order = bar.getChildAt(i) == order.get(i);
+        }
+        if( !same_order ) {
+            if( MyDebug.LOG )
+                Log.d(TAG, "orientBar: restacking " + bar.getContentDescription() + " for " + system_orientation);
+            bar.removeAllViews();
+            for(View entry : order) {
+                bar.addView(entry);
+            }
+        }
     }
 
     /** Applies a new photo mode preference and refreshes everything that caches it - same steps

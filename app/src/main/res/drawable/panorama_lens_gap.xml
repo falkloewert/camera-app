@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Invisible spacer used as the LinearLayout divider between the two panorama lens buttons
+     (same idea as mode_bar_gap.xml, wider so the two round buttons don't visually merge). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <size android:width="14dp" android:height="14dp" />
+    <solid android:color="@android:color/transparent" />
+</shape>

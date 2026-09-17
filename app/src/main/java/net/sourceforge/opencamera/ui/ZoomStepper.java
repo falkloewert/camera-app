@@ -53,6 +53,11 @@ public class ZoomStepper {
         return !step_zoom_factors.isEmpty();
     }
 
+    /** The step buttons in their portrait order (widest lens first), for MainUI.orientBar(). */
+    List<Button> getStepButtons() {
+        return step_buttons;
+    }
+
     /** Rebuilds the step buttons for the camera that's currently open. Safe to call whenever the
      *  camera is (re)opened or switched.
      */
@@ -78,8 +83,10 @@ public class ZoomStepper {
             step_ratios.add(preview.getZoomRatio(zoom_factor));
             Button button = createStepButton(preview.getZoomRatio(zoom_factor), zoom_factor, step_index);
             step_buttons.add(button);
-            container.addView(button);
         }
+        // the buttons go into the bar via MainUI, which knows which way round they belong for
+        // the current orientation (this runs after layoutUI() when a camera is opened)
+        main_activity.getMainUI().orientBar(container, step_buttons);
 
         updateSelection(preview.getCameraController().getZoom());
     }

@@ -56,16 +56,47 @@ die Reihenfolge Auslöser → Moduswahl bleibt identisch.
 
 ## 2. Aufbau Querformat
 
-Gleiche Elemente, um 90° umgeordnet:
+**Drehmodell (verbindlich, seit 2026-09-17 umgesetzt):** Es gibt **eine** feste
+Anordnung – die aus Abschnitt 1. Beim Drehen des Geräts dreht sie als **starrer Block**
+mit, so als wäre das Hochformat-Layout auf eine Karte gedruckt und die Karte würde
+gedreht. Jeder Knopf behält dadurch seine körperliche Position am Gerät. Nichts wird pro
+Ausrichtung neu angeordnet. Konkret:
+
+- Oberkante links (das normale Querformat): Hochformat-Karte um **90° gegen den
+  Uhrzeigersinn** gedreht – oben → links, links → unten, unten → rechts, rechts → oben.
+- Oberkante rechts (umgekehrtes Querformat): um **90° im Uhrzeigersinn** – oben → rechts,
+  links → oben.
+- Hochformat auf dem Kopf bietet Android in diesem Fenstermodus nicht an; die Oberfläche
+  bleibt dann in der zuletzt zulässigen Lage stehen (gespeicherte Fotos sind trotzdem
+  richtig herum, die Drehung kommt vom Lagesensor).
+- **Symbole und Zoom-Ziffern** werden dabei zurückgedreht und stehen aufrecht;
+  **Modus-Beschriftungen nicht** – sie stehen quer, wie auf der Karte gedruckt.
+- Das Fenster selbst dreht mit (wie bei der Pixel-Kamera, am Gerät verifiziert:
+  bei erzwungener Display-Drehung liefert `screencap` 2142×960). Deshalb sitzt der
+  Gesten-Balken immer an der physischen Unterkante.
+
+Ergebnis für die Elemente (Oberkante links), aus den Referenzbildern abgelesen:
 
 - Zoom-Stufen-Leiste **senkrecht**, Reihenfolge von oben nach unten: `5 · 2 · 1× · ,5`
-  (größter Wert oben).
+  (größter Wert oben), Ziffern aufrecht.
 - Moduswahl-Leiste als **senkrechte Spalte am rechten Rand**, Beschriftungen um 90°
-  **gedreht**; aktiver Modus in heller Pille.
+  **gedreht** (von unten nach oben lesbar), Reihenfolge von unten nach oben wie im
+  Hochformat von links nach rechts; aktiver Modus in heller **senkrechter** Pille.
 - Haupt-Bedienzeile senkrecht gestapelt am rechten Rand: Kamera-Wechsel oben, Auslöser
   mittig, Galerie-Miniatur unten.
-- Einstellungen-/Regler-Buttons am äußersten rechten Rand, senkrecht verteilt.
-- Chips ("12 MP", Makro) und "?" wandern in die gegenüberliegenden Ecken.
+- Einstellungen-/Regler-Buttons am äußersten rechten Rand, senkrecht verteilt (Regler
+  oben, Foto/Video-Umschalter mittig, Einstellungen unten).
+- Chips ("12 MP", Makro) und "?" wandern mit: Kopfzeile wird zur linken Spalte
+  ("12 MP" unten links, "?" oben links).
+
+Bei Oberkante rechts alles spiegelbildlich dazu (Zoom `,5` oben, Beschriftungen von
+oben nach unten lesbar, Auslöser-Spalte links).
+
+Belege nach dem Umbau (unsere App, Pixel 9 Pro, 2026-09-17):
+`unsere-app-querformat-nach-umbau-2026-09-17.png` (Oberkante links) und
+`unsere-app-querformat-umgekehrt-nach-umbau-2026-09-17.png` (Oberkante rechts). Die
+älteren `unsere-app-*.png` ohne Datum zeigen den Zustand **vor** dem Umbau (Beweise aus
+dem Kickoff).
 
 ## 3. Zoom-Bedienung
 
@@ -159,12 +190,22 @@ Porträt/Nachtsicht/zufügen, solange die App diese Modi nicht wirklich beherrsc
 - `activity_main.xml` von RelativeLayout auf ConstraintLayout migriert (Phase 1)
 - Auslöser und Video-Umschalter monochrom (weiß/dunkel) statt blau
 - Zoom-Stufen-Leiste: Stufen ,5/1×/2/5 (kein 10×), Beschriftung wie Referenz (führende
-  Null entfällt, nur die aktive Stufe trägt das "×"), klappt im Querformat auf senkrecht
+  Null entfällt, nur die aktive Stufe trägt das "×"); im Querformat senkrecht mit der
+  Reihenfolge der gedrehten Hochformat-Leiste (`5` oben bei Oberkante links)
 - Moduswahl-Leiste (Foto/Video/Panorama) mit funktionierendem Umschalten, **an der
   Referenzposition**: äußerster Platz am Bildschirmrand, der Auslöser sitzt davor,
   die Zoom-Stufen davor über dem Bildrand. Die Knöpfe neben dem Auslöser
   (Video-Umschalter, Pause, Panorama-Abbruch) sind auf den Auslöser ausgerichtet statt
-  auf den Bildschirmrand, damit sie mit ihm auf einer Linie bleiben.
+  auf den Bildschirmrand, damit sie mit ihm auf einer Linie bleiben. Im Querformat
+  Beschriftungen quer und in senkrechter Pille (Abschnitt 2).
+- **Drehmodell aus Abschnitt 2** (2026-09-17): starr mitdrehende Anordnung in allen
+  drei von Android angebotenen Lagen; am Gerät geprüft inkl. EXIF-Drehung von Fotos in
+  allen vier Lagen, Video-Rotationshinweis, Panorama-Linsenpaar. Technik: die
+  Positions-Zuordnung in `MainUI.layoutUI()` (`Side`-Tabelle) war bereits die Drehung;
+  die Inhalte der drei Leisten werden von `MainUI.orientBar()` umgeklappt und in der
+  Reihenfolge gedreht, die Modus-Texte über `RotatedTextView` quer gezeichnet, Abstände
+  über `android:divider`. Bewusst **kein** `View.setRotation()` auf ganze Leisten (siehe
+  Abschnitt 8, alter Punkt).
 - Alter Zoom-Schieberegler entfällt, wo die Stufen-Leiste greift
 
 ## 7. Was noch fehlt
@@ -176,13 +217,27 @@ Porträt/Nachtsicht/zufügen, solange die App diese Modi nicht wirklich beherrsc
 5. Galerie-Miniatur und Kamera-Wechsel im Referenz-Stil (abgerundete Quadrate) und auf
    der Auslöser-Zeile (aktuell sitzt die Galerie noch in der alten Icon-Leiste)
 6. Gelber Fokus-Ring statt des aktuellen Fokus-Rechtecks
-7. Moduswahl-Beschriftungen im Querformat gedreht (bewusst zurückgestellt, siehe
-   Abweichung unten)
 
 ## 8. Bewusste Abweichungen von der Referenz
 
-- **Moduswahl im Querformat:** Beschriftungen stehen aufrecht statt um 90° gedreht.
-  Grund: Android dreht beim Drehen einer Ansicht nur deren Darstellung, nicht ihren
-  Platzbedarf; die Korrektur per Rand-Trick ist im Projekt bereits als fragil
-  dokumentiert (`MainUI.setFixedRotation`). Von Falk am 2026-09-15 als der
-  fehlerärmere Weg bestätigt.
+- ~~**Moduswahl im Querformat:** Beschriftungen stehen aufrecht statt um 90° gedreht.~~
+  **Erledigt 2026-09-17** – nicht über den Rand-Trick (`View.setRotation()` +
+  `MainUI.setFixedRotation`), sondern über eine `RotatedTextView`, die beim Messen
+  Breite und Höhe vertauscht; damit stimmt der Platzbedarf und die Pille wird von selbst
+  senkrecht.
+
+### Beim Orientierungs-Umbau (2026-09-17) festgestellt, nicht orientierungsbedingt
+
+Diese Punkte sind Folgen noch nicht gebauter Teile aus Abschnitt 7, keine
+Entscheidungen. Sie lösen sich auf, wenn die jeweiligen Elemente kommen:
+
+- **Moduswahl klebt im Querformat am Bildschirmrand** (Abstand 0), weil die unterste
+  Zeile (Einstellungen/Umschalter/Regler, Punkt 3) noch fehlt, die in der Referenz
+  außen daneben sitzt. Im Hochformat ist es der Gesten-Balken-Abstand.
+- **Auslöser-Spalte:** bei uns Kamera-Wechsel / Auslöser / **Video-Umschalter**, in der
+  Referenz Kamera-Wechsel / Auslöser / **Galerie** (Punkt 5; der Umschalter gehört in
+  die unterste Zeile, Punkt 3).
+- **Info-Overlay der Vorschau** (Batterie-/Blitz-Anzeige, von `DrawPreview` auf die
+  Leinwand gezeichnet) sitzt in jeder Lage oben links, dreht also nicht mit. Das
+  Gegenstück in der Referenz sind die Kopfzeilen-Chips (Punkt 4), die mitdrehen. Beim
+  Bau der Chips das Overlay mitbedenken oder ersetzen.

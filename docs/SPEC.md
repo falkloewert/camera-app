@@ -99,7 +99,7 @@ Projektmanager-Chat):
 | 3 | Dual-Kamera (Selfie-Bubble, unabhängiger Zoom) | Idee / Konzept | Hoch (geräteabhängig) |
 | 4 | Panorama mit Weitwinkel-Option | **Fertig** | Niedrig-Mittel |
 | 5 | Kamera während Videoaufnahme umdrehen | Idee / Notiz (nice-to-have) | Niedrig |
-| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | Idee / Konzept, Recherche läuft (Vorschlag von Falk, 2026-09-14) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
+| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl und Orientierungs-Modell fertig (Stand 2026-09-17); offen: siehe `ui-spezifikation.md` Abschnitt 7 | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
 
 ### 3.1 Vereinbarte Reihenfolge (aktualisiert 2026-09-14: Material-3-Redesign vor Feature 5 vorgezogen)
 
@@ -433,6 +433,16 @@ vor – als Nächstes erstellt der Projektmanager-Chat die gestaffelten Kickoff-
 (1. Theme/Farben/ConstraintLayout-Migration, 2. Zoom-/Moduswahl-Leiste, 3.
 Settings/Icons).
 
+**Stand Orientierungs-Modell (2026-09-17, fertig):** Die Bedienoberfläche verhält sich
+beim Drehen jetzt wie beim Original – eine feste Hochformat-Anordnung, die als starrer
+Block mitdreht (Querformat = 90° gegen den Uhrzeigersinn, umgekehrtes Querformat = 90°
+im Uhrzeigersinn). Das Fenster dreht weiterhin mit (`lock_to_landscape` bleibt `false`,
+so macht es auch die Pixel-Kamera, am Gerät verifiziert). Die Positions-Zuordnung in
+`MainUI.layoutUI()` war bereits diese Drehung; umgebaut wurden nur die Inhalte der
+drei Leisten (`MainUI.orientBar()`, `RotatedTextView`). Details, Gerätetest-Ergebnisse
+(EXIF in allen vier Lagen, Video, Panorama) und verbleibende Abweichungen: Abschnitt 6
+(Eintrag 2026-09-17) und `docs/design-reference/ui-spezifikation.md` Abschnitte 2 und 8.
+
 ---
 
 ## 5. Generelle technische Hinweise / Risiken (projektübergreifend)
@@ -576,3 +586,37 @@ Settings/Icons).
   (2) Feinjustier-Rad für Zoom über 5×. (3) Foto- und Video-Einstellungs-Blätter.
   (4) Untere Bedienzeile, Galerie/Kamera-Wechsel im Referenz-Stil, Raster und gelber
   Fokus-Ring.
+- **2026-09-17:** **Orientierungs-Modell umgebaut** (Kickoff
+  `docs/kickoff/redesign-orientierung.md`, Feature-Chat „Redesign: Orientierung").
+  Zwei Annahmen des Kickoffs haben sich am Gerät bzw. im Code als falsch erwiesen:
+  (a) Die Pixel-Kamera nagelt das Fenster **nicht** fest – bei erzwungener
+  Display-Drehung (`user_rotation`) dreht ihr Fenster mit, `screencap` liefert
+  2142×960. Damit fiel Weg „Fenster festnageln + `lock_to_landscape`-Mechanik" weg
+  (hätte Gesten-Balken und Popups an der falschen Kante gelassen); `lock_to_landscape`
+  bleibt `false`. (b) Die `Side`-Übersetzungstabelle in `MainUI.layoutUI()` **ist
+  bereits** die starre Drehung einer einzigen Anordnung (Hochformat = Querformat um 90°
+  im Uhrzeigersinn) – sie musste nicht ersetzt werden. Nicht starr waren nur die
+  *Inhalte* der drei LinearLayout-Leisten (Zoom-Stufen, Moduswahl, Panorama-Linsenpaar):
+  Sie klappten auf senkrecht um, behielten aber die Reihenfolge. Lösung ohne den als
+  fragil dokumentierten `setRotation`-Rand-Trick: neuer Helfer `MainUI.orientBar()`
+  klappt um **und** kehrt im Querformat (Oberkante links) die Kinder-Reihenfolge um
+  (im umgekehrten Querformat bleibt sie, das ergibt die Drehung im Uhrzeigersinn);
+  Abstände zwischen Einträgen per `android:divider`/`showDividers` statt Rand-Code,
+  damit sie bei umgekehrter Reihenfolge stimmen; Modus-Beschriftungen quer über eine
+  kleine `RotatedTextView` (vertauscht Mess-Breite/-Höhe, zeichnet Text gedreht – Pille
+  wird automatisch senkrecht, Tippen braucht keine Umrechnung); Zoom-Ziffern bleiben
+  aufrecht wie in der Referenz. `ZoomStepper.update()` hängt seine Buttons über
+  denselben Helfer ein (läuft nach `layoutUI()`). Nebenfund aus Phase 1: Seit dem
+  Material-3-Theme wird `<Button>` als `MaterialButton` mit 24 dp Seitenabstand
+  aufgeblasen, die Panorama-Linsen-Beschriftung „1x" brach im 60-dp-Kreis um – behoben
+  wie beim ZoomStepper (Padding/MinSize 0). **Gerätetest Pixel 9 Pro:** Screenshots in
+  Hochformat, Querformat links und rechts stimmen mit dem Referenz-Drehmodell überein
+  (Gemini-Bildvergleich: Zoom-Leiste, Leserichtung, Auslöser-Spalte übereinstimmend;
+  seine übrigen Punkte betreffen noch nicht gebaute Elemente). EXIF in allen vier Lagen
+  korrekt (Hochformat 6, Quer links 1, Quer rechts 1 mit 180° in Pixeln, Hochformat
+  auf dem Kopf 8), Video-Rotationshinweis 90° im Hochformat korrekt, Panorama-Linsenpaar
+  gedreht und funktionsfähig. Hinweise: Beim Fotografieren senkrecht nach unten liefert
+  der Lagesensor „unbekannt" und die letzte Drehung bleibt (Standardverhalten, auch bei
+  der Pixel-Kamera). „Hochformat auf dem Kopf" bietet Android in diesem Fenstermodus
+  nicht an, die Oberfläche bleibt dann in der letzten zulässigen Lage. Verbleibende
+  Abweichungen (nicht orientierungsbedingt): siehe `ui-spezifikation.md` Abschnitt 8.

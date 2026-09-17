@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Invisible spacer used as the LinearLayout divider between mode bar entries (see
+     android:showDividers on mode_bar in activity_main.xml). A divider puts the gap between
+     neighbouring entries whichever way round they are, which per-entry margins can't - the
+     entry order is reversed in landscape, see MainUI.orientBar(). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <size android:width="8dp" android:height="8dp" />
+    <solid android:color="@android:color/transparent" />
+</shape>
