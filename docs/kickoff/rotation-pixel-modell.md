@@ -1,5 +1,12 @@
 # Kickoff-Kontext: Drehmodell wie die Pixel-Kamera (Hochformat-Sperre, nur Glyphen drehen)
 
+> **Stand 2026-09-18: umgesetzt.** Der Feature-Chat „Redesign: Drehmodell" (2026-09-17) hat
+> die Aufgabe in den Commits `8dcd8fc3` (Sperre), `1a247924` (festes Layout), `ae011cb6`
+> (Glyph-Drehung) gebaut und am Pixel 9 Pro geprüft; dazu `86f3f3ec`, `00cd3e4c`, `a47d7df5`,
+> `9327410c`. Offen ist nur noch die Datei-Prüfung (EXIF/Video/Panorama) plus Doku –
+> dafür gilt `docs/kickoff/rotation-pixel-modell-abschluss.md`. Dieses Dokument ist
+> Hintergrund (Problem, Ziel, Belege), keine To-do-Liste mehr.
+
 Teil des Material-3-Redesigns (`docs/SPEC.md` 4.5). Ersetzt den Orientierungs-Umbau vom
 2026-09-17 (Commit `2045620a`), dessen **Endlagen** stimmen, dessen **Übergang** aber nicht.
 Vorgeschlagen vom Feature-Chat „Audit-Schritt 1 – Auslöser-Zeile" (2026-09-17), von Falk am

@@ -99,7 +99,7 @@ Projektmanager-Chat):
 | 3 | Dual-Kamera (Selfie-Bubble, unabhängiger Zoom) | Idee / Konzept | Hoch (geräteabhängig) |
 | 4 | Panorama mit Weitwinkel-Option | **Fertig** | Niedrig-Mittel |
 | 5 | Kamera während Videoaufnahme umdrehen | Idee / Notiz (nice-to-have) | Niedrig |
-| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl und Orientierungs-Modell fertig (Stand 2026-09-17); offen: siehe `ui-spezifikation.md` Abschnitt 7 (Audit 2026-09-17), vorher Konflikte in Abschnitt 9 entscheiden | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
+| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile und Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen) gebaut (Stand 2026-09-18; Drehmodell-Abschluss/Datei-Prüfung offen, Kickoff `rotation-pixel-modell-abschluss.md`); offen: siehe `ui-spezifikation.md` Abschnitt 7 (Audit 2026-09-17) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
 
 ### 3.1 Vereinbarte Reihenfolge (aktualisiert 2026-09-14: Material-3-Redesign vor Feature 5 vorgezogen)
 
@@ -472,13 +472,29 @@ Auslöser, kein „Foto"/„Video" in der Moduswahl): `ui-spezifikation.md` Absc
 Pixel 9 Pro geprüft (Hochformat pixelgenau gegen die Referenz, beide Querformate, Foto,
 Video Start/Stopp, Panorama). Details: Abschnitt 6 (Eintrag 2026-09-17, Audit-Schritt 1).
 
+**Stand Pixel-Drehmodell (2026-09-17 gebaut, 2026-09-18 Abschluss offen):** Der
+Feature-Chat „Redesign: Drehmodell" hat den Kickoff `docs/kickoff/rotation-pixel-modell.md`
+umgesetzt – Fenster fest auf Hochformat (`8dcd8fc3`), ein einziges festes Layout ohne
+Orientierungs-Tabelle/`orientBar()`/`RotatedTextView` (`1a247924`, ~900 Zeilen weniger),
+Glyphen drehen an Ort und Stelle in 300 ms mit der Referenz-Kurve (`ae011cb6`). Dazu drei
+Folgethemen: „Foto"-Eintrag zurück in der Moduswahl (`86f3f3ec`, Falk revidiert die
+Entscheidung aus Audit-Schritt 1 – ohne „Foto" gibt es keinen klaren Ausweg aus Panorama),
+kein Panorama bei der Frontkamera (`00cd3e4c`), Bugfix Panorama-Weitwinkel nach
+Kamerawechsel (`a47d7df5`), und die Entfernung der Open-Camera-Info-Toasts (`9327410c`,
+von Falk am 2026-09-18 abgenommen). Entscheidungen Falk im Chat: Popup und
+Belichtungs-Slider drehen nicht mit (alte Elemente, die das Redesign ersetzt);
+`DrawPreview`-Overlays bleiben an Ort und Stelle. Der Chat brach vor der Datei-Prüfung ab –
+**noch offen:** EXIF/Video/Panorama in allen Lagen neu verifizieren und die Doku
+(dieser Abschnitt, Abschnitt 6, `ui-spezifikation.md` 2/6/7.2/8/9-K3) nachziehen; Kickoff
+dafür: `docs/kickoff/rotation-pixel-modell-abschluss.md`. Der Absatz „Stand
+Orientierungs-Modell (2026-09-17)" oben beschreibt das **Vorgänger**-Modell (Fenster dreht
+mit) und wird beim Abschluss ersetzt.
+
 **Für den Projektmanager-Chat aus Audit-Schritt 1 (nicht selbst entschieden):**
-1. **Drehmodell (K3) wieder offen → nächster Feature-Chat** (Entscheidung Falk
-   2026-09-17 nach Video-Beleg): Hochformat-Sperre, nur Glyphen drehen. Ursachen im Video
-   belegt (Fenster-Drehanimation zeigt 1–2 Frames einen falschen Zwischenzustand; Versatz
-   von Millimetern, weil jede Lage in einem anderen Fenster-Koordinatensystem rechnet).
-   Kickoff fertig: `docs/kickoff/rotation-pixel-modell.md`, Belegbilder
-   `docs/design-reference/rotation-uebergang-2026-09-17.jpg`.
+1. ~~**Drehmodell (K3) wieder offen → nächster Feature-Chat**~~ **Gebaut (2026-09-17,
+   siehe „Stand Pixel-Drehmodell" oben); Abschluss (Datei-Prüfung + Doku) offen →
+   `docs/kickoff/rotation-pixel-modell-abschluss.md`.** Ursprung: Entscheidung Falk
+   2026-09-17 nach Video-Beleg (`docs/design-reference/rotation-uebergang-2026-09-17.jpg`).
 2. **Auslöse-Verzögerung ~1–2 s – geklärt (2026-09-17):** im Kamera-Log belegt –
    Fokusmodus „auto" löst beim Tippen einen 0,7–0,9-s-Fokus-Scan aus, Blitz „auto"
    verhindert den ZSL-Puffer des Pixel-HAL („can't find a ZSL buffer … fall back to real
@@ -493,8 +509,9 @@ Video Start/Stopp, Panorama). Details: Abschnitt 6 (Eintrag 2026-09-17, Audit-Sc
    Stufen unter 1,25-facher Weite (0,9× wäre ein Fast-Duplikat von 1×). Zu klären: was
    zeigt die Pixel-App im Selfie-Modus in der Zoom-Pille? Dann ggf. Schwelle anpassen
    (Zoom-Schritt).
-4. **Panorama im Selfie-Modus** technisch möglich, wohl sinnlos – prüfen, ob die
-   Pixel-App es anbietet; sonst bei der Frontkamera ausblenden (Moduswahl-Schritt).
+4. ~~**Panorama im Selfie-Modus**~~ **Erledigt** (`00cd3e4c`, Drehmodell-Chat): bei der
+   Frontkamera wird Panorama nicht angeboten (`supportsPanorama()`), die Einstellung
+   bleibt erhalten und greift beim Zurückwechseln zur Rückkamera wieder.
 5. **Galerie leer nach Aufwachen über den Sperrbildschirm** (Open-Camera-Altverhalten:
    Datenschutz, lädt erst beim nächsten Resume nach) – aufgefallen, nicht angefasst.
 6. **Sichtbarkeit von Ring/Squircles auf Schwarz** (Videomodus): transluzentes Schwarz ist
@@ -502,6 +519,15 @@ Video Start/Stopp, Panorama). Details: Abschnitt 6 (Eintrag 2026-09-17, Audit-Sc
 7. **Sucher-Position (K4/1a):** im Fotomodus (4:3) endet unser Sucher oberhalb der
    Moduswahl, in der Referenz reicht er bis unter die Auslöser-Zeile – gehört zu 7.1
    Punkt 8 / K4, nicht zu diesem Schritt.
+8. **Tele-Verzögerung beim „5"-Knopf** (Falk, Drehmodell-Chat 2026-09-17): nach dem Tipp
+   dauert es ~1 s, bis die Tele-Linse aktiv ist. Einschätzung des Chats: Open Cameras
+   eigene Zoom-Überblendung (`Preview.zoomTo()`) dauert nur 200 ms; der Rest kommt vom
+   Kamera-System – der Knopf setzt nur einen Zoomfaktor auf der *logischen* Kamera, der
+   Treiber entscheidet selbst, wann er auf das Tele umschaltet. Alternative: beim Tipp
+   die **physische** Tele-Linse direkt erzwingen (wie das Panorama-Linsenpaar mit dem
+   Weitwinkel) – sofort da, aber ohne die Automatik der logischen Kamera (bei wenig
+   Licht bleibt sie absichtlich auf dem Hauptsensor). Abwägungsfrage → eigener kleiner
+   Feature-Chat, passt zum Zoom-Schritt (Feinjustier-Rad, 7.1 Punkt 1).
 
 ---
 
@@ -754,3 +780,18 @@ Video Start/Stopp, Panorama). Details: Abschnitt 6 (Eintrag 2026-09-17, Audit-Sc
   unangetastet – nur die Commit-Historie ist an der Stelle unsauber. Nicht per
   Force-Push korrigiert (Risiko höher als der Nutzen). Regel dagegen in `CLAUDE.md`
   ergänzt: Commits in diesem Repo nur noch mit expliziter Dateiangabe.
+- **2026-09-18 (neuer Projektmanager-Chat):** Übernahme vom Vorgänger-PM-Chat. Beim
+  Abgleich `git log` ↔ SPEC festgestellt: Der im Übergabe-Prompt als „nächster
+  Feature-Chat" genannte Drehmodell-Kickoff war **bereits umgesetzt** – der Feature-Chat
+  „Redesign: Drehmodell" lief am 2026-09-17 nach dem letzten SPEC-Eintrag (Commits
+  `8dcd8fc3`, `1a247924`, `ae011cb6` plus Folgethemen `86f3f3ec`, `00cd3e4c`, `a47d7df5`),
+  hatte SPEC/ui-spezifikation aber noch nicht nachgezogen und brach vor der
+  Datei-Prüfung ab (Chat archiviert). Der Vorgänger-PM-Chat konnte das nicht sehen (sein
+  Arbeitsverzeichnis war `/home/falk`, nicht das Repo). Aufgeräumt: die im
+  Arbeitsverzeichnis liegende, von Falk am Gerät abgenommene Toast-Entfernung als
+  `9327410c` committet (Zwischenstand in 4.5 dokumentiert, PM-Liste aktualisiert: Punkt 1
+  gebaut/Abschluss offen, Punkt 4 erledigt, neu Punkt 8 Tele-Verzögerung). Neuer
+  Wiederaufnahme-Kickoff `docs/kickoff/rotation-pixel-modell-abschluss.md` (nur
+  Datei-Prüfung + Doku, kein Neubau); alter Kickoff mit Statusvermerk versehen.
+  Reihenfolge danach: Ponytail-Review (`docs/kickoff/ponytail-review.md`, braucht sauberes
+  Arbeitsverzeichnis – jetzt gegeben), dann die kleineren PM-Punkte aus 4.5 priorisieren.
