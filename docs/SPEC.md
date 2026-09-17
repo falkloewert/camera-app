@@ -99,7 +99,7 @@ Projektmanager-Chat):
 | 3 | Dual-Kamera (Selfie-Bubble, unabhängiger Zoom) | Idee / Konzept | Hoch (geräteabhängig) |
 | 4 | Panorama mit Weitwinkel-Option | **Fertig** | Niedrig-Mittel |
 | 5 | Kamera während Videoaufnahme umdrehen | Idee / Notiz (nice-to-have) | Niedrig |
-| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl und Orientierungs-Modell fertig (Stand 2026-09-17); offen: siehe `ui-spezifikation.md` Abschnitt 7 | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
+| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl und Orientierungs-Modell fertig (Stand 2026-09-17); offen: siehe `ui-spezifikation.md` Abschnitt 7 (Audit 2026-09-17), vorher Konflikte in Abschnitt 9 entscheiden | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
 
 ### 3.1 Vereinbarte Reihenfolge (aktualisiert 2026-09-14: Material-3-Redesign vor Feature 5 vorgezogen)
 
@@ -443,6 +443,17 @@ drei Leisten (`MainUI.orientBar()`, `RotatedTextView`). Details, Gerätetest-Erg
 (EXIF in allen vier Lagen, Video, Panorama) und verbleibende Abweichungen: Abschnitt 6
 (Eintrag 2026-09-17) und `docs/design-reference/ui-spezifikation.md` Abschnitte 2 und 8.
 
+**Stand Gesamtabgleich (2026-09-17, Review-Chat):** Vollständiges Audit gegen die
+Screenshot-Spec und die neu eingebrachte Detail-Spec
+(`docs/design-reference/pixel-camera-detailspec.md`, Maße/Farben/Animationen): fertig
+sind Zoom-Stufen-Pille, statische Moduswahl-Leiste und Drehmodell – grob ein Viertel.
+Alles Weitere (Kopfzeile, unterste Zeile, Karussell-Mechanik, Feinjustier-Rad,
+Einstellungen-Blatt, Fokus-Ring/Nivellierung, Haptik, Farben/Blur/Schrift) fehlt oder
+weicht ab; Ist/Soll mit Zeilenangaben in `ui-spezifikation.md` Abschnitt 7, empfohlene
+Reihenfolge dort am Anfang. **Vor dem nächsten Feature-Chat muss Falk die elf
+Spec-Konflikte in `ui-spezifikation.md` Abschnitt 9 entscheiden** (Detail-Spec vs.
+Screenshots, u. a. Drehmodell, Sucher-Layout, Kamera-Wechsel-Form, aktive Pille).
+
 ---
 
 ## 5. Generelle technische Hinweise / Risiken (projektübergreifend)
@@ -620,3 +631,19 @@ drei Leisten (`MainUI.orientBar()`, `RotatedTextView`). Details, Gerätetest-Erg
   der Pixel-Kamera). „Hochformat auf dem Kopf" bietet Android in diesem Fenstermodus
   nicht an, die Oberfläche bleibt dann in der letzten zulässigen Lage. Verbleibende
   Abweichungen (nicht orientierungsbedingt): siehe `ui-spezifikation.md` Abschnitt 8.
+- **2026-09-17:** **Gesamtabgleich gegen die Detail-Spec** (Review-Chat). Falk brachte
+  eine Detail-Spezifikation der Pixel-Kamera-UI mit konkreten Maßen, Farbwerten,
+  Animationen und Haptik-Profilen ein; wörtlich abgelegt als
+  `docs/design-reference/pixel-camera-detailspec.md` (Rang: ergänzt die Screenshot-Spec,
+  bei Widerspruch gilt bis zur Entscheidung die Screenshot-Spec). Code, Layout,
+  Drawables, Theme und Screenshots wurden Punkt für Punkt dagegen geprüft; Ergebnis in
+  `ui-spezifikation.md` Abschnitt 7 (7.1 fehlende Bausteine, 7.2 Ist→Soll an
+  vorhandenen Bausteinen mit Zeilenangaben, 7.3 Farben/Blur/Schrift) und Abschnitt 9
+  (elf Spec-Konflikte K1–K11, von Falk zu entscheiden). Wichtigste Befunde: Auslöser-
+  Ring ist invertiert (dunkler Rand statt weißer Ring mit Lücke), Tap-Feedback wächst
+  statt zu schrumpfen, Galerie sitzt noch in der alten Icon-Leiste, Kamera-Wechsel
+  klebt mit 0 dp am Auslöser, „Video" in der Moduswahl ist nur Anzeige (kein Karussell,
+  kein Scrollen), Grundfläche `#1B1B1B` statt `#000000`, keinerlei Blur/Akzentfarbe/
+  Schriftfamilie, Haptik nur die alten SeekBar-Ticks, Fokus weiterhin Rechteck,
+  Nivellierung grün statt gelb. Nichts davon wurde in diesem Chat gebaut – nur
+  dokumentiert.
