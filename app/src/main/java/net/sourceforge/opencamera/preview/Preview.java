@@ -1463,6 +1463,10 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         set_flash_value_after_autofocus = "";
         successfully_focused = false;
         preview_targetRatio = 0.0;
+        // the physical cameras belong to the camera being closed - if kept, the next camera's
+        // setup could briefly see the wrong list (e.g. MainActivity.updatePanoramaLensCache()
+        // once picked the selfie camera's wide lens for the rear camera this way)
+        physical_camera_ids = null;
         // n.b., don't reset has_set_location, as we can remember the location when switching camera
         if( continuous_focus_move_is_started ) {
             continuous_focus_move_is_started = false;

@@ -2314,23 +2314,34 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
      *
      *  These fields cache the widest physical camera ID (the wide-angle lens) and a Google
      *  Camera-style zoom factor label for it (e.g. "0.5x"), computed from the ratio of the
-     *  field of view of the widest lens vs. the main lens. The cache is keyed by camera ID so
-     *  it's only recomputed (which requires querying camera characteristics) when the user
-     *  switches between front/back cameras, not on every UI refresh.
+     *  field of view of the widest lens vs. the main lens. The cache is keyed by the open
+     *  CameraController, so it's only recomputed (which requires querying camera
+     *  characteristics) when a camera is (re)opened, not on every UI refresh - and never mixes
+     *  up cameras: keying by camera ID did, because while switching cameras the ID already
+     *  named the new camera whereas Preview's list of physical cameras was still the old one's
+     *  (the selfie camera's wide lens "7" ended up requested on the rear camera, which the
+     *  camera service refuses, and the preview stopped).
      */
-    private int panorama_lens_cache_for_camera_id = -1;
+    private CameraController panorama_lens_cache_for_controller;
     private String panorama_widest_physical_id;
     private String panorama_wide_lens_label;
 
     private void updatePanoramaLensCache() {
-        int camera_id = getActualCameraId();
-        if( camera_id == panorama_lens_cache_for_camera_id )
+        CameraController camera_controller = preview.getCameraController();
+        if( camera_controller != null && camera_controller == panorama_lens_cache_for_controller )
             return;
-        panorama_lens_cache_for_camera_id = camera_id;
         panorama_widest_physical_id = null;
         panorama_wide_lens_label = getResources().getString(R.string.panorama_lens_wide);
+        if( camera_controller == null || preview.isOpeningCamera() ) {
+            // nothing to cache until a camera is open and set up; leave the key unset so the
+            // next call computes it
+            panorama_lens_cache_for_controller = null;
+            return;
+        }
+        panorama_lens_cache_for_controller = camera_controller;
         if( !preview.hasPhysicalCameras() )
             return;
+        int camera_id = getActualCameraId();
         float widest_angle = -1.0f;
         for(String physical_id : preview.getPhysicalCameras()) {
             CameraControllerManager.CameraInfo info = new CameraControllerManager.CameraInfo();
