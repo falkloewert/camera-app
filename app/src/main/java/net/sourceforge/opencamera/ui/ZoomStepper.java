@@ -110,6 +110,15 @@ public class ZoomStepper implements ZoomWheel.Listener {
 
         wheel.setRange(preview.getMinZoomRatio(), preview.getMaxZoomRatio());
         float current = preview.getZoomRatio();
+        boolean front = preview.getCameraController().getFacing() == CameraController.Facing.FACING_FRONT;
+        if( front && Math.abs(current - 1.0f) < 1.0e-3f && step_ratios.contains(front_one_step) ) {
+            // Open Camera opens every camera at 1x (Preview.setupCamera()), but the front
+            // camera has no 1x step any more - so it moves on to its "1" step, and the pill
+            // shows that selected rather than "1×" in the ,9 slot next to a "1" button
+            // (decision Falk, 2026-09-18)
+            preview.zoomTo(findZoomFactor(preview, front_one_step), false, false);
+            current = preview.getZoomRatio();
+        }
         wheel.setRatio(current);
         updateSelection(current);
     }
