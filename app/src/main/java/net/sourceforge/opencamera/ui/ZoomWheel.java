@@ -52,6 +52,10 @@ public class ZoomWheel extends LinearLayout {
     /** How long the pill takes to grow into the ruler and back - Falk wanted it snappy
      *  (2026-09-18; one of the two animations besides the shutter, with the glyph turn). */
     private static final int MORPH_DURATION_MS = 120;
+    /** Once the ruler has shrunk back to the pill, the step buttons fade in rather than pop
+     *  (Falk, 2026-09-18: the selected circle appearing at once looked like the shrink being
+     *  cut short). */
+    private static final int BUTTONS_FADE_MS = 100;
     /** How much scale a doubling of the zoom takes up - the drag sensitivity. */
     private static final float DP_PER_DOUBLING = 80.0f;
     private static final float MINOR_TICK_SPACING_DP = 10.0f;
@@ -105,6 +109,7 @@ public class ZoomWheel extends LinearLayout {
      *  drawn whenever this is above 0, the buttons come back once it is 0 again. */
     private float morph;
     private ValueAnimator morph_animator;
+    private ValueAnimator buttons_fade;
     private boolean dragging;
     /** The touch moved mostly up or down before it moved sideways - leave it alone. */
     private boolean drag_rejected;
@@ -207,9 +212,32 @@ public class ZoomWheel extends LinearLayout {
             listener.onWheelShown(shown);
     }
 
+    /** Hides the step buttons at once, or brings them back with a short fade. Own animator
+     *  rather than View.animate(), which MainUI uses to turn the buttons - the two must not
+     *  cancel each other. */
     private void setButtonsVisible(boolean visible) {
-        for(int i=0;i<getChildCount();i++)
-            getChildAt(i).setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+        if( buttons_fade != null ) {
+            buttons_fade.cancel();
+            buttons_fade = null;
+        }
+        for(int i=0;i<getChildCount();i++) {
+            View button = getChildAt(i);
+            button.setAlpha(visible ? 0.0f : 1.0f);
+            button.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+        }
+        if( visible ) {
+            buttons_fade = ValueAnimator.ofFloat(0.0f, 1.0f);
+            buttons_fade.setDuration(BUTTONS_FADE_MS);
+            buttons_fade.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    float alpha = (float) animation.getAnimatedValue();
+                    for(int i=0;i<getChildCount();i++)
+                        getChildAt(i).setAlpha(alpha);
+                }
+            });
+            buttons_fade.start();
+        }
     }
 
     /** Turns the labels on the spot so they read upright however the device is held - the
@@ -254,7 +282,10 @@ public class ZoomWheel extends LinearLayout {
         float hi = log2(max_ratio);
         List<Float> marks = new ArrayList<>();
         for(float mark : MAIN_MARKS) {
-            if( mark >= min_ratio - 1.0e-3f && mark <= max_ratio + 1.0e-3f )
+            // a little tolerance at the ends: the camera's minimum comes as 0.51 for a 0.5x
+            // lens (CameraController2.computeZoomRatios() rounds it up), and ",5" belongs
+            // on the scale
+            if( mark >= min_ratio * 0.97f && mark <= max_ratio * 1.03f )
                 marks.add(log2(mark));
         }
 

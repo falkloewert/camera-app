@@ -39,12 +39,11 @@ public class ZoomStepper implements ZoomWheel.Listener {
     private static final float [] back_steps = {1.0f, 2.0f, 5.0f};
     /** The front camera's minimum is 0.9x, so a 1x step would sit right next to it; Falk chose
      *  these instead of the reference's ",7 / 1x" (decision 2026-09-18, after trying
-     *  ",9 / 1x / 1,5" on the device). */
+     *  ",9 / 1x / 1,5" on the device). The wheel reaches the camera's full 10x. */
     private static final float [] front_steps = {1.25f, 2.0f, 5.0f};
-    /** How far the wheel reaches on the front camera. The camera itself reports 10x, but the
-     *  selfie sensor has nothing left to give past this - the Pixel Camera stops at 3x, Falk
-     *  chose 5x (2026-09-18). */
-    private static final float front_wheel_max = 5.0f;
+    /** The front camera's "1" step is really 1.25x: Falk wants it labelled "1" because it looks
+     *  like 1x, and "1,25" looked odd in the pill (2026-09-18). */
+    private static final float front_one_step = 1.25f;
 
     private final MainActivity main_activity;
     /** The zoom ratio each step stands for, widest first. Ratios rather than indices into the
@@ -109,8 +108,7 @@ public class ZoomStepper implements ZoomWheel.Listener {
             wheel.addView(button);
         }
 
-        boolean front = preview.getCameraController().getFacing() == CameraController.Facing.FACING_FRONT;
-        wheel.setRange(preview.getMinZoomRatio(), front ? Math.min(preview.getMaxZoomRatio(), front_wheel_max) : preview.getMaxZoomRatio());
+        wheel.setRange(preview.getMinZoomRatio(), preview.getMaxZoomRatio());
         float current = preview.getZoomRatio();
         wheel.setRatio(current);
         updateSelection(current);
@@ -160,7 +158,7 @@ public class ZoomStepper implements ZoomWheel.Listener {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(size, size);
         params.setMargins(margin, margin, margin, margin);
         button.setLayoutParams(params);
-        button.setText(formatRatio(ratio, false, 2));
+        button.setText(stepLabel(ratio, false));
         button.setAllCaps(false);
         button.setGravity(Gravity.CENTER);
         button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
@@ -169,7 +167,7 @@ public class ZoomStepper implements ZoomWheel.Listener {
         button.setMinHeight(0);
         button.setMinimumWidth(0);
         button.setMinimumHeight(0);
-        button.setContentDescription(main_activity.getResources().getString(R.string.zoom) + " " + formatRatio(ratio, true, 2));
+        button.setContentDescription(main_activity.getResources().getString(R.string.zoom) + " " + stepLabel(ratio, true));
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -191,23 +189,24 @@ public class ZoomStepper implements ZoomWheel.Listener {
      *  "0,5"), one decimal below 10x ("6,7") and none from 10x up ("12"), and the "×" only
      *  where asked for (the selected step, the wheel's badge). */
     static String formatRatio(float ratio, boolean with_sign) {
-        return formatRatio(ratio, with_sign, 1);
-    }
-
-    /** As above, with up to max_decimals decimals (trailing zeros dropped): 2 for the fixed
-     *  steps, so the front camera's "1,25" keeps its value, 1 for anything dialled in. */
-    private static String formatRatio(float ratio, boolean with_sign, int max_decimals) {
         String number;
-        if( ratio >= 9.95f ) {
+        if( ratio >= 9.95f || Math.abs(ratio - Math.round(ratio)) < 0.05f ) {
             number = String.format(Locale.getDefault(), "%.0f", ratio);
         }
         else {
-            number = String.format(Locale.getDefault(), "%." + max_decimals + "f", ratio);
-            number = number.replaceAll("0+$", "").replaceAll("[.,]$", "");
+            number = String.format(Locale.getDefault(), "%.1f", ratio);
             if( number.startsWith("0") )
                 number = number.substring(1);
         }
         return with_sign ? number + "×" : number;
+    }
+
+    /** A step's own label: as formatRatio(), except for the front camera's 1.25x step, which
+     *  reads "1" (see front_one_step). */
+    private static String stepLabel(float ratio, boolean with_sign) {
+        if( ratio == front_one_step )
+            return with_sign ? "1×" : "1";
+        return formatRatio(ratio, with_sign);
     }
 
     /** Keeps the pill - and the wheel, while the user is pinch-zooming in the viewfinder - in
@@ -264,10 +263,8 @@ public class ZoomStepper implements ZoomWheel.Listener {
     private void applyStepStyle(int index, boolean selected) {
         Button button = step_buttons.get(index);
         float step_ratio = step_ratios.get(index);
-        float shown_ratio = selected ? selected_ratio : step_ratio;
-        // the step's own value keeps its second decimal ("1,25"), a value dialled in on the
-        // wheel or by pinching shows one ("2,8")
-        button.setText(formatRatio(shown_ratio, selected, shown_ratio == step_ratio ? 2 : 1));
+        // the step's own label, or the value dialled in on the wheel or by pinching ("2,8×")
+        button.setText(selected && selected_ratio != step_ratio ? formatRatio(selected_ratio, true) : stepLabel(step_ratio, selected));
         if( selected ) {
             button.setBackgroundResource(R.drawable.pill_selected_background);
             button.setTextColor(main_activity.getResources().getColor(R.color.md_dark_surface, null));
