@@ -568,8 +568,14 @@ Farb-Schritt.
     Abschnitt 7, weil die Kopfzeile am noch nicht gebauten Einstellungen-Blatt hängt
     (die Funktionen der alten Icon-Leiste brauchen ein Ziel) und offene Fragen hat
     („?"-Button, Regler-Button, Makro-Chip, „…"-Button im Blatt), die vorher mit Falk
-    zu klären sind. Das Rad hat keine offenen Entscheidungen. **Rad erledigt (2026-09-18),
-    nächster Schritt damit Kopfzeile + unterste Zeile.**
+    zu klären sind. Das Rad hat keine offenen Entscheidungen. **Rad erledigt (2026-09-18).**
+    **Präzisiert (PM-Chat 2026-09-18):** Der Block wird in drei Chats gebaut, weil die
+    Kopfzeile die alte Icon-Leiste ersetzt und deren Funktionen vorher ein Ziel brauchen:
+    **A** Foto-Einstellungen-Blatt (Reiter Allgemein) + linker Dock-Button + Swipe-Down +
+    „…" → volle Einstellungsliste (`docs/kickoff/redesign-einstellungen-blatt-foto.md`,
+    **nächster Chat**) → **B** Reiter „Pro" + Video-Blatt + rechter Dock-Button → **C**
+    Kopfzeile, dann Icon-Leiste + Popup abschaffen. Bis C bleiben Icon-Leiste und Popup
+    unverändert und müssen mit dem Blatt synchron bleiben.
 11. **Selbstauslöser-Countdown dreht noch mit** (Rad-Chat 2026-09-18): Falk hat nur die
     Videozeit „steif" gewollt; der Countdown (`DrawPreview`, derselbe Mechanismus) dreht
     weiterhin mit. Konsistenz-Entscheidung offen – wahrscheinlich ebenfalls fest.
@@ -898,3 +904,12 @@ Farb-Schritt.
   Ponytail-Fund 3 bewusst nicht miterledigt (Farb-Schritt). **PM-Punkt 8
   (Tele-Verzögerung, optionaler Kickoff-Punkt 7) nicht angefasst** – Falk hat nach der
   Abnahme den Abschluss gewählt; bleibt offener PM-Punkt für einen eigenen kleinen Chat.
+- **2026-09-18 (Projektmanager-Chat):** Feinjustier-Rad-Chat abgeschlossen (`e2c49e47`),
+  Repo sauber. Block „Einstellungen-Blatt / unterste Zeile / Kopfzeile" in drei Chats
+  zerlegt (PM-Punkt 10: A Blatt-Allgemein + Dock links + Swipe-Down, B Pro + Video + Dock
+  rechts, C Kopfzeile + Abschaffung Icon-Leiste/Popup) – Begründung: die Kopfzeile kann
+  die Icon-Leiste erst ersetzen, wenn das Blatt deren Funktionen trägt. Kickoff für A
+  erstellt (`docs/kickoff/redesign-einstellungen-blatt-foto.md`) mit vier Vorab-Fragen an
+  Falk (Sheet-Screenshots zum Messen, „…"-Button → `openSettings()` als Empfehlung,
+  Verhalten bei quer gehaltenem Gerät, Dock-Button im Videomodus). Reihenfolge in
+  `ui-spezifikation.md` Abschnitt 7 entsprechend angepasst.

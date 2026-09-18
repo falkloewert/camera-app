@@ -325,11 +325,16 @@ oder weicht ab; im Hochformat dominiert optisch weiterhin die alte Open-Camera-I
 
 1. Auslöser-Zeile richtig bauen (kleinster Eingriff, größter sichtbarer Effekt) → 7.2
    Auslöser / Kamera-Wechsel und 7.1 Punkt 5 (Galerie), Punkt 10 (Haptik).
-2. Kopfzeile + unterste Zeile; dafür alte Icon-Leiste und Drei-Punkte-Popup abschaffen
-   → 7.1 Punkte 3 und 4.
+2. ~~Kopfzeile + unterste Zeile; dafür alte Icon-Leiste und Drei-Punkte-Popup abschaffen
+   → 7.1 Punkte 3 und 4.~~ **Umgestellt (PM-Chat 2026-09-18, SPEC 4.5 PM-Punkt 10):** die
+   Kopfzeile kann die Icon-Leiste erst ersetzen, wenn das Einstellungen-Blatt deren
+   Funktionen trägt. Daher in drei Chats: **A** Foto-Blatt Reiter Allgemein + linker
+   Dock-Button + Swipe-Down (7.1 Punkte 2 und 3, `docs/kickoff/redesign-einstellungen-
+   blatt-foto.md`) → **B** Reiter Pro + Video-Blatt + rechter Dock-Button → **C** Kopfzeile
+   (7.1 Punkt 4), dann Icon-Leiste und Popup abschaffen.
 3. Moduswahl als echtes Karussell → 7.2 Moduswahl.
 4. ~~Feinjustier-Rad → 7.1 Punkt 1.~~ **Erledigt (2026-09-18, vorgezogen vor 2 und 3).**
-5. Einstellungen-Blätter + Swipe-Down → 7.1 Punkt 2.
+5. ~~Einstellungen-Blätter + Swipe-Down → 7.1 Punkt 2.~~ In Punkt 2 (A/B) aufgegangen.
 6. Sucher-Overlays → 7.1 Punkte 6–8.
 7. Farben / Blur / Schrift → 7.3.
 
