@@ -241,8 +241,6 @@ public class PreferenceKeys {
 
     public static final String SaveIncludeMillisecondsPreferenceKey = "preference_save_include_milliseconds";
 
-    public static final String ShowZoomSliderControlsPreferenceKey = "preference_show_zoom_slider_controls";
-
     public static final String ShowTakePhotoPreferenceKey = "preference_show_take_photo";
 
     public static final String ShowFaceDetectionPreferenceKey = "preference_show_face_detection";

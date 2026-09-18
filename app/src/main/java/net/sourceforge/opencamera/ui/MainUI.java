@@ -81,6 +81,7 @@ public class MainUI {
     }
     private View top_icon = null;
     private int navigation_gap_left; // inset along the left edge, remembered for setFocusSeekbarsRotation()
+    private int focus_seekbars_bottom_margin; // likewise the focus seekbars' distance from the bottom edge
     /** How the glyphs turn when the device is turned: the reference's 300 ms with
      *  cubic-bezier(0.2, 0.0, 0.0, 1.0) (docs/design-reference/pixel-camera-detailspec.md
      *  section 10). Shared with PhotoVideoSwitch, which turns its glyphs itself. */
@@ -149,11 +150,7 @@ public class MainUI {
             ColorStateList progress_color = ColorStateList.valueOf( Color.argb(255, 240, 240, 240) );
             ColorStateList thumb_color = ColorStateList.valueOf( Color.argb(255, 255, 255, 255) );
 
-            SeekBar seekBar = main_activity.findViewById(R.id.zoom_seekbar);
-            seekBar.setProgressTintList(progress_color);
-            seekBar.setThumbTintList(thumb_color);
-
-            seekBar = main_activity.findViewById(R.id.focus_seekbar);
+            SeekBar seekBar = main_activity.findViewById(R.id.focus_seekbar);
             seekBar.setProgressTintList(progress_color);
             seekBar.setThumbTintList(thumb_color);
 
@@ -270,6 +267,7 @@ public class MainUI {
         views.add(main_activity.findViewById(R.id.panorama_lens_wide));
         views.add(main_activity.findViewById(R.id.panorama_lens_1x));
         views.addAll(zoomStepper.getStepButtons());
+        views.add(main_activity.findViewById(R.id.zoom_badge));
         return views;
     }
 
@@ -279,6 +277,8 @@ public class MainUI {
             setViewRotation(view, ui_rotation, animate);
         PhotoVideoSwitch photoVideoSwitch = main_activity.findViewById(R.id.photo_video_switch);
         photoVideoSwitch.setGlyphRotation(ui_rotation, animate);
+        ZoomWheel zoomWheel = main_activity.findViewById(R.id.zoom_stepper);
+        zoomWheel.setGlyphRotation(ui_rotation, animate);
     }
 
     public void layoutUI() {
@@ -553,6 +553,14 @@ public class MainUI {
             centerHorizontally(cs, view_id);
             placeAbove(cs, view_id, R.id.take_photo, (int) (29 * scale + 0.5f));
 
+            // the wheel's value badge floats above the pill (its position when the device is
+            // held on its side isn't in the reference - it simply stays there and turns)
+            view = main_activity.findViewById(R.id.zoom_badge);
+            view_id = view.getId();
+            resetView(cs, view);
+            centerHorizontally(cs, view_id);
+            placeAbove(cs, view_id, R.id.zoom_stepper, (int) (12 * scale + 0.5f));
+
             view = main_activity.findViewById(R.id.pause_video);
             flankShutter(cs, view, true, scale);
 
@@ -564,27 +572,22 @@ public class MainUI {
             view = main_activity.findViewById(R.id.take_photo_when_video_recording);
             flankShutter(cs, view, false, scale);
 
-            // The seekbars stand on end along the left edge (see standOnEnd()): the zoom
-            // seekbar in the bottom left corner (kept only for tests, it's invisible where the
-            // zoom steps pill applies), the manual focus seekbar above it, the focus bracketing
-            // target seekbar to the right of that.
-            view = main_activity.findViewById(R.id.zoom_seekbar);
-            view_id = view.getId();
-            resetView(cs, view);
-            cs.connect(view_id, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT, 0);
-            cs.connect(view_id, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, 0);
-            standOnEnd(cs, view, navigation_gap_left, (int) (20 * scale + 0.5f) + navigation_gap);
+            // The manual focus seekbars stand on end along the left edge (see standOnEnd()),
+            // the focus bracketing target seekbar to the right of the focus seekbar. They keep
+            // the spot they had above the old zoom seekbar (removed with the fine adjustment
+            // wheel): its 50 dp box stood 20 dp above the gesture inset, turned by 90 degrees.
+            focus_seekbars_bottom_margin = (int) (120 * scale + 0.5f) + navigation_gap;
 
             view = main_activity.findViewById(R.id.focus_seekbar);
             view_id = view.getId();
             resetView(cs, view);
-            placeAbove(cs, view_id, R.id.zoom_seekbar, 0);
+            cs.connect(view_id, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, 0);
             cs.connect(view_id, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT, 0);
 
             view = main_activity.findViewById(R.id.focus_bracketing_target_seekbar);
             view_id = view.getId();
             resetView(cs, view);
-            placeAbove(cs, view_id, R.id.zoom_seekbar, 0);
+            cs.connect(view_id, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, 0);
             cs.connect(view_id, ConstraintSet.LEFT, R.id.focus_seekbar, ConstraintSet.RIGHT, 0);
 
             applyFocusSeekbarsRotation(cs);
@@ -713,9 +716,9 @@ public class MainUI {
      *  change), which builds and applies its own ConstraintSet around this.
      */
     private void applyFocusSeekbarsRotation(ConstraintSet cs) {
-        standOnEnd(cs, main_activity.findViewById(R.id.focus_seekbar), navigation_gap_left, 0);
+        standOnEnd(cs, main_activity.findViewById(R.id.focus_seekbar), navigation_gap_left, focus_seekbars_bottom_margin);
         // the focus bracketing target seekbar sits to the right of the focus seekbar, so needs no inset
-        standOnEnd(cs, main_activity.findViewById(R.id.focus_bracketing_target_seekbar), 0, 0);
+        standOnEnd(cs, main_activity.findViewById(R.id.focus_bracketing_target_seekbar), 0, focus_seekbars_bottom_margin);
     }
 
     void setFocusSeekbarsRotation() {
@@ -1084,7 +1087,6 @@ public class MainUI {
                 View popupButton = main_activity.findViewById(R.id.popup);
                 View galleryButton = main_activity.findViewById(R.id.gallery);
                 View settingsButton = main_activity.findViewById(R.id.settings);
-                View zoomSeekBar = main_activity.findViewById(R.id.zoom_seekbar);
                 View focusSeekBar = main_activity.findViewById(R.id.focus_seekbar);
                 View focusBracketingTargetSeekBar = main_activity.findViewById(R.id.focus_bracketing_target_seekbar);
                 if( main_activity.getPreview().getCameraControllerManager().getNumberOfCameras() > 1 )
@@ -1103,13 +1105,6 @@ public class MainUI {
                 popupButton.setVisibility(visibility);
                 galleryButton.setVisibility(visibility);
                 settingsButton.setVisibility(visibility);
-                if( MyDebug.LOG ) {
-                    Log.d(TAG, "has_zoom: " + main_activity.getPreview().supportsZoom());
-                }
-                if( main_activity.getPreview().supportsZoom() && sharedPreferences.getBoolean(PreferenceKeys.ShowZoomSliderControlsPreferenceKey, true)
-                        && !zoomStepper.hasSteps() ) {
-                    zoomSeekBar.setVisibility(visibility);
-                }
                 main_activity.findViewById(R.id.zoom_stepper).setVisibility(zoomStepper.hasSteps() ? visibility : View.GONE);
                 int mode_visibility = immersive_mode ? View.INVISIBLE : View.VISIBLE;
                 main_activity.findViewById(R.id.mode_bar).setVisibility(mode_visibility);
@@ -1218,8 +1213,9 @@ public class MainUI {
                     exposureButton.setVisibility(visibility_video); // still allow exposure when recording video
                 onScreenIcons.setVisibility(visibility, visibility_video);
                 // zoom steps only make sense where zoom is allowed at all (e.g. not in panorama
-                // mode, see MyApplicationInterface.allowZoom())
-                main_activity.findViewById(R.id.zoom_stepper).setVisibility(zoomStepper.hasSteps() ? visibility : View.GONE);
+                // mode, see MyApplicationInterface.allowZoom()); they stay while recording
+                // video, so a lens can still be picked mid-recording (Falk, 2026-09-18)
+                main_activity.findViewById(R.id.zoom_stepper).setVisibility(zoomStepper.hasSteps() ? visibility_video : View.GONE);
                 // Taking a photo leaves the mode bar and the photo/video switch alone (as the
                 // reference does); while recording a video or a panorama they're INVISIBLE -
                 // out of sight and untouchable, without anything moving.
@@ -1929,18 +1925,13 @@ public class MainUI {
         }
     }
 
-    public void setSeekbarZoom(int new_zoom) {
+    /** Keeps the zoom pill (and the fine adjustment wheel, while pinching) in step with a zoom
+     *  set from anywhere else: pinch in the viewfinder, volume keys.
+     */
+    public void onZoomChanged(int zoom_factor) {
         if( MyDebug.LOG )
-            Log.d(TAG, "setSeekbarZoom: " + new_zoom);
-        SeekBar zoomSeekBar = main_activity.findViewById(R.id.zoom_seekbar);
-        if( MyDebug.LOG )
-            Log.d(TAG, "progress was: " + zoomSeekBar.getProgress());
-        zoomSeekBar.setProgress(main_activity.getPreview().getMaxZoom()-new_zoom);
-        if( MyDebug.LOG )
-            Log.d(TAG, "progress is now: " + zoomSeekBar.getProgress());
-        // keep the zoom stepper's highlight in step with zoom changes from anywhere else
-        // (pinch, volume keys, ...)
-        zoomStepper.updateSelection(new_zoom);
+            Log.d(TAG, "onZoomChanged: " + zoom_factor);
+        zoomStepper.followZoom(zoom_factor);
     }
 
     public void changeSeekbar(int seekBarId, int change) {
@@ -2899,20 +2890,21 @@ public class MainUI {
         return this.top_icon;
     }
 
-    /** Performs haptic feedback, if allowed by settings.
+    /** Performs haptic feedback (a CLOCK_TICK) on behalf of the supplied view, if allowed by
+     *  settings and at most once every 16 ms.
      */
-    public static long performHapticFeedback(SeekBar seekBar, long last_haptic_time) {
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(seekBar.getContext());
+    public static long performHapticFeedback(View view, long last_haptic_time) {
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(view.getContext());
         if( sharedPreferences.getBoolean(PreferenceKeys.AllowHapticFeedbackPreferenceKey, true) ) {
             long time_ms = System.currentTimeMillis();
             if( time_ms > last_haptic_time + 16 ) {
                 last_haptic_time = time_ms;
                 // SEGMENT_TICK or SEGMENT_TICK doesn't work on Galaxy S24+ at least, even though on Android 14!
                 /*if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE ) {
-                    seekBar.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK);
+                    view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK);
                 }
                 else*/ {
-                    seekBar.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
                 }
             }
         }

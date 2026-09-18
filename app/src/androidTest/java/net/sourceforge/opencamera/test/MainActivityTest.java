@@ -4596,7 +4596,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         View popupButton = mActivity.findViewById(net.sourceforge.opencamera.R.id.popup);
         View trashButton = mActivity.findViewById(net.sourceforge.opencamera.R.id.trash);
         View shareButton = mActivity.findViewById(net.sourceforge.opencamera.R.id.share);
-        View zoomSeekBar = mActivity.findViewById(net.sourceforge.opencamera.R.id.zoom_seekbar);
         View takePhotoButton = mActivity.findViewById(net.sourceforge.opencamera.R.id.take_photo);
         View pauseVideoButton = mActivity.findViewById(net.sourceforge.opencamera.R.id.pause_video);
         View takePhotoVideoButton = mActivity.findViewById(net.sourceforge.opencamera.R.id.take_photo_when_video_recording);
@@ -4612,7 +4611,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         assertEquals(popupButton.getVisibility(), View.VISIBLE);
         assertEquals(trashButton.getVisibility(), View.GONE);
         assertEquals(shareButton.getVisibility(), View.GONE);
-        assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.VISIBLE : View.INVISIBLE);
         assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
         assertEquals(pauseVideoButton.getVisibility(), View.GONE);
         assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4630,7 +4628,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         assertEquals(popupButton.getVisibility(), View.GONE);
         assertEquals(trashButton.getVisibility(), View.GONE);
         assertEquals(shareButton.getVisibility(), View.GONE);
-        assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.GONE : View.INVISIBLE);
         assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
         assertEquals(pauseVideoButton.getVisibility(), View.GONE);
         assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4649,7 +4646,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         assertEquals(popupButton.getVisibility(), View.VISIBLE);
         assertEquals(trashButton.getVisibility(), View.GONE);
         assertEquals(shareButton.getVisibility(), View.GONE);
-        assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.VISIBLE : View.INVISIBLE);
         assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
         assertEquals(pauseVideoButton.getVisibility(), View.GONE);
         assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4667,7 +4663,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         assertEquals(popupButton.getVisibility(), View.GONE);
         assertEquals(trashButton.getVisibility(), View.GONE);
         assertEquals(shareButton.getVisibility(), View.GONE);
-        assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.GONE : View.INVISIBLE);
         assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
         assertEquals(pauseVideoButton.getVisibility(), View.GONE);
         assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4686,7 +4681,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         assertEquals(popupButton.getVisibility(), View.VISIBLE);
         assertEquals(trashButton.getVisibility(), View.GONE);
         assertEquals(shareButton.getVisibility(), View.GONE);
-        assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.VISIBLE : View.INVISIBLE);
         assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
         assertEquals(pauseVideoButton.getVisibility(), View.GONE);
         assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4708,7 +4702,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         assertEquals(popupButton.getVisibility(), View.VISIBLE);
         assertEquals(trashButton.getVisibility(), View.GONE);
         assertEquals(shareButton.getVisibility(), View.GONE);
-        assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.VISIBLE : View.INVISIBLE);
         assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
         assertEquals(pauseVideoButton.getVisibility(), View.GONE);
         assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4726,7 +4719,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         assertEquals(popupButton.getVisibility(), View.GONE);
         assertEquals(trashButton.getVisibility(), View.GONE);
         assertEquals(shareButton.getVisibility(), View.GONE);
-        assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.GONE : View.INVISIBLE);
         assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
         assertEquals(pauseVideoButton.getVisibility(), View.GONE);
         assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4746,7 +4738,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         assertEquals(popupButton.getVisibility(), View.VISIBLE);
         assertEquals(trashButton.getVisibility(), View.GONE);
         assertEquals(shareButton.getVisibility(), View.GONE);
-        assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.VISIBLE : View.INVISIBLE);
         assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
         assertEquals(pauseVideoButton.getVisibility(), View.GONE);
         assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4776,7 +4767,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             assertEquals(popupButton.getVisibility(), View.GONE);
             assertEquals(trashButton.getVisibility(), View.GONE);
             assertEquals(shareButton.getVisibility(), View.GONE);
-            assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.GONE : View.INVISIBLE);
             assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
             assertEquals(pauseVideoButton.getVisibility(), View.GONE);
             assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4794,7 +4784,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             assertEquals(popupButton.getVisibility(), View.VISIBLE);
             assertEquals(trashButton.getVisibility(), View.GONE);
             assertEquals(shareButton.getVisibility(), View.GONE);
-            assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.VISIBLE : View.INVISIBLE);
             assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
             assertEquals(pauseVideoButton.getVisibility(), View.GONE);
             assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4829,7 +4818,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             assertEquals(popupButton.getVisibility(), View.GONE);
             assertEquals(trashButton.getVisibility(), View.GONE);
             assertEquals(shareButton.getVisibility(), View.GONE);
-            assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.GONE : View.INVISIBLE);
             assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
             assertEquals(pauseVideoButton.getVisibility(), View.GONE);
             assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4847,7 +4835,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             assertEquals(popupButton.getVisibility(), View.VISIBLE);
             assertEquals(trashButton.getVisibility(), View.GONE);
             assertEquals(shareButton.getVisibility(), View.GONE);
-            assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.VISIBLE : View.INVISIBLE);
             assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
             assertEquals(pauseVideoButton.getVisibility(), View.GONE);
             assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4876,7 +4863,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             assertEquals(popupButton.getVisibility(), View.GONE);
             assertEquals(trashButton.getVisibility(), View.GONE);
             assertEquals(shareButton.getVisibility(), View.GONE);
-            assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.GONE : View.INVISIBLE);
             assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
             assertEquals(pauseVideoButton.getVisibility(), View.GONE);
             assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4914,7 +4900,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         View takePhotoButton = mActivity.findViewById(net.sourceforge.opencamera.R.id.take_photo);
         View pauseVideoButton = mActivity.findViewById(net.sourceforge.opencamera.R.id.pause_video);
         View takePhotoVideoButton = mActivity.findViewById(net.sourceforge.opencamera.R.id.take_photo_when_video_recording);
-        View zoomSeekBar = mActivity.findViewById(net.sourceforge.opencamera.R.id.zoom_seekbar);
         assertEquals(switchCameraButton.getVisibility(), (mPreview.getCameraControllerManager().getNumberOfCameras() > 1 ? View.VISIBLE : View.GONE));
         assertEquals(switchMultiCameraButton.getVisibility(), (mActivity.showSwitchMultiCamIcon() ? View.VISIBLE : View.GONE));
         assertEquals(switchVideoButton.getVisibility(), View.VISIBLE);
@@ -4923,7 +4908,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         assertEquals(popupButton.getVisibility(), View.VISIBLE);
         assertEquals(trashButton.getVisibility(), View.GONE);
         assertEquals(shareButton.getVisibility(), View.GONE);
-        assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.VISIBLE : View.INVISIBLE);
         assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
         assertEquals(pauseVideoButton.getVisibility(), View.GONE);
         assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4938,7 +4922,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         assertEquals(popupButton.getVisibility(), View.GONE);
         assertEquals(trashButton.getVisibility(), View.GONE);
         assertEquals(shareButton.getVisibility(), View.GONE);
-        assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.GONE : View.INVISIBLE);
         assertEquals(takePhotoButton.getVisibility(), View.GONE);
         assertEquals(pauseVideoButton.getVisibility(), View.GONE);
         assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -4956,7 +4939,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         assertEquals(popupButton.getVisibility(), View.VISIBLE);
         assertEquals(trashButton.getVisibility(), View.GONE);
         assertEquals(shareButton.getVisibility(), View.GONE);
-        assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.VISIBLE : View.INVISIBLE);
         assertEquals(takePhotoButton.getVisibility(), View.VISIBLE);
         assertEquals(pauseVideoButton.getVisibility(), View.GONE);
         assertEquals(takePhotoVideoButton.getVisibility(), View.GONE);
@@ -10008,276 +9990,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         mActivity.waitUntilImageQueueEmpty();
     }
 
-    /* Tests zoom.
-     */
-    public void testZoom() throws InterruptedException {
-        Log.d(TAG, "testZoom");
-        setToDefault();
-
-        if( !mPreview.supportsZoom() ) {
-            Log.d(TAG, "zoom not supported");
-            return;
-        }
-
-        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(mActivity);
-        SharedPreferences.Editor editor = settings.edit();
-
-        final SeekBar zoomSeekBar = mActivity.findViewById(net.sourceforge.opencamera.R.id.zoom_seekbar);
-        assertEquals(zoomSeekBar.getVisibility(), View.VISIBLE);
-        int max_zoom = mPreview.getMaxZoom();
-        assertEquals(zoomSeekBar.getMax(), max_zoom);
-        Log.d(TAG, "zoomSeekBar progress = " + zoomSeekBar.getProgress());
-        Log.d(TAG, "actual zoom = " + mPreview.getCameraController().getZoom());
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-
-        // test we can find 1x zoom (which won't be the first entry for devices that exposure ultra-wide
-        // cameras via the zoom)
-        boolean found_1xzoom = false;
-        for(int i=0;i<max_zoom && !found_1xzoom;i++) {
-            if( mPreview.getZoomRatio(i) == 1.0f ) {
-                found_1xzoom = true;
-            }
-        }
-        assertTrue(found_1xzoom);
-
-        assertTrue(mPreview.getMinZoomRatio() <= 1.0f);
-        assertTrue(mPreview.getMaxZoomRatio() > 1.0f);
-
-        // check zoom values are non-decreasing
-        for(int i=0;i<max_zoom-1;i++) {
-            float zoom0 = mPreview.getZoomRatio(i);
-            float zoom1 = mPreview.getZoomRatio(i+1);
-            Log.d(TAG, "check zoom: " + zoom0 + " -> " + zoom1);
-            assertTrue(zoom1 >= zoom0);
-        }
-
-        if( mPreview.supportsFocus() ) {
-            assertFalse(mPreview.hasFocusArea());
-            assertNull(mPreview.getCameraController().getFocusAreas());
-            assertNull(mPreview.getCameraController().getMeteringAreas());
-
-            // touch to auto-focus with focus area
-            Thread.sleep(2000); // needed for Galaxy S10e for the touch to register
-            TouchUtils.clickView(MainActivityTest.this, mPreview.getView());
-            assertTrue(mPreview.hasFocusArea());
-            assertNotNull(mPreview.getCameraController().getFocusAreas());
-            assertEquals(1, mPreview.getCameraController().getFocusAreas().size());
-            assertNotNull(mPreview.getCameraController().getMeteringAreas());
-            assertEquals(1, mPreview.getCameraController().getMeteringAreas().size());
-        }
-
-        int zoom = mPreview.getCameraController().getZoom();
-
-        // now test multitouch zoom
-        mPreview.scaleZoom(2.0f);
-        this.getInstrumentation().waitForIdleSync();
-        Thread.sleep(500); // need to wait for zoom transition (for Camera2 API)
-        Log.d(TAG, "compare actual zoom " + mPreview.getCameraController().getZoom() + " to zoom " + zoom);
-        assertTrue(mPreview.getCameraController().getZoom() > zoom);
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-
-        mPreview.scaleZoom(0.5f);
-        this.getInstrumentation().waitForIdleSync();
-        Thread.sleep(500); // need to wait for zoom transition (for Camera2 API)
-        Log.d(TAG, "compare actual zoom " + mPreview.getCameraController().getZoom() + " to zoom " + zoom);
-        // here test the zoom ratio values themselves rather than the indices, as we may have repeated zoom_ratios entries for 1x zoom
-        assertEquals( mPreview.getZoomRatio(mPreview.getCameraController().getZoom()), mPreview.getZoomRatio(zoom) );
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-
-        // test to max/min
-        mPreview.scaleZoom(10000.0f);
-        this.getInstrumentation().waitForIdleSync();
-        Thread.sleep(500); // need to wait for zoom transition (for Camera2 API)
-        Log.d(TAG, "compare actual zoom " + mPreview.getCameraController().getZoom() + " to max_zoom " + max_zoom);
-        assertEquals(mPreview.getCameraController().getZoom(), max_zoom);
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-
-        mPreview.scaleZoom(1.0f/10000.0f);
-        this.getInstrumentation().waitForIdleSync();
-        Thread.sleep(500); // need to wait for zoom transition (for Camera2 API)
-        Log.d(TAG, "compare actual zoom " + mPreview.getCameraController().getZoom() + " to zero");
-        assertEquals(0, mPreview.getCameraController().getZoom());
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-
-        // use seekbar to zoom
-        Log.d(TAG, "zoom to max");
-        Log.d(TAG, "progress was: " + zoomSeekBar.getProgress());
-        zoomSeekBar.setProgress(0);
-        this.getInstrumentation().waitForIdleSync();
-        Thread.sleep(500); // need to wait for zoom transition (for Camera2 API)
-        Log.d(TAG, "compare actual zoom " + mPreview.getCameraController().getZoom() + " to max_zoom " + max_zoom);
-        assertEquals(mPreview.getCameraController().getZoom(), max_zoom);
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-        if( mPreview.supportsFocus() ) {
-            // check that focus areas cleared
-            assertFalse(mPreview.hasFocusArea());
-            assertNull(mPreview.getCameraController().getFocusAreas());
-            assertNull(mPreview.getCameraController().getMeteringAreas());
-        }
-
-        Log.d(TAG, "zoom to min");
-        Log.d(TAG, "progress was: " + zoomSeekBar.getProgress());
-        zoomSeekBar.setProgress(zoomSeekBar.getMax());
-        this.getInstrumentation().waitForIdleSync();
-        Thread.sleep(500); // need to wait for zoom transition (for Camera2 API)
-        Log.d(TAG, "compare actual zoom " + mPreview.getCameraController().getZoom() + " to zoom " + zoom);
-        assertEquals(mPreview.getCameraController().getZoom(), 0);
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-
-        // use volume keys to zoom in/out
-        editor.putString(PreferenceKeys.VolumeKeysPreferenceKey, "volume_zoom");
-        editor.apply();
-
-        Log.d(TAG, "zoom in with volume keys");
-        this.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_VOLUME_UP);
-        this.getInstrumentation().waitForIdleSync();
-        Log.d(TAG, "compare actual zoom " + mPreview.getCameraController().getZoom() + " to zoom " + zoom);
-        assertEquals(mPreview.getCameraController().getZoom(), 1);
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-
-        Log.d(TAG, "zoom out with volume keys");
-        this.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_VOLUME_DOWN);
-        this.getInstrumentation().waitForIdleSync();
-        Log.d(TAG, "compare actual zoom " + mPreview.getCameraController().getZoom() + " to zoom " + zoom);
-        assertEquals(mPreview.getCameraController().getZoom(), 0);
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-
-        // now test with -/+ control
-
-        Log.d(TAG, "zoom in");
-        mActivity.zoomIn();
-        this.getInstrumentation().waitForIdleSync();
-        Log.d(TAG, "compare actual zoom " + mPreview.getCameraController().getZoom() + " to zoom " + zoom);
-        assertEquals(mPreview.getCameraController().getZoom(), 1);
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-        if( mPreview.supportsFocus() ) {
-            // check that focus areas cleared
-            assertFalse(mPreview.hasFocusArea());
-            assertNull(mPreview.getCameraController().getFocusAreas());
-            assertNull(mPreview.getCameraController().getMeteringAreas());
-
-            // touch to auto-focus with focus area
-            TouchUtils.clickView(MainActivityTest.this, mPreview.getView());
-            assertTrue(mPreview.hasFocusArea());
-            assertNotNull(mPreview.getCameraController().getFocusAreas());
-            assertEquals(1, mPreview.getCameraController().getFocusAreas().size());
-            assertNotNull(mPreview.getCameraController().getMeteringAreas());
-            assertEquals(1, mPreview.getCameraController().getMeteringAreas().size());
-        }
-
-        Log.d(TAG, "zoom out");
-        mActivity.zoomOut();
-        this.getInstrumentation().waitForIdleSync();
-        Log.d(TAG, "compare actual zoom " + mPreview.getCameraController().getZoom() + " to zoom " + zoom);
-        assertEquals(mPreview.getCameraController().getZoom(), 0);
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-        if( mPreview.supportsFocus() ) {
-            // check that focus areas cleared
-            assertFalse(mPreview.hasFocusArea());
-            assertNull(mPreview.getCameraController().getFocusAreas());
-            assertNull(mPreview.getCameraController().getMeteringAreas());
-
-            // touch to auto-focus with focus area
-            TouchUtils.clickView(MainActivityTest.this, mPreview.getView());
-            assertTrue(mPreview.hasFocusArea());
-            assertNotNull(mPreview.getCameraController().getFocusAreas());
-            assertEquals(1, mPreview.getCameraController().getFocusAreas().size());
-            assertNotNull(mPreview.getCameraController().getMeteringAreas());
-            assertEquals(1, mPreview.getCameraController().getMeteringAreas().size());
-        }
-
-        // now test with slider invisible
-
-        editor.putBoolean(PreferenceKeys.ShowZoomSliderControlsPreferenceKey, false);
-        editor.apply();
-        updateForSettings();
-
-        assertEquals(zoomSeekBar.getVisibility(), View.INVISIBLE);
-
-        Log.d(TAG, "zoom in");
-        mActivity.zoomIn();
-        this.getInstrumentation().waitForIdleSync();
-        Log.d(TAG, "compare actual zoom " + mPreview.getCameraController().getZoom() + " to zoom " + zoom);
-        assertEquals(mPreview.getCameraController().getZoom(), 1);
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-
-        Log.d(TAG, "zoom out");
-        mActivity.zoomOut();
-        this.getInstrumentation().waitForIdleSync();
-        Log.d(TAG, "compare actual zoom " + mPreview.getCameraController().getZoom() + " to zoom " + zoom);
-        assertEquals(mPreview.getCameraController().getZoom(), 0);
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-    }
-
-    public void testZoomIdle() throws InterruptedException {
-        Log.d(TAG, "testZoomIdle");
-        setToDefault();
-
-        if( !mPreview.supportsZoom() ) {
-            Log.d(TAG, "zoom not supported");
-            return;
-        }
-
-        final SeekBar zoomSeekBar = mActivity.findViewById(net.sourceforge.opencamera.R.id.zoom_seekbar);
-        assertEquals(zoomSeekBar.getVisibility(), View.VISIBLE);
-        int init_zoom = mPreview.getCameraController().getZoom();
-        int max_zoom = mPreview.getMaxZoom();
-        zoomSeekBar.setProgress(0);
-        this.getInstrumentation().waitForIdleSync();
-        Thread.sleep(500); // need to wait for zoom transition (for Camera2 API)
-        Log.d(TAG, "compare actual zoom " + mPreview.getCameraController().getZoom() + " to zoom " + max_zoom);
-        assertEquals(mPreview.getCameraController().getZoom(), max_zoom);
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-
-        pauseAndResume();
-        Log.d(TAG, "after pause and resume: compare actual zoom " + mPreview.getCameraController().getZoom() + " to zoom " + max_zoom);
-        // as of Open Camera v1.43, zoom is reset when pause/resuming
-        //assertTrue(mPreview.getCameraController().getZoom() == max_zoom);
-        assertEquals(mPreview.getCameraController().getZoom(), init_zoom);
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-    }
-
-    public void testZoomSwitchCamera() throws InterruptedException {
-        Log.d(TAG, "testZoomSwitchCamera");
-        setToDefault();
-
-        if( !mPreview.supportsZoom() ) {
-            Log.d(TAG, "zoom not supported");
-            return;
-        }
-        else if( mPreview.getCameraControllerManager().getNumberOfCameras() <= 1 ) {
-            return;
-        }
-
-        final SeekBar zoomSeekBar = mActivity.findViewById(net.sourceforge.opencamera.R.id.zoom_seekbar);
-        assertEquals(zoomSeekBar.getVisibility(), View.VISIBLE);
-        int init_zoom = mPreview.getCameraController().getZoom();
-        float init_zoom_ratio = mPreview.getZoomRatio(init_zoom);
-        int max_zoom = mPreview.getMaxZoom();
-        zoomSeekBar.setProgress(0);
-        this.getInstrumentation().waitForIdleSync();
-        Thread.sleep(500); // need to wait for zoom transition (for Camera2 API)
-        Log.d(TAG, "compare actual zoom " + mPreview.getCameraController().getZoom() + " to zoom " + max_zoom);
-        assertEquals(mPreview.getCameraController().getZoom(), max_zoom);
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-
-        int cameraId = mPreview.getCameraId();
-        View switchCameraButton = mActivity.findViewById(net.sourceforge.opencamera.R.id.switch_camera);
-        clickView(switchCameraButton);
-        waitUntilCameraOpened();
-        int new_cameraId = mPreview.getCameraId();
-        Log.d(TAG, "cameraId: " + cameraId);
-        Log.d(TAG, "new_cameraId: " + new_cameraId);
-        assertTrue(cameraId != new_cameraId);
-
-        max_zoom = mPreview.getMaxZoom();
-        Log.d(TAG, "after pause and resume: compare actual zoom " + mPreview.getCameraController().getZoom() + " to zoom " + max_zoom);
-        // as of Open Camera v1.43, zoom is reset when pause/resuming
-        //assertTrue(mPreview.getCameraController().getZoom() == max_zoom);
-        assertEquals(mPreview.getZoomRatio(mPreview.getCameraController().getZoom()), init_zoom_ratio);
-        assertEquals(max_zoom - zoomSeekBar.getProgress(), mPreview.getCameraController().getZoom());
-    }
-
     /** Switch to front camera, pause and resume, check still on the front camera.
      */
     public void testSwitchCameraIdle() {
@@ -12352,32 +12064,21 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     public void testTakePhotoPanorama() throws InterruptedException {
         Log.d(TAG, "testTakePhotoPanorama");
 
-        boolean has_zoom = mPreview.supportsZoom(); // record before switching to panorama mode, so we check if zoom is available (this will be false once in panorama mode)
-
         subTestTakePhotoPanorama(false, false, false);
 
-        // check zoom seekbar doesn't show
-        View zoomSeekBar = mActivity.findViewById(net.sourceforge.opencamera.R.id.zoom_seekbar);
-        assertEquals(zoomSeekBar.getVisibility(), View.INVISIBLE);
-
-        // switch to video mode, check zoom now shows
+        // switch to video mode
         View switchVideoButton = mActivity.findViewById(net.sourceforge.opencamera.R.id.switch_video);
         clickView(switchVideoButton);
         waitUntilCameraOpened();
         assertTrue(mPreview.isVideo());
-        assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.VISIBLE : View.INVISIBLE);
 
         // pause/resume, check still in video mode, and zoom still available
         pauseAndResume();
         assertTrue(mPreview.isVideo());
-        zoomSeekBar = mActivity.findViewById(net.sourceforge.opencamera.R.id.zoom_seekbar);
-        assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.VISIBLE : View.INVISIBLE);
 
         // restart, check still in video mode, and zoom still available
         restart();
         assertTrue(mPreview.isVideo());
-        zoomSeekBar = mActivity.findViewById(net.sourceforge.opencamera.R.id.zoom_seekbar);
-        assertEquals(zoomSeekBar.getVisibility(), has_zoom ? View.VISIBLE : View.INVISIBLE);
     }
 
     /* Test for panorama photo mode, taking max number of panorama shots.

@@ -2066,10 +2066,9 @@ public class DrawPreview {
                 p.setTextAlign(Paint.Align.CENTER);
                 int pixels_offset_y = 2*text_y; // avoid overwriting the zoom
                 int color = Color.rgb(244, 67, 54); // Red 500
-                // the video time and whatever is stacked above it turn on the spot, about the
-                // time's own anchor, so they read upright however the device is held
-                canvas.save();
-                canvas.rotate(ui_rotation, canvas.getWidth() / 2.0f, text_base_y - pixels_offset_y);
+                // The video time stays as printed on the fixed layout and doesn't turn with the
+                // device (Falk, 2026-09-18: it may simply read sideways) - unlike the glyphs
+                // MainUI.rotateGlyphs() turns and the timer countdown above.
                 if( main_activity.isScreenLocked() ) {
                     // writing in reverse order, bottom to top
                     applicationInterface.drawTextWithBackground(canvas, p, getContext().getResources().getString(R.string.screen_lock_message_2), color, Color.BLACK, canvas.getWidth() / 2, text_base_y - pixels_offset_y);
@@ -2135,7 +2134,6 @@ public class DrawPreview {
                         p.setColor(Color.WHITE);
                     }
                 }
-                canvas.restore();
             }
             else if( taking_picture && capture_started && !is_preview_paused ) {
                 if( camera_controller.isCapturingBurst() ) {

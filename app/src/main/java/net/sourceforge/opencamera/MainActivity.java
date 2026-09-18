@@ -423,12 +423,10 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         // set in cameraSetup().
         // Note that ideally we'd set this in the xml, but doing so for R.id.zoom causes a crash on Galaxy Nexus startup beneath
         // setContentView()!
-        // To be safe, we also do so for take_photo and zoom_seekbar (we already know we've had no reported crashes for focus_seekbar,
+        // To be safe, we also do so for take_photo (we already know we've had no reported crashes for focus_seekbar,
         // however).
         View takePhotoButton = findViewById(R.id.take_photo);
         takePhotoButton.setVisibility(View.INVISIBLE);
-        View zoomSeekbar = findViewById(R.id.zoom_seekbar);
-        zoomSeekbar.setVisibility(View.INVISIBLE);
 
         // initialise state of on-screen icons
         mainUI.getOnScreenIcons().updateOnScreenIcons();
@@ -1212,9 +1210,11 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                     if( MyDebug.LOG )
                         Log.d(TAG, "skip over constant region: " + new_zoom_factor);
                 }
+                new_zoom_factor = Math.max(0, Math.min(preview.getMaxZoom(), new_zoom_factor));
+                // used to go through the zoom seekbar (removed with the fine adjustment wheel)
+                preview.zoomTo(new_zoom_factor, false, true);
+                mainUI.onZoomChanged(new_zoom_factor);
             }
-
-            mainUI.changeSeekbar(R.id.zoom_seekbar, -change); // seekbar is opposite direction to zoom array
         }
     }
 
@@ -5138,31 +5138,11 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                 Log.d(TAG, "set up zoom");
             if( MyDebug.LOG )
                 Log.d(TAG, "has_zoom? " + preview.supportsZoom());
-            SeekBar zoomSeekBar = findViewById(R.id.zoom_seekbar);
 
-            // the zoom steps depend on the zoom range this camera reports, so rebuild them
-            // whenever a camera is opened or switched - before deciding on the slider below,
-            // which only appears where the stepper has nothing to offer
+            // the zoom steps and the wheel's range depend on the zoom range this camera
+            // reports, so rebuild them whenever a camera is opened or switched
             mainUI.getZoomStepper().update();
 
-            if( preview.supportsZoom() ) {
-                setZoomSeekbar();
-
-                // the zoom stepper replaces the slider where it has steps to offer - only fall
-                // back to the slider on cameras where it doesn't
-                if( sharedPreferences.getBoolean(PreferenceKeys.ShowZoomSliderControlsPreferenceKey, true)
-                        && !mainUI.getZoomStepper().hasSteps() ) {
-                    if( !mainUI.inImmersiveMode() ) {
-                        zoomSeekBar.setVisibility(View.VISIBLE);
-                    }
-                }
-                else {
-                    zoomSeekBar.setVisibility(View.INVISIBLE); // should be INVISIBLE not GONE, as the focus_seekbar is aligned to be left to this; in future we might want this similarly for exposure panel
-                }
-            }
-            else {
-                zoomSeekBar.setVisibility(View.INVISIBLE); // should be INVISIBLE not GONE, as the focus_seekbar is aligned to be left to this; in future we might want this similarly for the exposure panel
-            }
             View zoomStepper = findViewById(R.id.zoom_stepper);
             if( mainUI.getZoomStepper().hasSteps() && !mainUI.inImmersiveMode() ) {
                 zoomStepper.setVisibility(View.VISIBLE);
@@ -5385,12 +5365,12 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     }
 
     /** For Camera2 only. Sets whether the zoom ratios should be sticky or not (see documentation of
-     *  CameraController2.setZoomSticky), and updates the zoom seekbar.
+     *  CameraController2.setZoomSticky). The zoom pill works in ratios, not indices, so it
+     *  needs no update.
      */
     void setZoomSticky(boolean sticky) {
         if( preview.supportsZoom() && preview.usingCamera2API() ) {
             preview.setZoomSticky(sticky);
-            setZoomSeekbar(); // need to update max and progress of the seekbar
         }
     }
 
@@ -5402,50 +5382,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             return MainUI.performHapticFeedback(seekBar, last_haptic_time);
         }
         return last_haptic_time;
-    }
-
-    /** Sets up the zoom seekbar based on available zoom values.
-     */
-    public void setZoomSeekbar() {
-        if( preview.getCameraController() == null ) {
-            // just in case - have seen rare NullPointerException crashes from Google Play
-            return;
-        }
-        SeekBar zoomSeekBar = findViewById(R.id.zoom_seekbar);
-        zoomSeekBar.setOnSeekBarChangeListener(null); // clear an existing listener - don't want to call the listener when setting up the progress bar to match the existing state
-        zoomSeekBar.setMax(preview.getMaxZoom());
-        zoomSeekBar.setProgress(preview.getMaxZoom()-preview.getCameraController().getZoom());
-        zoomSeekBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
-            private long last_haptic_time;
-
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if( MyDebug.LOG )
-                    Log.d(TAG, "zoom onProgressChanged: " + progress);
-                // note we zoom even if !fromUser, as various other UI controls (multitouch, volume key zoom)
-                // indirectly set zoom via this method, from setting the zoom slider
-                // if hasSmoothZoom()==true, then the preview already handled zooming to the current value
-                if( !preview.hasSmoothZoom() ) {
-                    int new_zoom_factor = preview.getMaxZoom() - progress;
-                    if( fromUser && preview.getCameraController() != null ) {
-                        float old_zoom_ratio = preview.getZoomRatio();
-                        float new_zoom_ratio = preview.getZoomRatio(new_zoom_factor);
-                        if( new_zoom_ratio != old_zoom_ratio ) {
-                            last_haptic_time = performHapticFeedbackIfSafe(seekBar, last_haptic_time);
-                        }
-                    }
-                    preview.zoomTo(new_zoom_factor, false, true);
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-            }
-        });
     }
 
     public void setManualFocusSeekbarProgress(final boolean is_target_distance, float focus_distance) {

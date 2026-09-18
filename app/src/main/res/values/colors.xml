@@ -35,4 +35,9 @@
          fuer Icon-Buttons bewusst fast durchsichtig), sonst sind die inaktiven Stufen ueber
          hellen Motiven nicht lesbar. -->
     <color name="zoom_stepper_background">#99000000</color>
+    <!-- Feinjustier-Rad (ui/ZoomWheel), Detail-Spec Abschnitt 5: Zahlen in 60 % Weiss
+         (rgba(255,255,255,0.6)), die Striche in derselben Farbe, der statische Zeiger in
+         der Mitte reinweiss. -->
+    <color name="zoom_wheel_tick">#99FFFFFF</color>
+    <color name="zoom_wheel_pointer">#FFFFFF</color>
 </resources>

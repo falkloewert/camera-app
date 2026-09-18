@@ -868,6 +868,10 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
             multitouch_start_zoom_factor = 0;
             has_smooth_zoom = false;
             smooth_zoom = 1.0f;
+            // let the UI know the pinch is over (hasSmoothZoom() is false again): the fine
+            // adjustment wheel that followed it folds back into the zoom pill
+            if( has_zoom && camera_controller != null )
+                applicationInterface.multitouchZoom(camera_controller.getZoom());
         }
     }
 

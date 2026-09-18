@@ -127,13 +127,6 @@
         />
 
     <CheckBoxPreference
-        android:key="preference_show_zoom_slider_controls"
-        android:title="@string/preference_show_zoom_slider_controls"
-        android:summary="@string/preference_show_zoom_slider_controls_summary"
-        android:defaultValue="true"
-        />
-
-    <CheckBoxPreference
         android:key="preference_show_take_photo"
         android:title="@string/preference_show_take_photo"
         android:summary="@string/preference_show_take_photo_summary"
