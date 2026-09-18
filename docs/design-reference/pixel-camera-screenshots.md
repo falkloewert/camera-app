@@ -129,6 +129,10 @@ Prüfbare Punkte – gegen diese Liste ist zu vergleichen, bevor etwas als ferti
    Beschriftungen (1 / 2 / 5 / 10 / 30), an dem sich der Zoom stufenlos einstellen
    lässt. Der aktuelle Wert steht daneben in einer Pille, z. B. "6,7×". Im Querformat
    steht dieses Lineal senkrecht.
+   *Am Gerät präzisiert (Falk, 2026-09-18, umgesetzt):* Das Rad bleibt **nicht** auf hohen
+   Stufen offen – nach dem Loslassen kehrt immer die Stufen-Pille zurück, und der
+   nächstliegende Slot zeigt den genauen Wert („6,7×" im 5er-Slot). Hauptmarken mit „,5"
+   (K7). Verbindlich ist `ui-spezifikation.md` 3.1/3.2.
 3. **Pinch-Zoom** (zwei Finger) muss weiter funktionieren und Stufen/Rad mitführen.
 4. **Moduswahl-Leiste liegt auf dem schwarzen Rand, nicht über dem Bild.** In den
    Referenz-Screenshots sitzt sie in der schwarzen Chrome-Fläche neben/unter dem

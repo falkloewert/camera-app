@@ -1,5 +1,11 @@
 # Kickoff-Kontext: Feinjustier-Rad für den Zoom (Redesign, Audit-Schritt „Zoom")
 
+> **Status (2026-09-18): umgesetzt und von Falk am Pixel 9 Pro abgenommen** – Commits
+> `73094e5f`, `e9a95d90`, `a13c5b78`, `5a8f42a3`, `5a04573c`. Optionaler Punkt 7
+> (Tele-Verzögerung) bewusst nicht gemacht, bleibt PM-Punkt 8. Antworten auf die Vorab-Fragen,
+> Entscheidungen und Abweichungen: `ui-spezifikation.md` Abschnitte 3.1/3.2/8/9 (K12),
+> `SPEC.md` 4.5 („Stand Feinjustier-Rad") und Änderungsprotokoll 2026-09-18.
+
 Teil des Material-3-Redesigns (`docs/SPEC.md` 4.5). Baut `ui-spezifikation.md` Abschnitt 3.2
 und 7.1 Punkt 1, bringt die Zoom-Stufen-Pille auf Referenzmaße (7.2) und räumt den alten
 Zoom-Schieberegler ab. Nimmt zwei Punkte der PM-Liste in SPEC 4.5 mit: **3** (Selfie-

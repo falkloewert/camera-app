@@ -115,22 +115,49 @@ Modell, nicht den aktuellen Stand.
   trägt das "×"** ("1×" aktiv, daneben schlicht "2" und "5").
 - Aktive Stufe: voll gefüllter heller Kreis mit dunkler Schrift. Inaktive: reiner heller
   Text ohne Füllung.
-- *Offen:* "×" als Malzeichen (×) oder Buchstabe "x"? Aktuell umgesetzt: ×. Die
-  Detail-Spec schreibt `1x`/`,5x` mit Buchstabe (Konflikt K11).
+- ~~*Offen:* "×" als Malzeichen (×) oder Buchstabe "x"?~~ Entschieden: × (K11).
+- **Frontkamera (Entscheidung Falk 2026-09-18, am Gerät gewählt):** `,9 · 1 · 2 · 5`.
+  Die Pixel-App zeigt vorn `,7 · 1×`; unsere Frontkamera meldet 0,9×–10×, die ,9 ist
+  ihr echter weitester Blick. Die Stufe „1" ist **in Wirklichkeit 1,25×** (Falk wollte
+  eine etwas engere Stufe; 1,0× läge zu nah an ,9 – „,9 / 1× / 1,5" wurde am Gerät
+  verworfen), beschriftet als „1", weil „1,25" in der Pille seltsam aussah. Beim Öffnen
+  der Frontkamera springt die App auf diese Stufe (Open Camera würde bei 1,0× starten, was
+  dann als „1×" im ,9-Slot neben dem „1"-Knopf stünde).
+- **Nach dem Rad/Pinch:** die Stufe, die dem eingestellten Zoom am nächsten liegt (auf der
+  logarithmischen Skala), ist markiert, und **ihre Beschriftung zeigt den genauen Wert**
+  („2,8×" im 2er-Slot, „,7×" im ,5er-Slot, „17×" im 5er-Slot). Tipp auf diesen Slot →
+  zurück auf seinen Nennwert. Ab 10× ohne Nachkommastelle („17×"), damit jeder Wert in
+  den 44-dp-Kreis passt – die Pille ändert ihre Breite nie. (Verhalten der Pixel-App, von
+  Falk am 2026-09-18 am Gerät geprüft; eine fünfte Blase wurde bewusst nicht gebaut.)
 
-### 3.2 Feinjustier-Rad  — NOCH NICHT UMGESETZT
-- Zieht man **an der Zoom-Stufen-Leiste** (Wischen statt Tippen), verwandelt sie sich in
-  ein **Lineal/Rad** mit Teilstrichen.
-- Beschriftete Hauptmarken: `1 · 2 · 5 · 10 · 30`, dazwischen feine Teilstriche.
-- Der aktuelle Wert erscheint **daneben in einer hellen Pille**, z. B. `6,7×`.
-- Im Querformat steht das Lineal **senkrecht** (siehe Referenzbild), im Hochformat
-  waagerecht.
+### 3.2 Feinjustier-Rad  — umgesetzt 2026-09-18 (`ui/ZoomWheel`, `ui/ZoomStepper`)
+- Zieht man **an der Zoom-Stufen-Leiste** (Wischen statt Tippen) oder zoomt per Pinch im
+  Sucher, verwandelt sich die Pille in ein **Lineal/Rad** mit Teilstrichen: Kapsel
+  300 × 48 dp, logarithmische Skala (80 dp je Verdopplung) läuft unter einem festen
+  weißen Zeiger in der Mitte hindurch, Alpha-Maske 40 dp an beiden Enden.
+- Beschriftete Hauptmarken: **`,5 · 1 · 2 · 5 · 10 · 30`** (K7, Detail-Spec), soweit im
+  Zoombereich der Kamera (Rückkamera 0,5–30×, Frontkamera 0,9–10×), dazwischen feine
+  Teilstriche im Abstand von ca. 10 dp (je Abschnitt gleichmäßig geteilt, damit jede
+  Hauptmarke auf dem Raster liegt).
+- Der aktuelle Wert erscheint **darüber im hellen Badge** (28 dp hoch, 12 dp Padding),
+  z. B. `6,7×`.
+- Im Querformat steht das Lineal **senkrecht**, im Hochformat waagerecht – ergibt sich von
+  selbst aus dem Drehmodell (Abschnitt 2): das Lineal bleibt „wie gedruckt", nur Zahlen
+  und Badge drehen sich.
 - Alles oberhalb von 5× wird ausschließlich hierüber eingestellt, nicht per Stufen-Button.
-- Nach Loslassen kehrt die Anzeige wieder zu den vier Stufen zurück.
+  Frontkamera: Rad bis 10× (Kamera-Maximum), höchster Knopf bleibt 5.
+- **Nach Loslassen kehrt die Anzeige immer zu den Stufen zurück** – auch über 5× (am Gerät
+  geklärt; der Zusatz „oder ist man auf einer hohen Stufe" in
+  `pixel-camera-screenshots.md` traf nicht zu, siehe K12). Der nächstliegende Slot zeigt
+  den Wert (3.1).
+- Haptik: `CLOCK_TICK` pro überstrichenem Strich (Ziehen und Pinch) und beim Antippen einer
+  Stufe; nicht während einer Videoaufnahme (Mikrofon).
+- Übergang: Pille ↔ Rad in **120 ms** (Entscheidung Falk, Abschnitt 8), danach blenden die
+  Knöpfe in 100 ms ein.
 
 ### 3.3 Pinch-Zoom
-- Zwei-Finger-Zoom muss weiter funktionieren und Stufen bzw. Rad mitführen.
-  (Grundfunktion ist in der App vorhanden; die Stufen-Markierung folgt ihr bereits.)
+- Zwei-Finger-Zoom funktioniert weiter und zeigt das Rad, solange die Finger aufliegen;
+  beim Loslassen wie 3.2. Das Einrasten nahe 1× (`Preview.ScaleListener`) bleibt.
 
 ## 4. Foto-Einstellungen (Bottom-Sheet)  — NOCH NICHT UMGESETZT
 
@@ -220,10 +247,29 @@ Porträt/Nachtsicht/zufügen, solange die App diese Modi nicht wirklich beherrsc
   `MainUI.rotateGlyphs()`, das jede Glyphen-View auf `ui_rotation` dreht (300 ms,
   `cubic-bezier(0.2, 0, 0, 1)`). `MainUI.orientBar()` und `RotatedTextView` gibt es nicht
   mehr – Modus-Beschriftungen sind wieder eine gewöhnliche `TextView`, die wie jede
-  andere Glyphe gedreht wird. `DrawPreview`-Overlays bleiben ortsfest (nur Videozeit und
-  Selbstauslöser-Countdown drehen mit); Popup-Menü und Belichtungs-Slider drehen nicht
-  (Abschnitt 8).
-- Alter Zoom-Schieberegler entfällt, wo die Stufen-Leiste greift
+  andere Glyphe gedreht wird. `DrawPreview`-Overlays bleiben ortsfest (nur der
+  Selbstauslöser-Countdown dreht mit – die Videozeit seit 2026-09-18 nicht mehr,
+  Abschnitt 8); Popup-Menü und Belichtungs-Slider drehen nicht (Abschnitt 8).
+- ~~Alter Zoom-Schieberegler entfällt, wo die Stufen-Leiste greift~~ **Alter
+  Zoom-Schieberegler (`zoom_seekbar`) komplett entfernt (2026-09-18):** Lautstärketasten
+  gehen direkt auf `Preview.zoomTo()`, `MainUI.onZoomChanged()` (früher
+  `setSeekbarZoom()`) führt nur noch Pille/Rad nach, die Einstellung „Zoom-Schieberegler
+  anzeigen" ist weg, die drei Regler-Tests aus `MainActivityTest` gelöscht.
+- **Zoom-Stufen-Pille auf Referenzmaß + Feinjustier-Rad (2026-09-18)** – Abschnitte 3.1/3.2.
+  Gemessen (2,25 px/dp): aktiver Kreis ⌀ 44 dp in einer 48-dp-Zelle → Pille 48 dp hoch,
+  192 dp breit (`zoom_step_margin` 2 dp), Unterkante **36 dp** über dem Auslöser-Ring
+  (Pillenmitte 344 dp / Auslösermitte 241 dp vom unteren Rand; korrigiert den in
+  Audit-Schritt 1 notierten Wert 24 dp). Technik: `ui/ZoomWheel` ist die Pille selbst – ein
+  `LinearLayout` mit den Stufen-Buttons, das bei seitlichem Ziehen (`onInterceptTouchEvent`,
+  Bildschirm-Koordinaten wegen der wachsenden View) oder während eines Pinch
+  (`Preview.hasSmoothZoom()`) auf 300 dp aufgeht und Skala/Zeiger selbst zeichnet;
+  `ui/ZoomStepper` hält die Stufen als **Verhältnisse** (nicht Listen-Indizes, die Zoom-Liste
+  ändert sich beim Videostart), bildet Rad-Werte auf den nächsten Index der Zoom-Liste ab
+  (40 Schritte je Verdopplung, ~1,75 %) und setzt Badge (`zoom_badge`, `TextView` über der
+  Pille, dreht als Glyphe) und Haptik. Pinch-Ende meldet `Preview.ScaleListener.onScaleEnd()`
+  über `multitouchZoom()` an die UI. Open Cameras Zoom-Text im Sucher („Zoom: 1.27x") ist
+  standardmäßig aus (Option bleibt). Die Pille bleibt während der Videoaufnahme sichtbar;
+  die Videozeit sitzt klein oben rechts und dreht nicht mehr mit (beides Falk, Abschnitt 8).
 - **Auslöser-Zeile (Audit-Schritt 1, 2026-09-17)** – nach den im Referenz-Screenshot
   *gemessenen* Werten (Gerät: 960 × 2142 px bei Dichte 360 = **2,25 px/dp**; die Detail-Spec
   weicht an mehreren Stellen ab, Entscheidung Falk: Messung gilt, Abweichungen in
@@ -282,7 +328,7 @@ oder weicht ab; im Hochformat dominiert optisch weiterhin die alte Open-Camera-I
 2. Kopfzeile + unterste Zeile; dafür alte Icon-Leiste und Drei-Punkte-Popup abschaffen
    → 7.1 Punkte 3 und 4.
 3. Moduswahl als echtes Karussell → 7.2 Moduswahl.
-4. Feinjustier-Rad → 7.1 Punkt 1.
+4. ~~Feinjustier-Rad → 7.1 Punkt 1.~~ **Erledigt (2026-09-18, vorgezogen vor 2 und 3).**
 5. Einstellungen-Blätter + Swipe-Down → 7.1 Punkt 2.
 6. Sucher-Overlays → 7.1 Punkte 6–8.
 7. Farben / Blur / Schrift → 7.3.
@@ -291,15 +337,15 @@ oder weicht ab; im Hochformat dominiert optisch weiterhin die alte Open-Camera-I
 
 Soll-Werte aus der Detail-Spec, außer wo die Screenshot-Spec etwas anderes sagt.
 
-1. **Feinjustier-Rad (Abschnitt 3.2).** Ist: kein Drag-Handler auf `zoom_stepper`, kein
-   Morphing, keine Ticks, kein Badge; über 5× kommt man nur per Pinch. Soll: Auslöser =
-   Gedrückthalten + waagerechtes Ziehen auf der Pille **oder** Pinch im Sucher; die Pille
-   morpht zu einem Scroll-Container 280–320 dp × 48 dp mit Alpha-Maske links/rechts;
-   Hauptmarken-Striche 1,5 dp, Zwischenstriche 0,75 dp, Zahlen 60 % Weiß mittig unter den
-   Hauptmarken; statischer, weiß leuchtender Mittelbalken; Floating-Badge darüber (28 dp
-   hoch, Radius 9999, Padding 12 dp waagerecht, Wert wie `2,5×`); `CLOCK_TICK` pro
-   überstrichenem Strich; nach Loslassen zurück zu den vier Stufen; im Querformat
-   senkrecht. Hauptmarken: Konflikt K7.
+1. ~~**Feinjustier-Rad (Abschnitt 3.2).**~~ **Erledigt (2026-09-18)**, siehe Abschnitte
+   3.2 und 6; die selbst gewählten Werte (kein Referenz-Screenshot) in Abschnitt 8. Soll
+   war: Auslöser = Gedrückthalten + waagerechtes Ziehen auf der Pille **oder** Pinch im
+   Sucher; die Pille morpht zu einem Scroll-Container 280–320 dp × 48 dp mit Alpha-Maske
+   links/rechts; Hauptmarken-Striche 1,5 dp, Zwischenstriche 0,75 dp, Zahlen 60 % Weiß
+   mittig unter den Hauptmarken; statischer, weiß leuchtender Mittelbalken; Floating-Badge
+   darüber (28 dp hoch, Radius 9999, Padding 12 dp waagerecht, Wert wie `2,5×`);
+   `CLOCK_TICK` pro überstrichenem Strich; nach Loslassen zurück zu den vier Stufen; im
+   Querformat senkrecht. Hauptmarken: Konflikt K7 (mit „,5", umgesetzt).
 2. **Foto-/Video-Einstellungen-Blatt (Abschnitte 4, 4a, 4b)** samt **Swipe-Down-Geste**
    auf dem Sucher. Ist: `MainActivity.MyGestureDetector.onFling()` (L5020) macht nur
    Screen-Unlock. Die Detail-Spec nennt es „Quick Settings Pull-Down-Sheet" mit
@@ -374,24 +420,28 @@ Detail-Spec: Hintergrund Schwarz 60 % (nicht `rgba(255,255,255,0.12)` – der Bu
 der Referenz *dunkler* als das Motiv), Eckradius 12 dp, Zentrumsabstand 124 dp (64 dp
 läge im Ring). `circle_background.xml` bleibt für Pause/Schnappschuss/Panorama-Abbruch.
 
-**Zoom-Stufen-Pille** (`zoom_stepper`, `ZoomStepper.java`, `dimens.xml`,
-`pill_background.xml`, `pill_selected_background.xml`)
-- Stufe `zoom_step_size` 44 dp + `zoom_step_margin` 4 dp → Pille **52 dp** hoch, aktiver
-  Kreis **44 dp**. Soll: Pille 40 dp hoch, 180–220 dp breit, aktiver Kreis ⌀ 36 dp.
-- Abstand zum Auslöser 12 dp zum 100-dp-View (= 19 dp zum Ring). Detail-Spec sagt ca.
-  32 dp, **im Screenshot gemessen: 24 dp** zwischen Pillen-Unterkante und Ring-Oberkante
-  (Audit-Schritt 1) – Screenshot gilt.
+**Zoom-Stufen-Pille** (`zoom_stepper` = `ui/ZoomWheel`, `ZoomStepper.java`, `dimens.xml`,
+`pill_background.xml`, `pill_selected_background.xml`) – **Maße, Haptik und Regler-Rest
+erledigt (2026-09-18, Feinjustier-Rad-Chat)**, siehe Abschnitt 6. Offen bleiben nur die
+Farb-/Blur-Punkte (7.3):
+- ~~Stufe `zoom_step_size` 44 dp + `zoom_step_margin` 4 dp → Pille **52 dp** hoch~~
+  **Gemessen und umgesetzt: Pille 48 dp hoch, 192 dp breit, aktiver Kreis 44 dp** (die
+  Detail-Spec-Werte 40/36 dp weichen vom Screenshot ab – Messung gilt).
+- ~~Abstand zum Auslöser 12 dp zum 100-dp-View (= 19 dp zum Ring). … im Screenshot
+  gemessen: 24 dp~~ **Neu gemessen: 36 dp** Pillen-Unterkante → Ring-Oberkante (80 px),
+  umgesetzt als 29 dp zur 100-dp-Auslöser-View.
 - Hintergrund `zoom_stepper_background` `#99000000`, flach. Soll: `rgba(20,20,20,0.65)`
   mit Blur 20 px (Blur: siehe 7.3).
 - Aktive Füllung `#F2F2F2`, Text `#1B1B1B`. Soll: `#D3E8D8` (Salbei, Material You) bzw.
   `#E2E3E0`, Text `#000000`.
-- Passt: inaktiv Weiß, 13 sp (Soll 13–15), aktiv `BOLD` = 700 (Soll 600–700), Stufen
-  `,5 1× 2 5`, `×` nur an der aktiven, Pinch führt die Markierung mit.
-- Keine Haptik beim Antippen (Soll `CLOCK_TICK`).
-- Doku-Drift: der Klassenkommentar sagt „steps derived from the zoom range", Abschnitt 3.1
-  sagt „nichts algorithmisch ableiten" – Kommentar angleichen oder Stufen fest verdrahten.
-- Die alte `zoom_seekbar` bleibt im Layout und ist nur versteckt, solange Stufen
-  existieren (`MainUI` L1526–1529, `MainActivity` L5195–5212) – nach dem Rad entfernen.
+- Passt: inaktiv Weiß, 13 sp (Soll 13–15; im Screenshot ≈ 14 sp, nicht angefasst – Schrift
+  ist 7.3), aktiv `BOLD` = 700 (Soll 600–700), Stufen `,5 1× 2 5`, `×` nur an der aktiven,
+  Pinch führt die Markierung mit.
+- ~~Keine Haptik beim Antippen (Soll `CLOCK_TICK`).~~ Erledigt.
+- ~~Doku-Drift: der Klassenkommentar sagt „steps derived from the zoom range"~~ Erledigt:
+  Stufen sind feste Listen je Kamera (`back_steps`/`front_steps`), nur die
+  Weitwinkel-Stufe kommt aus dem gemeldeten Minimum.
+- ~~Die alte `zoom_seekbar` bleibt im Layout~~ Entfernt.
 
 **Moduswahl-Leiste** (`mode_bar`, `MainUI.setupModeBar()` L1227, `updateModeBar()` L1328)
 - Ist ein `LinearLayout`: kein Scrollen, kein Snap-to-Center, keine Alpha-Verläufe an
@@ -501,6 +551,44 @@ nicht verifizieren (closed source).
   Ton nutzt, ist aus den Screenshots nicht ableitbar; **Falk prüft am Gerät**, dann ggf.
   `shutter_row_scrim` anpassen.
 
+### Feinjustier-Rad (2026-09-18) – Entscheidungen Falk und selbst gewählte Werte
+
+- **Morph-Animation Pille ↔ Rad: ja, „snappy"** – die zweite Ausnahme von „keine
+  Animationen außer am Auslöser" (neben der Glyph-Drehung): 120 ms mit der Glyph-Kurve
+  `cubic-bezier(0.2, 0, 0, 1)`, danach blenden die Stufen-Knöpfe in 100 ms ein (sonst sah
+  das harte Erscheinen des weißen Kreises am Rand wie ein Abbruch des Schrumpfens aus).
+- **Kein Referenz-Screenshot des Rads** (Falk: „bau es einfach"). Aus der Detail-Spec
+  übernommen: 48 dp Höhe, Striche 1,5 / 0,75 dp, Zahlen 60 % Weiß, Badge 28 dp / 12 dp
+  Padding. **Selbst gewählt, nicht gemessen:** Breite 300 dp (Spec „280–320"), 80 dp Skala
+  je Verdopplung (= Zieh-Empfindlichkeit), Zwischenstriche ca. 10 dp, Hauptstriche 14 dp /
+  Zwischenstriche 9 dp hoch ab 8 dp von oben, Zahlen 12 sp mit Grundlinie bei 39 dp, Zeiger
+  2 dp breit / 18 dp hoch mit 6-dp-„Glühen" (25 % Weiß) statt echtem Leuchten, Fade 40 dp,
+  Strichfarbe = Zahlenfarbe (60 % Weiß), Badge 12 dp über der Pille, Badge-Schrift wie die
+  aktive Stufe (13 sp fett, hell mit dunkler Schrift).
+- **Badge-Lage quer:** nicht aus der Referenz bekannt. Das Badge bleibt an seinem Platz
+  (über dem Rad in Bildschirm-Koordinaten, also Richtung Sucher) und dreht sich als Ganzes –
+  ein senkrechter Pillen-Streifen neben dem senkrechten Lineal. Bei sehr breiten Werten
+  („12×") kann er das Lineal um wenige dp berühren. Am Gerät von Falk ohne Beanstandung
+  getestet.
+- **Frontkamera-Stufen `,9 · 1(=1,25×) · 2 · 5`, Rad bis 10×, Öffnen auf „1"** – siehe 3.1.
+  Abweichung von der Referenz (`,7 · 1×`, Rad bis 3×) auf Falks Wunsch.
+- **Zoom-Pille bleibt während der Videoaufnahme sichtbar** (Open Camera blendete sie aus),
+  damit man auch mitten im Video auf 5× springen kann.
+- **Videozeit klein oben rechts, dreht nicht mit** – zurückgenommen gegenüber dem
+  Drehmodell-Chat („kann steif einfach falsch rumgedreht bleiben"); sie stand über dem
+  Auslöser, wo jetzt die Pille während der Aufnahme bleibt, und sitzt nun rechtsbündig unter
+  der Icon-Leiste auf der Höhe der linken Info-Zeilen (14 sp, rot wie bisher, Open Cameras
+  Format `h:mm:ss`). Der Selbstauslöser-Countdown dreht weiterhin mit (nicht angesprochen)
+  → für den PM-Chat.
+- **Open Cameras Zoom-Text im Sucher** („Zoom: 1.27x", `DrawPreview`) standardmäßig aus –
+  die Referenz hat keinen, Pille und Badge zeigen den Wert.
+- **Abstand Pille → Ring: 36 dp statt der in Audit-Schritt 1 notierten 24 dp** – neu
+  gemessen (Pillenmitte 344 dp, Auslösermitte 241 dp vom unteren Rand). Die 24 dp waren
+  ein Messfehler.
+- **Zahlenformat:** eine Nachkommastelle unter 10× („6,7×"), keine ab 10× („17×"), damit
+  jeder Wert in den 44-dp-Kreis passt; das gemeldete Kamera-Minimum 0,51× wird als „,5"
+  gezeigt.
+
 ### Pixel-Drehmodell (2026-09-17/18) – Entscheidungen Falk
 
 - **Popup-Menü und Belichtungs-Slider drehen nicht mit.** Beides sind alte
@@ -541,11 +629,12 @@ einem offenen Punkt abhängt, ohne vorher nachzufragen.
 | K4 | Sucher-Layout 4:3 | zentriert zwischen Kopf- und Fußfläche, freie Ränder, 28 dp Eckradius; 16:9 schiebt sich transluzent hinter die Leisten | Bedienelemente hängen am Bildschirmrand und liegen bei 4:3 **über** dem Bild (1a) | **Screenshot-Spec** (Grundregel eins-zu-eins) |
 | K5 | Modus-Einträge | Nachtsicht · Porträt · Foto · Video · Kinoeffekt/Pan | nur echte Modi Foto · Video · Panorama (5, Falk 2026-09-15) | bestätigt, keine Änderung |
 | K6 | Kopfzeilen-Badges | RAW / 50 MP (Foto), FHD / 4K (Video) | „12 MP" + Makro-Chip (1) | **Kein echter Widerspruch** – Badge zeigt die jeweils aktuell aktive Auflösungs-Einstellung dynamisch an; „12 MP" war nur der Standardzustand im Screenshot |
-| K7 | Ruler-Hauptmarken | `,5 · 1 · 2 · 5 · 10 · 30` | `1 · 2 · 5 · 10 · 30` (3.2) | **Detail-Spec** (mit „,5", Konsistenz zu den Stufen-Buttons) |
+| K7 | Ruler-Hauptmarken | `,5 · 1 · 2 · 5 · 10 · 30` | `1 · 2 · 5 · 10 · 30` (3.2) | **Detail-Spec** (mit „,5", Konsistenz zu den Stufen-Buttons) – **umgesetzt 2026-09-18** |
 | K8 | Doppel-Tap | Kamerawechsel oder Sprung auf 2× | nicht spezifiziert; App heute: Foto auslösen | **offen – bleibt vorerst wie heute** (Foto auslösen), da Verhaltensänderung, keine reine Optik-Frage. Feature-Chats bauen nichts, das davon abhängt, ohne erneut nachzufragen |
 | K9 | Fokus-Ring-Farbe | Weiß, 1,5 dp | gelb/golden, dünn (1, 1b) | **Screenshot-Spec** (Gold/Gelb, direkt aus Falks Fotos ersichtlich) |
 | K10 | Auslöser-Außenring | weiße 2-dp-Kontur, 4 dp Lücke, 88 dp | breiter, halbtransparenter grauer Außenring (1b) | **Screenshot-Spec** (transluzent-grau) |
 | K11 | Zoom-Zeichen | Buchstabe `x` (`1x`, `,5x`) | `×` (3.1, „offen") | **Screenshot-Spec** (`×`, bereits so umgesetzt) |
+| K12 | Rad nach dem Loslassen über 5× | – | 3.2 „zurück zu den vier Stufen" vs. `pixel-camera-screenshots.md` Abnahme-Punkt 2 „oder ist man auf einer hohen Stufe" (Rad bleibt?) | **Am Gerät geklärt (Falk, 2026-09-18):** das Rad schließt immer; der nächstliegende Slot zeigt den genauen Wert („6,7×" im 5er-Slot), Tipp darauf → 5×. Umgesetzt, siehe 3.1/3.2 |
 
 **Schriftfamilie (Zeile in 7.3, kein K-Punkt):** Google Sans ist nicht frei lizenzierbar
 → **Roboto Flex (OFL)** als gebündelte Font-Ressource, keine weitere Rückfrage nötig.

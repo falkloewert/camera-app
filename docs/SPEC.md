@@ -99,7 +99,7 @@ Projektmanager-Chat):
 | 3 | Dual-Kamera (Selfie-Bubble, unabhängiger Zoom) | Idee / Konzept | Hoch (geräteabhängig) |
 | 4 | Panorama mit Weitwinkel-Option | **Fertig** | Niedrig-Mittel |
 | 5 | Kamera während Videoaufnahme umdrehen | Idee / Notiz (nice-to-have) | Niedrig |
-| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile und Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen) gebaut und **Datei-Prüfung abgeschlossen** (Stand 2026-09-18); offen: siehe `ui-spezifikation.md` Abschnitt 7 (Audit 2026-09-17) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
+| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile, Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen, Datei-Prüfung abgeschlossen) und **Feinjustier-Rad** (Stand 2026-09-18) gebaut; offen: siehe `ui-spezifikation.md` Abschnitt 7 (Audit 2026-09-17) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
 
 ### 3.1 Vereinbarte Reihenfolge (aktualisiert 2026-09-14: Material-3-Redesign vor Feature 5 vorgezogen)
 
@@ -492,6 +492,23 @@ Querlagen, schnelle 180°-Drehung ohne hängenbleiben. Damit ist Konflikt K3
 (`ui-spezifikation.md` Abschnitt 9) endgültig entschieden und umgesetzt; Doku nachgezogen
 in Abschnitt 6 unten sowie `ui-spezifikation.md` Abschnitte 2, 6, 7.2, 8, 9-K3.
 
+**Stand Feinjustier-Rad (2026-09-18, Feature-Chat „Redesign: Feinjustier-Rad", fertig):**
+Kickoff `docs/kickoff/redesign-feinjustier-rad.md` umgesetzt, am Pixel 9 Pro abgenommen.
+Zoom-Pille auf Referenzmaß (48 dp hoch, 192 dp breit, 36 dp über dem Auslöser-Ring –
+gemessen; `73094e5f`), Rad `ui/ZoomWheel` + `ui/ZoomStepper` (`e9a95d90`, `a13c5b78`,
+`5a8f42a3`): Ziehen auf der Pille oder Pinch → 300 × 48 dp Lineal mit logarithmischer
+Skala, Hauptmarken `,5 1 2 5 10 30` (K7), Badge mit Wert, `CLOCK_TICK`, Morph in 120 ms
+(Entscheidung Falk: zweite Animations-Ausnahme). Nach Loslassen zeigt der nächstliegende
+Slot den genauen Wert („6,7×" im 5er-Slot; K12, am Gerät geklärt). Frontkamera
+`,9 · 1(=1,25×) · 2 · 5`, Rad bis 10×, öffnet auf „1". Alter `zoom_seekbar` samt
+Einstellung und Tests entfernt, Lautstärketasten direkt auf `zoomTo()`. Beifang auf Falks
+Wunsch: Open-Camera-Zoom-Text im Sucher standardmäßig aus, Pille bleibt bei Videoaufnahme
+sichtbar, Videozeit klein oben rechts und ohne Drehung (`DrawPreview`, `5a04573c`). Alle
+Entscheidungen und selbst gewählten Werte:
+`ui-spezifikation.md` Abschnitt 8 („Feinjustier-Rad"), Abschnitte 3.1/3.2/6/7 nachgezogen.
+Ponytail-Fund 3 (doppelter „ausgewählt"-Stil) wurde **nicht** miterledigt – bleibt beim
+Farb-Schritt.
+
 **Für den Projektmanager-Chat aus Audit-Schritt 1 (nicht selbst entschieden):**
 1. ~~**Drehmodell (K3) wieder offen → nächster Feature-Chat**~~ **Erledigt (2026-09-18):**
    gebaut am 2026-09-17, Datei-Prüfung und Doku am 2026-09-18 abgeschlossen (siehe „Stand
@@ -507,10 +524,9 @@ in Abschnitt 6 unten sowie `ui-spezifikation.md` Abschnitte 2, 6, 7.2, 8, 9-K3.
    Weitwinkel als Ursache am Gerät ausgeschlossen. Kein Code nötig; Blitz bleibt Falks
    Wahl („Aus"). Beim Einstellungen-Blatt (7.1 Punkt 2) entfällt die Fokus-Zeile ohnehin,
    die Pixel-App bietet keine Fokusmodus-Wahl.
-3. **Selfie-Weitwinkel:** die Frontkamera meldet Zoom 0,896×–10×; `ZoomStepper` filtert
-   Stufen unter 1,25-facher Weite (0,9× wäre ein Fast-Duplikat von 1×). Zu klären: was
-   zeigt die Pixel-App im Selfie-Modus in der Zoom-Pille? Dann ggf. Schwelle anpassen
-   (Zoom-Schritt).
+3. ~~**Selfie-Weitwinkel:**~~ **Erledigt (2026-09-18, Rad-Chat):** Pixel-App zeigt vorn
+   `,7 · 1×`; Falk hat am Gerät `,9 · 1(=1,25×) · 2 · 5` gewählt, der 1,25-Filter ist weg
+   (`ZoomStepper.front_steps`). Details `ui-spezifikation.md` 3.1.
 4. ~~**Panorama im Selfie-Modus**~~ **Erledigt** (`00cd3e4c`, Drehmodell-Chat): bei der
    Frontkamera wird Panorama nicht angeboten (`supportsPanorama()`), die Einstellung
    bleibt erhalten und greift beim Zurückwechseln zur Rückkamera wieder.
@@ -529,7 +545,9 @@ in Abschnitt 6 unten sowie `ui-spezifikation.md` Abschnitte 2, 6, 7.2, 8, 9-K3.
    die **physische** Tele-Linse direkt erzwingen (wie das Panorama-Linsenpaar mit dem
    Weitwinkel) – sofort da, aber ohne die Automatik der logischen Kamera (bei wenig
    Licht bleibt sie absichtlich auf dem Hauptsensor). Abwägungsfrage → eigener kleiner
-   Feature-Chat, passt zum Zoom-Schritt (Feinjustier-Rad, 7.1 Punkt 1).
+   Feature-Chat, passt zum Zoom-Schritt (Feinjustier-Rad, 7.1 Punkt 1). **Stand
+   2026-09-18 (Rad-Chat):** bewusst nicht angefasst (optionaler Kickoff-Punkt 7, Falk hat
+   den Abschluss ohne diesen Versuch gewählt) – bleibt offen, eigener kleiner Chat.
 9. **Toter Code durch `lock_to_portrait = true`:** Ponytail-Review (2026-09-18, Diff
    `0dd4cbe7..HEAD`) fand mehrere `if(!lock_to_portrait)`/Cache-Zweige, die nie mehr
    erreicht werden, seit `lock_to_portrait` beim Drehmodell-Umbau (`8dcd8fc3`) fest auf
@@ -550,7 +568,15 @@ in Abschnitt 6 unten sowie `ui-spezifikation.md` Abschnitte 2, 6, 7.2, 8, 9-K3.
     Abschnitt 7, weil die Kopfzeile am noch nicht gebauten Einstellungen-Blatt hängt
     (die Funktionen der alten Icon-Leiste brauchen ein Ziel) und offene Fragen hat
     („?"-Button, Regler-Button, Makro-Chip, „…"-Button im Blatt), die vorher mit Falk
-    zu klären sind. Das Rad hat keine offenen Entscheidungen.
+    zu klären sind. Das Rad hat keine offenen Entscheidungen. **Rad erledigt (2026-09-18),
+    nächster Schritt damit Kopfzeile + unterste Zeile.**
+11. **Selbstauslöser-Countdown dreht noch mit** (Rad-Chat 2026-09-18): Falk hat nur die
+    Videozeit „steif" gewollt; der Countdown (`DrawPreview`, derselbe Mechanismus) dreht
+    weiterhin mit. Konsistenz-Entscheidung offen – wahrscheinlich ebenfalls fest.
+12. **Rad-Optik ohne Referenz-Screenshot gebaut** (Falk: „bau es einfach"): Breite,
+    Strichabstände, Zeiger-„Glühen", Badge-Abstand sind gewählt, nicht gemessen
+    (`ui-spezifikation.md` Abschnitt 8). Falls später ein Screenshot der Pixel-App mit
+    offenem Rad vorliegt, per `ui/ZoomWheel`-Konstanten nachziehen.
 
 ---
 
@@ -846,3 +872,29 @@ in Abschnitt 6 unten sowie `ui-spezifikation.md` Abschnitte 2, 6, 7.2, 8, 9-K3.
   (Begründung PM-Punkt 10), Kickoff `docs/kickoff/redesign-feinjustier-rad.md` mit vier
   Vorab-Fragen, die Falk am echten Pixel klärt (Pillen-Anzeige nach Loslassen über 5×,
   Selfie-Stufen, Rad-Screenshots zum Messen, Morph-Animation ja/nein).
+- **2026-09-18 (Feature-Chat „Redesign: Feinjustier-Rad"):** Kickoff
+  `docs/kickoff/redesign-feinjustier-rad.md` umgesetzt und von Falk am Pixel 9 Pro
+  abgenommen (Foto/Video/Front, Pinch, Ziehen, quer, Lautstärketasten). Vorab-Fragen am
+  Gerät geklärt: (1) nach Loslassen schließt das Rad immer, der nächstliegende Slot zeigt
+  den genauen Wert, Tipp darauf → Nennwert (K12); (2) Selfie: Pixel zeigt `,7 · 1×`, Falk
+  wählte `,9 · 1(=1,25×) · 2 · 5`, Rad bis 10×, Öffnen auf „1"; (3) kein Rad-Screenshot
+  nötig – Optik nach Detail-Spec plus gewählte Werte; (4) Morph-Animation **ja**, 120 ms
+  „snappy", danach 100 ms Einblenden der Knöpfe. Commits: `73094e5f` (Pillenmaße gemessen
+  48/192/44 dp, Abstand zum Ring **36 dp** – korrigiert die 24 dp aus Audit-Schritt 1;
+  Open-Camera-Zoom-Text im Sucher standardmäßig aus), `e9a95d90` (Rad `ui/ZoomWheel` +
+  `ui/ZoomStepper`, Badge `zoom_badge`, Haptik, Pinch zeigt das Rad, alter `zoom_seekbar`
+  samt Einstellung und drei Tests entfernt, Lautstärketasten direkt auf `Preview.zoomTo()`,
+  `MainUI.setSeekbarZoom()` → `onZoomChanged()`, Pille bleibt bei Videoaufnahme sichtbar,
+  Videozeit dreht nicht mehr mit), `a13c5b78` (Front bis 10×, „1"-Label für 1,25×,
+  „,51" → „,5", Einblenden nach dem Schrumpfen), `5a8f42a3` (Frontkamera öffnet auf „1"),
+  `5a04573c` (Videozeit klein oben rechts unter der Icon-Leiste – sie lag sonst hinter der
+  jetzt sichtbaren Pille).
+  Gelernt: Touch-Koordinaten beim Aufklappen in Bildschirm-Koordinaten nehmen
+  (`getRawX()`), weil die View unter dem Finger wächst; Stufen als Verhältnisse statt
+  Listen-Indizes halten (Zoom-Liste ändert beim Videostart ihre Form, `setZoomSticky`).
+  Doku: 4.5 (Stand, PM-Punkte 3 erledigt, 10 ergänzt, neu 11 Countdown-Drehung, 12
+  Rad-Optik ungemessen), `ui-spezifikation.md` 3.1/3.2/3.3/6/7/8/9 (K7 umgesetzt, K12
+  neu), `pixel-camera-screenshots.md` Abnahme-Punkt 2, Kickoff mit Statusvermerk.
+  Ponytail-Fund 3 bewusst nicht miterledigt (Farb-Schritt). **PM-Punkt 8
+  (Tele-Verzögerung, optionaler Kickoff-Punkt 7) nicht angefasst** – Falk hat nach der
+  Abnahme den Abschluss gewählt; bleibt offener PM-Punkt für einen eigenen kleinen Chat.
