@@ -2058,26 +2058,17 @@ public class DrawPreview {
                 }
             }
             else if( preview.isVideoRecording() && !is_preview_paused ) {
-                long video_time = preview.getVideoTime(false);
-                String time_s = getTimeStringFromSeconds(video_time/1000);
-            	/*if( MyDebug.LOG )
-					Log.d(TAG, "video_time: " + video_time + " " + time_s);*/
+                // the video time itself is drawn in the top right corner, see below - the
+                // zoom pill stays visible while recording and sits where it used to be
                 p.setTextSize(14 * scale_font + 0.5f); // convert dps to pixels
                 p.setTextAlign(Paint.Align.CENTER);
                 int pixels_offset_y = 2*text_y; // avoid overwriting the zoom
                 int color = Color.rgb(244, 67, 54); // Red 500
-                // The video time stays as printed on the fixed layout and doesn't turn with the
-                // device (Falk, 2026-09-18: it may simply read sideways) - unlike the glyphs
-                // MainUI.rotateGlyphs() turns and the timer countdown above.
                 if( main_activity.isScreenLocked() ) {
                     // writing in reverse order, bottom to top
                     applicationInterface.drawTextWithBackground(canvas, p, getContext().getResources().getString(R.string.screen_lock_message_2), color, Color.BLACK, canvas.getWidth() / 2, text_base_y - pixels_offset_y);
                     pixels_offset_y += text_y;
                     applicationInterface.drawTextWithBackground(canvas, p, getContext().getResources().getString(R.string.screen_lock_message_1), color, Color.BLACK, canvas.getWidth() / 2, text_base_y - pixels_offset_y);
-                    pixels_offset_y += text_y;
-                }
-                if( !preview.isVideoRecordingPaused() || ((int)(time_ms / 500)) % 2 == 0 ) { // if video is paused, then flash the video time
-                    applicationInterface.drawTextWithBackground(canvas, p, time_s, color, Color.BLACK, canvas.getWidth() / 2, text_base_y - pixels_offset_y);
                     pixels_offset_y += text_y;
                 }
                 if( show_video_max_amp_pref && !preview.isVideoRecordingPaused() ) {
@@ -2374,6 +2365,21 @@ public class DrawPreview {
                 }
             }
             top_x += (int) (10 * scale_dp + 0.5f); // convert dps to pixels
+        }
+
+        if( preview.isVideoRecording() && !preview.isPreviewPaused()
+                && ( !preview.isVideoRecordingPaused() || ((int)(time_ms / 500)) % 2 == 0 ) ) { // if video is paused, then flash the video time
+            // The video time: small, in the top right corner below the icon row (the same
+            // height the info lines use on the left), and as printed on the fixed layout -
+            // it doesn't turn with the device (Falk, 2026-09-18: it may simply read
+            // sideways), unlike the glyphs MainUI.rotateGlyphs() turns and the self-timer
+            // countdown. It used to sit above the shutter, where the zoom pill now stays
+            // visible while recording.
+            long video_time = preview.getVideoTime(false);
+            String time_s = getTimeStringFromSeconds(video_time/1000);
+            p.setTextSize(14 * scale_font + 0.5f); // convert dps to pixels
+            p.setTextAlign(Paint.Align.RIGHT);
+            applicationInterface.drawTextWithBackground(canvas, p, time_s, Color.rgb(244, 67, 54), Color.BLACK, canvas.getWidth() - top_x, top_y, MyApplicationInterface.Alignment.ALIGNMENT_TOP); // Red 500
         }
 
         onDrawInfoLines(canvas, top_x, top_y, text_base_y, device_ui_rotation, time_ms);
@@ -2974,9 +2980,9 @@ public class DrawPreview {
         // on the fixed portrait layout (rotation model, ui-spezifikation.md section 2): they do
         // NOT turn as a block when the device is turned - that would carry them into another
         // corner, over the icon row or the shutter row - so the placement is always the
-        // portrait one, whatever ui_rotation says. The few single-line texts that have to stay
-        // readable while the device is on its side (video time, self-timer countdown) turn on
-        // the spot instead, see drawUI().
+        // portrait one, whatever ui_rotation says. Only the self-timer countdown turns on the
+        // spot to stay readable while the device is on its side, see drawUI(); the video time
+        // deliberately doesn't (Falk, 2026-09-18).
         int device_ui_rotation = MainActivity.getRotationFromSystemOrientation(main_activity.getSystemOrientation());
 
         if( camera_controller != null && taking_picture && !front_screen_flash && take_photo_border_pref ) {
