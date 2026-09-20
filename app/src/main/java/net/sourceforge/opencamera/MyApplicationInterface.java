@@ -2139,6 +2139,11 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     }
 
     @Override
+    public void settingsSheetSwipe() {
+        main_activity.settingsSheetSwipe();
+    }
+
+    @Override
     public void startingVideo() {
         if( sharedPreferences.getBoolean(PreferenceKeys.LockVideoPreferenceKey, false) ) {
             main_activity.lockScreen();

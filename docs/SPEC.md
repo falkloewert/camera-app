@@ -247,18 +247,22 @@ Open-Camera-Basis, plus Falks Zusatz-Features. Verbindliche Bau-Vorgabe:
 `docs/design-reference/ui-spezifikation.md` (+ `pixel-camera-detailspec.md` für Zahlen,
 `pixel-camera-screenshots.md`, Referenz-PNGs). Entstehung/Begründung: `docs/changelog.md`.
 
-**Stand (2026-09-18):** Gebaut und am Pixel 9 Pro abgenommen: Material-3-Theme (fest
+**Stand (2026-09-20):** Gebaut und am Pixel 9 Pro abgenommen: Material-3-Theme (fest
 dunkel) + ConstraintLayout (Phase 1); Zoom-Stufen-Pille `,5 1× 2 5` (gemessen 48/192/44 dp)
 + Feinjustier-Rad (`ui/ZoomWheel`, Pinch zeigt Rad, alter Regler weg); Moduswahl
 `Foto · Panorama` (statisch, kein Karussell); Auslöser-Zeile nach Messung
 (`ui/ShutterButton`, Squircles, Galerie links, `ui/PhotoVideoSwitch`); Pixel-Drehmodell
 (Fenster fest Hochformat, nur Glyphen drehen, `MainUI.rotateGlyphs()`); keine Info-Toasts.
-**Offen:** `ui-spezifikation.md` Abschnitt 7 (Reihenfolge dort: A Foto-Blatt → B Pro/Video
-→ C Kopfzeile + Icon-Leiste/Popup weg → Karussell → Sucher-Overlays → Farben/Blur/Schrift).
+**Neu (2026-09-20, noch nicht am Gerät abgenommen):** Einstellungen-Blätter Foto + Video
+(`ui/SettingsSheet`, Hoch- und Querformat), linker Dock-Button, Wisch-Geste auf dem Sucher,
+Objektivauswahl "Manuell" (Zoom-Pille zeigt `UW · W · T`).
+**Offen:** rechter Dock-Button (Pro-Regler-Panel), danach Schritt C (Kopfzeile, dann
+Icon-Leiste + Popup weg); Rest `ui-spezifikation.md` Abschnitt 7 (Karussell →
+Sucher-Overlays → Farben/Blur/Schrift).
 **Feste Entscheidungen:** Screenshot-Spec schlägt Detail-Spec, gemessene Werte (2,25 px/dp)
-schlagen beide; keine Animationen außer Auslöser, Glyph-Drehung, Rad-Morph; Roboto Flex;
-Konflikte K1–K12 in `ui-spezifikation.md` 9; was die App nicht kann: 4b dort. Verlauf und
-Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
+schlagen beide; keine Animationen außer Auslöser, Glyph-Drehung, Rad-Morph, Blatt-Gleiten;
+Roboto Flex; Konflikte K1–K13 in `ui-spezifikation.md` 9; was die App nicht kann: 4b dort.
+Verlauf und Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
 
 **Offene Punkte für den Projektmanager-Chat** (erledigte/geklärte: `docs/changelog.md`):
 5. **Galerie leer nach Sperrbildschirm** (Open-Camera-Altverhalten, lädt beim nächsten
@@ -283,6 +287,8 @@ Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
     Objektivauswahl) in **einem** Lauf als Modell-Benchmark, je Modell ein Branch
     `bench/blatt-<modell>`: `docs/kickoff/redesign-einstellungen-blatt-benchmark.md`
     (enthält alle Messwerte und Entscheidungen). Offen danach: rechter Dock-Button, dann C.
+    **Blatt-Anteil gebaut (2026-09-20, Branch `bench/blatt-deepseek-flash-2`), noch nicht
+    am Gerät abgenommen.** Rechter Dock-Button und C bleiben offen.
 11. **Selbstauslöser-Countdown dreht noch mit** (`DrawPreview`); Videozeit ist fest.
     Konsistenz offen, vermutlich auch fest.
 12. **Rad-Optik gewählt, nicht gemessen** (kein Screenshot mit offenem Rad); bei Bedarf

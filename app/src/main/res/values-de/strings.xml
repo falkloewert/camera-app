@@ -961,4 +961,38 @@
     <string name="preference_audio_control_noise">Lautes Geräusch</string>
     <string name="preference_audio_control_voice">Sprachkommando: \"cheese\"</string> <!-- note that cheese shouldn't be translated, as we listen for this no matter what language is being used -->
 
+    <!-- Einstellungen-Blatt (ui/SettingsSheet). Deutsch ist die Referenz (Wortlaut wie die
+         Pixel-Kamera), die englischen Texte in values/strings.xml sind die Übersetzung. -->
+    <string name="settings_sheet_open">Einstellungen öffnen</string>
+    <string name="settings_sheet_more_options">Vollständige Einstellungen</string>
+    <string name="settings_sheet_photo">Fotoeinstellungen</string>
+    <string name="settings_sheet_video">Videoeinstellungen</string>
+    <string name="settings_sheet_tab_general">Allgemein</string>
+    <string name="settings_sheet_tab_pro">Pro</string>
+    <string name="settings_sheet_tab_more">Mehr</string>
+    <string name="settings_sheet_more_light">Mehr Licht</string>
+    <string name="settings_sheet_none">Keines</string>
+    <string name="settings_sheet_auto">Automatisch</string>
+    <string name="settings_sheet_manual">Manuell</string>
+    <string name="settings_sheet_flash">Blitz</string>
+    <string name="settings_sheet_timer">Timer</string>
+    <string name="settings_sheet_off">Aus</string>
+    <string name="settings_sheet_on">An</string>
+    <string name="settings_sheet_macro">Makrofokus</string>
+    <string name="settings_sheet_aspect">Verhältnis</string>
+    <string name="settings_sheet_aspect_wide">Breitbild (16:9)</string>
+    <string name="settings_sheet_aspect_full">Vollbild (4:3)</string>
+    <string name="settings_sheet_resolution">Auflösung</string>
+    <string name="settings_sheet_raw">RAW/JPEG</string>
+    <string name="settings_sheet_raw_off">Nur JPEG</string>
+    <string name="settings_sheet_raw_on">RAW + JPEG</string>
+    <string name="settings_sheet_lens">Objektivauswahl</string>
+    <string name="settings_sheet_fps">fps</string>
+    <string name="settings_sheet_stabilization">Videostabilisierung</string>
+    <string name="settings_sheet_lens_uw">UW</string>
+    <string name="settings_sheet_lens_w">W</string>
+    <string name="settings_sheet_lens_t">T</string>
+    <string name="settings_sheet_seconds">%1$s s</string>
+    <string name="settings_sheet_mp">%1$sMP</string>
+
 </resources>

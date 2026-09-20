@@ -159,44 +159,84 @@ Modell, nicht den aktuellen Stand.
 - Zwei-Finger-Zoom funktioniert weiter und zeigt das Rad, solange die Finger aufliegen;
   beim Loslassen wie 3.2. Das Einrasten nahe 1× (`Preview.ScaleListener`) bleibt.
 
-## 4. Foto-Einstellungen (Bottom-Sheet)  — NOCH NICHT UMGESETZT
+## 4. Foto-Einstellungen (Blatt) — umgesetzt 2026-09-20 (`ui/SettingsSheet`)
 
-Erreichbar über den **Einstellungen-Button unten links**. Schiebt sich als Blatt von
-unten über den Sucher; die Kamera-Oberfläche bleibt abgedunkelt dahinter sichtbar.
+Erreichbar über den **Einstellungen-Button unten links** (Abschnitt 2.1 der Benchmark-Kickoffs)
+und über die **Swipe-Geste auf dem Sucher** (3.6). Schiebt sich als Blatt von der physischen
+Unterkante herein, 250 ms; der Sucher dahinter bleibt **unverändert hell** (keine Abdunklung).
 
-**Kopf:** Ziehgriff, Titel "Fotoeinstellungen", rechts ein "…"-Button im Kreis.
-**Umschalter:** zwei Reiter "Allgemein" (aktiv: weiße Pille) / "Pro" (dunkel).
+**Kopf:** Ziehgriff, Titel "Fotoeinstellungen", rechts ein "…"-Button.
+**Umschalter:** zwei Reiter "Allgemein" (aktiv) / "Pro".
 
 **Zeilenschema:** links Bezeichnung (klein, grau) mit darunter dem aktuellen Wert (groß,
 weiß); rechts eine Reihe runder Icon-Buttons, ausgewählter = voll weiß gefüllt.
 
-**Zeilen im Reiter "Allgemein" – exakt diese, in dieser Reihenfolge:**
+**Gemessene Werte** (aus den Referenz-PNGs, 2,25 px/dp; verbindlich, wo die Detail-Spec
+abweicht):
+
+| Baustein | Wert |
+|---|---|
+| Paneel Hochformat | volle Breite × **538 dp**, obere Ecken Radius 24 dp, Füllung `#EB000000` |
+| Paneel Querformat | **470,7 × Bildschirmhöhe dp** (36 + 394,7 + 40), Ecken sucherseitig Radius 24 dp |
+| Ziehgriff | 36 × 4 dp, Radius 2, `#919191`, Oberkante 16 dp; Querformat: 4 × 36 dp, 16 dp vom sucherseitigen Rand, halbe Bildschirmhöhe |
+| Titel | 24 sp `#FFFFFF`, links 16 dp, Textmitte 65 dp (Querformat 45 dp) |
+| "…" | Stadion-Kontur 52 × 40 dp, Radius 20, Strich 1 dp `#919191`, Glyph `more_horiz`; rechts 16 dp, Mitte 64 dp (Querformat 44 dp) → `MainActivity.openSettings()`, Blatt schließt vorher |
+| Reiter | Oberkante 96 dp (Querformat 76 dp), Höhe 44 dp, Rand 16 dp, 2 dp Lücke, Radius 22; aktiv `#FFFFFF`/`#1B1B1B`, inaktiv `#2A2A2A`/`#E2E2E2`, 16 sp medium; Umschalten ohne Animation, beim Öffnen immer links |
+| Zeilen | Raster 56 dp, erste Mitte 182 dp (Querformat 162 dp); Bezeichnung 14 sp `#E2E2E2` (Mitte 10 dp über der Zeilenmitte), Wert 20 sp `#FFFFFF` (Mitte 13 dp unter), beide links 16 dp |
+| Options-Knöpfe | 40 × 40 dp im 48-dp-Raster, rechtsbündig, letzter endet 20 dp vom Bildschirmrand; gewählt: weißer **Kreis**, Icon `#1B1B1B`; sonst Quadrat `#1F1F1F` Radius 12 dp, Icon `#E2E2E2` |
+
+Querformat: Inhaltsblock 394,7 dp breit, Einzug 36 dp sucherseitig / 40 dp außen, alle
+senkrechten Positionen 20 dp höher als im Hochformat, Inhalt aufrecht zur `ui_rotation`.
+Andere Querlage: spiegelbildlich an der physischen Unterkante, auf dem Kopf um 180° gedreht.
+Technik: das Fenster bleibt fest (Abschnitt 6), das Paneel liegt an der Fensterunterkante und
+wird um `ui_rotation` gedreht – dessen lokale Achsen sind dann die des Nutzers, deshalb überall
+einfache Vorzeichen statt Spiegel-Flags.
+
+**Zeilen im Reiter "Allgemein" – gebaut, in dieser Reihenfolge:**
 
 | Zeile | Werte / Icons |
 |---|---|
-| **Mehr Licht** | drei Optionen: Keines (⊘) · Nachtsicht-Automatik (Mond mit „A") · Blitz (Blitzsymbol) |
-| **Timer** | vier Optionen: Aus · 3 s · 5 s · 10 s |
-| **Makrofokus** | drei Optionen: Aus · Automatisch · An |
+| **Mehr Licht** | `ms_block` · `ms_flash_auto` · `ms_flash_on` – Werte `flash_off` / `flash_auto`·`frontscreen_auto` / `flash_on`·`frontscreen_on`; Frontkamera zeigt die Frontblitz-Werte. Zeile entfällt bei weniger als zwei Optionen |
+| **Timer** | vier Optionen: Aus · 3 s · 5 s · 10 s (`ms_timer_off/3/5/10`), `TimerPreferenceKey`; im Panoramamodus weggelassen |
+| **Makrofokus** | **nur zwei Optionen:** Aus · An (`focus_mode_continuous_picture` ↔ `focus_mode_macro`) |
 | **Verhältnis** | **nur zwei Optionen:** Breitbild (16:9) · Vollbild (4:3) |
 
-**Ausdrücklich NICHT übernehmen:**
+**Ausdrücklich NICHT übernommen:**
 - **"Top-Foto"** – beruht auf Google-KI, gibt es in dieser App nicht.
 - Weitere Verhältnis-Optionen außer 16:9 und 4:3.
+- **"?"-Hilfeknöpfe** neben den Werten (Referenz hat sie bei Makrofokus) – keine Hilfetexte.
 
-### Reiter "Pro" — Entscheidung Falk 2026-09-15: **alles übernehmen**
+### Reiter "Pro" — umgesetzt 2026-09-20
 
-Wie in der Referenz: Kamera-Infozeile oben (Objektiv, Blende, Fokusmodus, Belichtungszeit,
-ISO), darunter ein Regler mit Teilstrichen, darunter eine waagerecht scrollbare Reihe aus
-Icon+Text-Reitern, die bestimmen, was der Regler einstellt:
-`Alle zurücksetzen · Helligkeit · Schatten · Weißabgleich · Fokus · Belichtung`.
+Die Regler-Beschreibung der Detail-Spec (Kamera-Infozeile, Regler mit Teilstrichen, Reiter
+`Alle zurücksetzen · Helligkeit · Schatten · Weißabgleich · Fokus · Belichtung`) gehört zum
+**rechten** Dock-Button und ist hier **nicht** gebaut – Konflikt **K13** in Abschnitt 9.
+Gebaut sind drei Zeilen, in dieser Reihenfolge:
 
-## 4a. Video-Einstellungen-Blatt — Entscheidung Falk 2026-09-15: **ja**
+1. **Auflösung** – zwei Knöpfe `12MP` / `<n>MP` (größte Auflösung ≤ 13 MP bzw. die größte
+   überhaupt, jeweils im aktuellen Verhältnis); `n` = gerundete Megapixel. Zeile entfällt,
+   wenn die Kamera nichts über 13 MP meldet. Schreibt in dieselbe Auflösungs-Preference wie
+   das Verhältnis, das Verhältnis bleibt erhalten.
+2. **RAW/JPEG** – **Nur JPEG · RAW** (`RawPreferenceKey` `preference_raw_no`/`preference_raw_yes`),
+   nur wenn `preview.supportsRaw()`; löst `updateForSettings` aus.
+3. **Objektivauswahl** – **Automatisch · Manuell** (Wert-Text genau so), nur bei Kameras mit
+   `hasPhysicalCameras()`. "Manuell" zeigt in der Zoom-Pille statt der Stufen die
+   Linsenknöpfe (Definition in 4b).
 
-Gleiches Grundschema, Titel "Videoeinstellungen", Reiter "Allgemein" / "Mehr".
-- **Allgemein:** Blitz · Video-Optimierung · Auflösung (FHD/4K/8K) · fps (24/30/60) ·
-  10-Bit-HDR-Video · Makrofokus
-- **Mehr:** Videostabilisierung (Standard/Aktiv/Extra) · Mikrofon (Smartphone/Bluetooth) ·
-  Verbesserte Sprachqualität
+## 4a. Video-Einstellungen-Blatt — umgesetzt 2026-09-20
+
+Gleiches Grundschema und gleiche Maße wie 4, Titel "Videoeinstellungen", Reiter
+"Allgemein" / "Mehr"; es erscheint statt des Foto-Blattes, wenn der Videomodus aktiv ist.
+Gebaut sind:
+
+- **Allgemein:** Blitz (nur wenn `Preview.isFlashSupportedForVideo`) · Auflösung
+  (FHD/4K/8K, wo die aktuelle Bildrate sie anbietet) · fps (24/30/60, wo die Kamera sie
+  unterstützt) · Makrofokus (Aus/An, `focus_mode_continuous_video`)
+- **Mehr:** Videostabilisierung (Aus/An)
+
+Weggelassen (kein Gegenstück in der App, Entscheidung 15.09.): Video-Optimierung,
+10-Bit-HDR-Video; Mikrofon und Verbesserte Sprachqualität; die drei Stufen der
+Videostabilisierung (Standard/Aktiv/Extra) – die App kennt nur an/aus.
 
 ## 4b. Abweichungen, weil die App die Funktion nicht hat
 
@@ -211,8 +251,21 @@ entschieden** – nicht erneut zur Diskussion stellen, sondern so bauen:
 | **Video-Optimierung**, **Verbesserte Sprachqualität** | Kein Gegenstück. | **Weglassen.** |
 | **Mehr Licht** (Keines / Nachtsicht / Blitz) | Blitz aus/auto/an existiert; „Nachtsicht" ist ein Herstellermodus (X_Night), nicht garantiert verfügbar. | Zeile bildet **Blitz aus / auto / an** ab. |
 
-**Weiterhin offen:** Was sollen der **"…"-Button** oben rechts im Blatt und der
-**Regler-Button unten rechts** in der Fußzeile öffnen?
+**Geklärt (2026-09-20):**
+- Der **"…"-Button** oben rechts im Blatt öffnet die volle Einstellungsliste
+  (`MainActivity.openSettings()`), das Blatt schließt vorher.
+- Der **Regler-Button unten rechts** in der Fußzeile gehört zum Pro-Panel des rechten
+  Dock-Buttons (K13, Abschnitt 9) und bleibt offen.
+- **Objektivauswahl "Manuell"** (Zeile 3 des Pro-Reiters): die Zoom-Pille zeigt statt
+  `,5 1× 2 5` die Beschriftungen **`UW` · `W` · `T`** – je ein Knopf pro physischer Linse der
+  Rückkamera, zugeordnet nach Sichtwinkel absteigend (Ultraweit, Weit = Hauptlinse, Tele);
+  bei nur zwei Linsen nur zwei Knöpfe. Start ist **W** (die physische Linse mit dem
+  Sichtwinkel der logischen Kamera am nächsten), aktiver Knopf = weißer Kreis wie bei den
+  Zoomstufen. Tipp = `userSwitchToCamera(getActualCameraId(), physicalId)`. Im Manuell-Modus
+  ist das **Rad gesperrt** (Ziehen auf der Pille öffnet es nicht), Pinch-Zoom bleibt wie Open
+  Camera ihn auf der physischen Kamera anbietet. Zustand "Manuell" = `getCameraIdSPhysicalPref()
+  != null`; "Automatisch" = zurück auf die logische Kamera. Panorama behält sein eigenes
+  Linsenpaar.
 
 ## 5. Moduswahl-Leiste — Entscheidung Falk 2026-09-15
 
@@ -222,6 +275,11 @@ Porträt/Nachtsicht/zufügen, solange die App diese Modi nicht wirklich beherrsc
 
 ## 6. Was bereits umgesetzt ist
 
+- **Einstellungen-Blätter Foto + Video, linker Dock-Button, Swipe-Geste (2026-09-20)**:
+  `ui/SettingsSheet` (eigene View im `FrameLayout`, kein Material-Dialog), Dock-Knopf
+  ⌀ 48 dp `#333333` mit `settings_photo_camera` und Zahnrad-Kreis, Wisch nach unten auf dem
+  Sucher (`Preview.gestureDetector.onFling` → `ApplicationInterface.settingsSheetSwipe()`),
+  Maß- und Farbwerte in Abschnitt 4/4a. Offen: der rechte Dock-Button (7.1 Punkt 3).
 - Material-3-Fundament, fest dunkles Theme (Phase 1)
 - `activity_main.xml` von RelativeLayout auf ConstraintLayout migriert (Phase 1)
 - Auslöser und Video-Umschalter monochrom (weiß/dunkel) statt blau
@@ -351,11 +409,14 @@ Soll-Werte aus der Detail-Spec, außer wo die Screenshot-Spec etwas anderes sagt
    darüber (28 dp hoch, Radius 9999, Padding 12 dp waagerecht, Wert wie `2,5×`);
    `CLOCK_TICK` pro überstrichenem Strich; nach Loslassen zurück zu den vier Stufen; im
    Querformat senkrecht. Hauptmarken: Konflikt K7 (mit „,5", umgesetzt).
-2. **Foto-/Video-Einstellungen-Blatt (Abschnitte 4, 4a, 4b)** samt **Swipe-Down-Geste**
-   auf dem Sucher. Ist: `MainActivity.MyGestureDetector.onFling()` (L5020) macht nur
-   Screen-Unlock. Die Detail-Spec nennt es „Quick Settings Pull-Down-Sheet" mit
-   Nachtsicht/Timer/Verhältnis/Blitz – Inhalt bleibt wie Abschnitt 4, die
-   Falk-Entscheidungen aus 4b gelten.
+2. ~~**Foto-/Video-Einstellungen-Blatt (Abschnitte 4, 4a, 4b)** samt **Swipe-Down-Geste**
+   auf dem Sucher.~~ **Erledigt (2026-09-20, vorgezogen vor 1; A+B des PM-Punkt-10-Schnitts)**:
+   `ui/SettingsSheet`, linker Dock-Button, Wisch-Geste in
+   `Preview.gestureDetector` (der `MainActivity.MyGestureDetector` für den gesperrten
+   Bildschirm bleibt unberührt). Abweichung: die Wischrichtung kommt **nicht** aus
+   `ui_rotation`, sondern ist immer Fenster-+y, weil die physische Unterkante im
+   gesperrten Fenster in allen vier Lagen dieselbe ist (Abschnitt 8). Offen: rechter
+   Dock-Button samt Pro-Regler.
 3. **Unterste Zeile / Dock (Abschnitt 1, Punkt 4 c).** Fehlt vollständig. Soll: 52 dp
    hoch, direkt über der Gestenleiste. Links: Kreis 40 dp, `rgba(255,255,255,0.10)`,
    weißes Schieberegler-/Zahnrad-Icon 22 dp → öffnet das Blatt. Mitte: Pille `#1C1B1F`
@@ -365,8 +426,10 @@ Soll-Werte aus der Detail-Spec, außer wo die Screenshot-Spec etwas anderes sagt
    genau, ist in 4b offen). ~~Folge: `switch_video` verschwindet von der Auslöser-Zeile.~~
    **Teilweise erledigt (Audit-Schritt 1):** der Umschalter in der Mitte ist gebaut
    (`PhotoVideoSwitch`, gemessene Maße in Abschnitt 6 – Pille 92 × 40 dp, Knopf 48 dp,
-   nicht 96 × 40 / 34 dp), `switch_video` ist weg. Offen: die beiden Kreis-Buttons links
-   und rechts.
+   nicht 96 × 40 / 34 dp), `switch_video` ist weg. **Linker Kreis erledigt (2026-09-20):**
+   48 dp statt 40, Füllung `#333333` statt `rgba(255,255,255,0.10)`, Icon
+   `settings_photo_camera` statt Zahnrad – gemessene Werte schlagen die Detail-Spec, er
+   öffnet das Blatt. Offen: der rechte Kreis (Pro-Panel, K13).
 4. **Kopfzeile (Abschnitt 1, Punkt 1).** Fehlt. Stattdessen läuft die alte Icon-Leiste
    (`settings`, `popup`, `exposure`, `exposure_lock` …, je `onscreen_button_size` = 60 dp,
    `MainUI.layoutUI()` L537–650) samt `PopupView` (Drei-Punkte-Menü). Soll: 56–64 dp hoch,
@@ -519,6 +582,25 @@ nicht verifizieren (closed source).
   `RotatedTextView` ist entfallen, die Modus-Beschriftung ist wieder eine normale
   `TextView`, die wie jede andere Glyphe per `setRotation()` gedreht wird.
 
+### Einstellungen-Blätter (2026-09-20) – Entscheidungen Falk und selbst gewählte Werte
+
+- **Keine Abdunklung** hinter dem Blatt (Referenz ist ebenso hell; die Spec-Sätze
+  „abgedunkelt" sind falsch). Der Sucher bleibt unverändert.
+- **Keine "?"-Hilfeknöpfe** neben den Werten (Referenz hat sie bei Makrofokus) – keine
+  Hilfetexte, kein Ersatz.
+- **Objektivauswahl "Manuell"** ist aus der Referenz nicht bekannt. Selbst gewählt:
+  **Rad-Sperre** (Ziehen auf der Pille öffnet das Feinjustier-Rad nicht mehr, Pinch-Zoom
+  bleibt) und **Startlinse "W"** (Sichtwinkel am nächsten zur logischen Kamera).
+- **Gleit-Animation** von 250 ms (schließen 200 ms) ist als **Ausnahme** bewusst gewählt:
+  die Referenz wurde nicht in Bewegung gemessen, und das Blatt braucht eine
+  Ein-/Ausblendung. Reines `translationY` in Fenster-Achsen – deshalb funktioniert die
+  Schließrichtung ohne `ui_rotation` (siehe 7.1 Punkt 2).
+- **Video-Blatt ohne Referenz-Screenshot:** für die Video-Zeilen (Blitz, Auflösung, fps,
+  Makrofokus, Stabilisierung) gibt es kein Referenz-PNG; Positionen und Knopfmaße sind von
+  Foto-Blatt und Dock abgeleitet.
+- **Kein Scrollen im Blatt:** höchstens vier Zeilen je Reiter, feste Platzierung. Wird später
+  ein Reiter länger, muss ab Reiter-Unterkante scrollbar gemacht werden (Referenz kann das).
+
 ### Audit-Schritt 1 (Auslöser-Zeile, 2026-09-17) – Entscheidungen Falk
 
 - **Keine Animationen außer am Auslöser selbst.** Falk will es „so simpel wie möglich":
@@ -640,6 +722,7 @@ einem offenen Punkt abhängt, ohne vorher nachzufragen.
 | K10 | Auslöser-Außenring | weiße 2-dp-Kontur, 4 dp Lücke, 88 dp | breiter, halbtransparenter grauer Außenring (1b) | **Screenshot-Spec** (transluzent-grau) |
 | K11 | Zoom-Zeichen | Buchstabe `x` (`1x`, `,5x`) | `×` (3.1, „offen") | **Screenshot-Spec** (`×`, bereits so umgesetzt) |
 | K12 | Rad nach dem Loslassen über 5× | – | 3.2 „zurück zu den vier Stufen" vs. `pixel-camera-screenshots.md` Abnahme-Punkt 2 „oder ist man auf einer hohen Stufe" (Rad bleibt?) | **Am Gerät geklärt (Falk, 2026-09-18):** das Rad schließt immer; der nächstliegende Slot zeigt den genauen Wert („6,7×" im 5er-Slot), Tipp darauf → 5×. Umgesetzt, siehe 3.1/3.2 |
+| K13 | Reiter "Pro" des Foto-Blattes | Kamera-Infozeile, Regler mit Teilstrichen und Reiter `Alle zurücksetzen · Helligkeit · Schatten · Weißabgleich · Fokus · Belichtung` (Abschnitt 4 „Reiter Pro") | `pixel-sheet-pro-hochformat.png` zeigt Auflösung · RAW/JPEG · Objektivauswahl | **Entschieden (2026-09-20, Kickoff Einstellungen-Blatt):** die Regler-Beschreibung gehört zum **rechten Dock-Button** (Pro-Panel), nicht ins Blatt. Im Blatt gebaut sind die drei Zeilen aus dem Screenshot (Abschnitt 4). Der rechte Dock-Button selbst ist noch offen (7.1 Punkt 3) |
 
 **Schriftfamilie (Zeile in 7.3, kein K-Punkt):** Google Sans ist nicht frei lizenzierbar
 → **Roboto Flex (OFL)** als gebündelte Font-Ressource, keine weitere Rückfrage nötig.

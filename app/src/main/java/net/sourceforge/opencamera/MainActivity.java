@@ -9,6 +9,7 @@ import net.sourceforge.opencamera.remotecontrol.BluetoothRemoteControl;
 import net.sourceforge.opencamera.ui.DrawPreview;
 import net.sourceforge.opencamera.ui.FolderChooserDialog;
 import net.sourceforge.opencamera.ui.MainUI;
+import net.sourceforge.opencamera.ui.SettingsSheet;
 import net.sourceforge.opencamera.ui.ManualSeekbars;
 
 import java.io.File;
@@ -654,6 +655,8 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         this.getOnBackPressedDispatcher().addCallback(this, pausePreviewOnBackPressedCallback);
         screenLockOnBackPressedCallback = new ScreenLockOnBackPressedCallback(false);
         this.getOnBackPressedDispatcher().addCallback(this, screenLockOnBackPressedCallback);
+        settingsSheetOnBackPressedCallback = new SettingsSheetOnBackPressedCallback(false);
+        this.getOnBackPressedDispatcher().addCallback(this, settingsSheetOnBackPressedCallback);
 
         // create notification channel - only needed on Android 8+
         // update: notifications now removed due to needing permissions on Android 13+
@@ -699,7 +702,7 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
      * Needed as Preview.getCameraId() returns 0 if camera_controller==null, but if the camera
      * fails to open, we want the switch camera icons to still work as expected!
      */
-    private int getActualCameraId() {
+    public int getActualCameraId() {
         if( preview.getCameraController() == null )
             return applicationInterface.getCameraIdPref();
         else
@@ -2048,6 +2051,9 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             return;
         }
         this.closePopup();
+        // the rows are camera specific, so the sheet closes on a camera switch (Kickoff 3.2)
+        if( settingsSheet != null && settingsSheet.isOpen() )
+            settingsSheet.close();
         if( this.preview.canSwitchCamera() ) {
             int cameraId = getNextCameraId();
             if( !isMultiCamEnabled() ) {
@@ -2383,6 +2389,192 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         userSwitchToCamera(curr_camera_id, target_physical_id);
     }
 
+    /** One physical lens of the current logical camera, for the manual lens selection of the
+     *  settings sheet (Kickoff 3.3/3.4) and the lens buttons of the zoom pill. */
+    public static class Lens {
+        public final String physical_id;
+        public final int label_res;     // "UW" (ultra wide), "W" (main) or "T" (tele)
+        public final float view_angle;
+        public final boolean main;
+
+        Lens(String physical_id, int label_res, float view_angle, boolean main) {
+            this.physical_id = physical_id;
+            this.label_res = label_res;
+            this.view_angle = view_angle;
+            this.main = main;
+        }
+    }
+
+    private CameraController manual_lenses_cache_for_controller;
+    private List<Lens> manual_lenses;
+    private String manual_main_lens_id;
+
+    private void updateManualLensCache() {
+        CameraController camera_controller = preview.getCameraController();
+        if( camera_controller != null && camera_controller == manual_lenses_cache_for_controller )
+            return;
+        manual_lenses = null;
+        manual_main_lens_id = null;
+        if( camera_controller == null || preview.isOpeningCamera() ) {
+            // nothing to cache until a camera is open and set up; leave the key unset so the
+            // next call computes it
+            manual_lenses_cache_for_controller = null;
+            return;
+        }
+        manual_lenses_cache_for_controller = camera_controller;
+        if( !preview.hasPhysicalCameras() )
+            return;
+        // sort the physical lenses by field of view, widest first (the same source the panorama
+        // lens cache uses)
+        class PhysicalLens {
+            final String physical_id;
+            final float view_angle;
+            PhysicalLens(String physical_id, float view_angle) {
+                this.physical_id = physical_id;
+                this.view_angle = view_angle;
+            }
+        }
+        List<PhysicalLens> lenses = new ArrayList<>();
+        for(String physical_id : preview.getPhysicalCameras()) {
+            CameraControllerManager.CameraInfo info = new CameraControllerManager.CameraInfo();
+            preview.getCameraControllerManager().getDescription(info, this, physical_id, false, true);
+            lenses.add(new PhysicalLens(physical_id, info.view_angle == null ? 0.0f : info.view_angle.getWidth()));
+        }
+        if( lenses.size() < 2 )
+            return;
+        Collections.sort(lenses, new Comparator<PhysicalLens>() {
+            @Override
+            public int compare(PhysicalLens a, PhysicalLens b) {
+                return Float.compare(b.view_angle, a.view_angle);
+            }
+        });
+        // the main lens is the one whose field of view comes closest to the logical camera's own;
+        // everything wider is labelled "UW", everything narrower "T" (Kickoff 3.4)
+        CameraControllerManager.CameraInfo main_info = new CameraControllerManager.CameraInfo();
+        preview.getCameraControllerManager().getDescription(main_info, this, String.valueOf(getActualCameraId()), false, true);
+        float main_angle = main_info.view_angle == null ? 0.0f : main_info.view_angle.getWidth();
+        int main_index = 0;
+        float best = Float.MAX_VALUE;
+        for(int i=0;i<lenses.size();i++) {
+            float difference = Math.abs(lenses.get(i).view_angle - main_angle);
+            if( difference < best ) {
+                best = difference;
+                main_index = i;
+            }
+        }
+        List<Lens> result = new ArrayList<>();
+        for(int i=0;i<lenses.size();i++) {
+            int label = i < main_index ? R.string.settings_sheet_lens_uw : (i == main_index ? R.string.settings_sheet_lens_w : R.string.settings_sheet_lens_t);
+            result.add(new Lens(lenses.get(i).physical_id, label, lenses.get(i).view_angle, i == main_index));
+        }
+        manual_lenses = result;
+        manual_main_lens_id = result.get(main_index).physical_id;
+        if( MyDebug.LOG )
+            Log.d(TAG, "manual lenses: " + result.size() + " main: " + manual_main_lens_id);
+    }
+
+    /** The physical lenses of the current camera, widest first - null if this camera has none
+     *  (i.e. the front camera). Cached per opened camera, like the panorama lens cache. */
+    public List<Lens> getManualLenses() {
+        updateManualLensCache();
+        return manual_lenses;
+    }
+
+    /** The lens the manual selection starts on: the one closest to the logical camera's own
+     *  field of view, i.e. the one labelled "W" (Kickoff 3.4). */
+    public String getMainLensId() {
+        updateManualLensCache();
+        return manual_main_lens_id;
+    }
+
+    /** Switches the current camera to one of its physical lenses - the same call the panorama
+     *  lens buttons make (Kickoff 3.4). */
+    public void switchToPhysicalLens(String cameraIdSPhysical) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "switchToPhysicalLens: " + cameraIdSPhysical);
+        if( cameraIdSPhysical == null )
+            return;
+        if( preview.isOpeningCamera() )
+            return;
+        if( !preview.canSwitchCamera() )
+            return;
+        userSwitchToCamera(getActualCameraId(), cameraIdSPhysical);
+    }
+
+    /* ---- settings sheet (Kickoff 3.1/3.2) ------------------------------------------------- */
+
+    private SettingsSheet settingsSheet;
+
+    /** The settings sheet, created on first use - it only builds its view when it is opened. */
+    public SettingsSheet getSettingsSheet() {
+        if( settingsSheet == null )
+            settingsSheet = new SettingsSheet(this);
+        return settingsSheet;
+    }
+
+    /** The left dock button: opens the sheet of the current mode, or closes it again. */
+    public void clickedSettingsSheet(View view) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "clickedSettingsSheet");
+        SettingsSheet sheet = getSettingsSheet();
+        if( sheet.isOpen() )
+            sheet.close();
+        else
+            sheet.open();
+    }
+
+    /** A swipe towards the physical bottom edge on the viewfinder opens the settings sheet
+     *  (Kickoff 3.6). */
+    public void settingsSheetSwipe() {
+        if( MyDebug.LOG )
+            Log.d(TAG, "settingsSheetSwipe");
+        if( preview == null )
+            return;
+        if( preview.isOpeningCamera() )
+            return;
+        if( preview.isVideoRecording() || applicationInterface.getGyroSensor().isRecording() )
+            return;
+        if( preview.isTakingPhotoOrOnTimer() )
+            return;
+        if( isScreenLocked() )
+            return;
+        if( popupIsOpen() )
+            return;
+        getSettingsSheet().open();
+    }
+
+    private SettingsSheetOnBackPressedCallback settingsSheetOnBackPressedCallback;
+
+    private class SettingsSheetOnBackPressedCallback extends OnBackPressedCallback {
+        public SettingsSheetOnBackPressedCallback(boolean enabled) {
+            super(enabled);
+        }
+
+        @Override
+        public void handleOnBackPressed() {
+            if( MyDebug.LOG )
+                Log.d(TAG, "SettingsSheetOnBackPressedCallback.handleOnBackPressed");
+            SettingsSheet sheet = getSettingsSheet();
+            if( sheet.isOpen() ) {
+                // close() disables this callback, so no need to do it here
+                sheet.close();
+            }
+            else {
+                // shouldn't be here (if the sheet isn't open, this callback shouldn't be enabled)
+                if( MyDebug.LOG )
+                    Log.e(TAG, "SettingsSheetOnBackPressedCallback was enabled but sheet not open?!");
+                this.setEnabled(false);
+            }
+        }
+    }
+
+    public void enableSettingsSheetOnBackPressedCallback(boolean enabled) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "enableSettingsSheetOnBackPressedCallback: " + enabled);
+        if( settingsSheetOnBackPressedCallback != null )
+            settingsSheetOnBackPressedCallback.setEnabled(enabled);
+    }
+
     public void clickedSwitchMultiCamera(View view) {
         if( MyDebug.LOG )
             Log.d(TAG, "clickedSwitchMultiCamera");
@@ -2412,6 +2604,9 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             Log.d(TAG, "clickedSwitchVideo");
         this.closePopup();
         mainUI.destroyPopup(); // important as we don't want to use a cached popup, as we can show different options depending on whether we're in photo or video mode
+        // the sheet belongs to the mode, so it closes (Kickoff 3.2)
+        if( settingsSheet != null && settingsSheet.isOpen() )
+            settingsSheet.close();
 
         // In practice stopping the gyro sensor shouldn't be needed as (a) we don't show the switch
         // photo/video icon when recording, (b) at the time of writing switching to video mode
@@ -5362,6 +5557,10 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             Log.d(TAG, "cameraSetup: total time for cameraSetup: " + (System.currentTimeMillis() - debug_time));
 
         this.getApplicationInterface().getDrawPreview().setDimPreview(false);
+
+        // an open settings sheet re-reads its rows from the new camera state (Kickoff 3.2)
+        if( settingsSheet != null )
+            settingsSheet.refresh();
     }
 
     /** For Camera2 only. Sets whether the zoom ratios should be sticky or not (see documentation of

@@ -440,6 +440,11 @@ public abstract class BasicApplicationInterface implements ApplicationInterface 
     }
 
     @Override
+    public void settingsSheetSwipe() {
+
+    }
+
+    @Override
     public void startingVideo() {
 
     }

@@ -307,6 +307,16 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   Falk (Sheet-Screenshots zum Messen, „…"-Button → `openSettings()` als Empfehlung,
   Verhalten bei quer gehaltenem Gerät, Dock-Button im Videomodus). Reihenfolge in
   `ui-spezifikation.md` Abschnitt 7 entsprechend angepasst.
+- **2026-09-20 (Feature-Chat, Modell-Benchmark „deepseek-flash"):** Kickoff
+  `docs/kickoff/redesign-einstellungen-blatt-benchmark.md` umgesetzt (ganzer Blatt-Anteil von
+  A+B in einem Lauf): `ui/SettingsSheet` (Foto- und Video-Blatt, Hoch-/Querformat/Kopf,
+  Options-Knöpfe, „…" → `openSettings()`), linker Dock-Button ⌀ 48 dp, Wisch-Geste in
+  `Preview.gestureDetector` → `ApplicationInterface.settingsSheetSwipe()`, Objektivauswahl
+  „Manuell" (Zoom-Pille `UW · W · T`, Rad gesperrt, Startlinse W), 4 neue Drawables, 14
+  Material-Symbol-Vektoren. Branch `bench/blatt-deepseek-flash-2` (der Wunschname
+  `bench/blatt-deepseek-flash` war im anderen Worktree belegt). **Nicht am Gerät
+  abgenommen.** Offen: rechter Dock-Button, Schritt C. Details: `ui-spezifikation.md`
+  4/4a/4b/6/7.1/8/9 (K13).
 
 
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)

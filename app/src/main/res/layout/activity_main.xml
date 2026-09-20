@@ -850,6 +850,24 @@
          Beschriftungen quer - genau wie in der Referenz (ui-spezifikation.md Abschnitt 2),
          die Modus-Texte werden bewusst NICHT wie die Symbole zurueckgedreht. Der Abstand
          zwischen den Eintraegen kommt als Trenner (showDividers). -->
+    <!-- Linker Dock-Button der untersten Zeile (Kickoff 2.1/3.1): Kreis 48 dp, Fuellung
+         #333333, Icon settings_photo_camera weiss. Das 24-dp-Symbol bleibt durch das
+         Innenabstand-Polster von 12 dp auf 24 dp und wird nicht auf den Kreis hochskaliert.
+         Position setzt MainUI.layoutUI() (Zentrum 40 dp vom linken Rand, 85 dp von unten). -->
+    <ImageButton
+        android:id="@+id/settings_sheet_button"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="12dp"
+        android:scaleType="centerInside"
+        android:background="@drawable/settings_sheet_dock_button"
+        android:src="@drawable/ms_settings_photo_camera"
+        android:contentDescription="@string/settings_sheet_open"
+        android:onClick="clickedSettingsSheet"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        />
+
     <!-- Foto/Video-Umschalter aus der untersten Zeile der Referenz (Audit-Schritt 1 nimmt nur
          dieses eine Element vorweg, die Buttons links und rechts davon kommen mit Schritt 2).
          Größe und Ausrichtung bestimmt die View selbst, Position MainUI.layoutUI(). -->
@@ -904,5 +922,30 @@
             />
 
     </LinearLayout>
+
+    <!-- Einstellungen-Blatt (Kickoff 3.2). Letztes Kind des Root-Layouts, damit es ueber allem
+         liegt. settings_sheet ist der bildschirmfuellende Faenger: ein Tipp daneben schliesst
+         das Blatt, und keine Beruehrung erreicht den Sucher darunter. Das Paneel
+         (settings_sheet_panel) baut ui/SettingsSheet selbst auf - Groesse, Drehung und
+         Translation setzt es je ui_rotation (Hochformat: 426,7 x 538 dp unten; Querformat:
+         470,7 dp dick an der physischen Unterkante; auf dem Kopf um 180 Grad gedreht). -->
+    <FrameLayout
+        android:id="@+id/settings_sheet"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" >
+
+        <FrameLayout
+            android:id="@+id/settings_sheet_panel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

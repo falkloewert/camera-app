@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Linker Dock-Button (Einstellungen-Blatt): Kreis 48 dp in derselben dunkelgrauen Fuellung
+     wie die Foto/Video-Pille der Referenz (Kickoff redesign-einstellungen-blatt-benchmark.md
+     2.1, gemessen: #333333, NICHT rgba(255,255,255,0.10) der Detail-Spec). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/photo_video_switch_pill" />
+</shape>

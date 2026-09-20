@@ -40,4 +40,20 @@
          der Mitte reinweiss. -->
     <color name="zoom_wheel_tick">#99FFFFFF</color>
     <color name="zoom_wheel_pointer">#FFFFFF</color>
+
+    <!-- Einstellungen-Blatt (ui/SettingsSheet), alle Werte aus dem Referenz-Screenshot
+         gemessen (Kickoff redesign-einstellungen-blatt-benchmark.md 2.2/2.3). -->
+    <color name="settings_sheet_panel">#EB000000</color>
+    <color name="settings_sheet_handle">#919191</color>
+    <color name="settings_sheet_outline">#919191</color>
+    <color name="settings_sheet_tab_active">#FFFFFF</color>
+    <color name="settings_sheet_tab_active_text">#1B1B1B</color>
+    <color name="settings_sheet_tab_inactive">#2A2A2A</color>
+    <color name="settings_sheet_tab_inactive_text">#E2E2E2</color>
+    <color name="settings_sheet_label">#E2E2E2</color>
+    <color name="settings_sheet_value">#FFFFFF</color>
+    <color name="settings_sheet_button">#1F1F1F</color>
+    <color name="settings_sheet_button_glyph">#E2E2E2</color>
+    <color name="settings_sheet_button_selected">#FFFFFF</color>
+    <color name="settings_sheet_button_glyph_selected">#1B1B1B</color>
 </resources>

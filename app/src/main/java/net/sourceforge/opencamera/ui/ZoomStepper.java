@@ -51,6 +51,9 @@ public class ZoomStepper implements ZoomWheel.Listener {
      *  (CameraController2.setZoomSticky()). */
     private final List<Float> step_ratios = new ArrayList<>();
     private final List<Button> step_buttons = new ArrayList<>();
+    /** Non-null when the pill is showing the physical lenses instead of the zoom steps
+     *  (the sheet's "Manuell", Kickoff 3.4). Then step_ratios stays empty. */
+    private List<MainActivity.Lens> manual_lenses;
     private int selected_step = -1;
     /** What the selected step's label shows: its own ratio, or the actual zoom when the wheel
      *  or a pinch settled somewhere between steps. */
@@ -62,7 +65,7 @@ public class ZoomStepper implements ZoomWheel.Listener {
     }
 
     public boolean hasSteps() {
-        return !step_ratios.isEmpty();
+        return manual_lenses != null || !step_ratios.isEmpty();
     }
 
     /** The step buttons, widest lens first - the glyphs MainUI turns when the device is held
@@ -89,6 +92,7 @@ public class ZoomStepper implements ZoomWheel.Listener {
         wheel.removeAllViews();
         step_buttons.clear();
         step_ratios.clear();
+        manual_lenses = null;
         selected_step = -1;
 
         Preview preview = main_activity.getPreview();
@@ -98,6 +102,28 @@ public class ZoomStepper implements ZoomWheel.Listener {
             return;
         }
 
+        // manual lens selection (Kickoff 3.4): the pill shows the physical lenses of the current
+        // camera instead of the zoom steps, and the wheel no longer opens on a drag - but a
+        // pinch in the viewfinder still brings it up
+        List<MainActivity.Lens> lenses = main_activity.getManualLenses();
+        if( lenses != null && lenses.size() >= 2 ) {
+            manual_lenses = lenses;
+            wheel.setDragEnabled(false);
+            for(MainActivity.Lens lens : lenses) {
+                Button button = createLensButton(lens);
+                button.setRotation(main_activity.getMainUI().getUIRotation());
+                step_buttons.add(button);
+                wheel.addView(button);
+            }
+            wheel.setRange(preview.getMinZoomRatio(), preview.getMaxZoomRatio());
+            wheel.setRatio(preview.getZoomRatio());
+            setLensSelection(main_activity.getApplicationInterface().getCameraIdSPhysicalPref());
+            if( MyDebug.LOG )
+                Log.d(TAG, "manual lens buttons: " + lenses.size());
+            return;
+        }
+
+        wheel.setDragEnabled(true);
         for(float ratio : chooseStepRatios(preview)) {
             int step_index = step_ratios.size();
             step_ratios.add(ratio);
@@ -160,14 +186,14 @@ public class ZoomStepper implements ZoomWheel.Listener {
         return best_factor;
     }
 
-    private Button createStepButton(final float ratio, final int step_index) {
+    /** The shell every button of the pill shares. */
+    private Button createButtonShell() {
         Button button = new Button(main_activity);
         int size = main_activity.getResources().getDimensionPixelSize(R.dimen.zoom_step_size);
         int margin = main_activity.getResources().getDimensionPixelSize(R.dimen.zoom_step_margin);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(size, size);
         params.setMargins(margin, margin, margin, margin);
         button.setLayoutParams(params);
-        button.setText(stepLabel(ratio, false));
         button.setAllCaps(false);
         button.setGravity(Gravity.CENTER);
         button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
@@ -176,6 +202,31 @@ public class ZoomStepper implements ZoomWheel.Listener {
         button.setMinHeight(0);
         button.setMinimumWidth(0);
         button.setMinimumHeight(0);
+        return button;
+    }
+
+    /** One button per physical lens, labelled UW / W / T (Kickoff 3.4). Tapping it switches the
+     *  camera to that lens, which reopens it - the next update() then finds the new selection. */
+    private Button createLensButton(final MainActivity.Lens lens) {
+        Button button = createButtonShell();
+        button.setText(lens.label_res);
+        button.setContentDescription(main_activity.getResources().getString(lens.label_res));
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                main_activity.switchToPhysicalLens(lens.physical_id);
+                tick(view);
+                // show the tapped lens as selected right away, instead of waiting for the camera
+                // to reopen (as the zoom steps do)
+                setLensSelection(lens.physical_id);
+            }
+        });
+        return button;
+    }
+
+    private Button createStepButton(final float ratio, final int step_index) {
+        Button button = createButtonShell();
+        button.setText(stepLabel(ratio, false));
         button.setContentDescription(main_activity.getResources().getString(R.string.zoom) + " " + stepLabel(ratio, true));
         button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -242,9 +293,20 @@ public class ZoomStepper implements ZoomWheel.Listener {
         updateSelection(ratio);
     }
 
+    /** Marks the button of the given physical lens as selected - the manual mode's counterpart
+     *  of updateSelection(), which has no ratios to compare. */
+    private void setLensSelection(String physical_id) {
+        if( manual_lenses == null )
+            return;
+        for(int i=0;i<manual_lenses.size();i++)
+            applyStepStyle(i, physical_id != null && physical_id.equals(manual_lenses.get(i).physical_id));
+    }
+
     /** Highlights the step nearest to the supplied zoom (nearest in ratio, i.e. on the wheel's
      *  logarithmic scale), with the actual zoom as its label. */
     private void updateSelection(float ratio) {
+        if( manual_lenses != null )
+            return; // the manual mode selects lenses, not zoom ratios
         int nearest = -1;
         double best_distance = Double.MAX_VALUE;
         for(int i=0;i<step_ratios.size();i++) {
@@ -271,9 +333,18 @@ public class ZoomStepper implements ZoomWheel.Listener {
      *  light text on the stepper's own dark background (see the design reference). */
     private void applyStepStyle(int index, boolean selected) {
         Button button = step_buttons.get(index);
+        if( manual_lenses != null ) {
+            // a lens button keeps its own label whatever the zoom does
+            applyButtonStyle(button, selected);
+            return;
+        }
         float step_ratio = step_ratios.get(index);
         // the step's own label, or the value dialled in on the wheel or by pinching ("2,8×")
         button.setText(selected && selected_ratio != step_ratio ? formatRatio(selected_ratio, true) : stepLabel(step_ratio, selected));
+        applyButtonStyle(button, selected);
+    }
+
+    private void applyButtonStyle(Button button, boolean selected) {
         if( selected ) {
             button.setBackgroundResource(R.drawable.pill_selected_background);
             button.setTextColor(main_activity.getResources().getColor(R.color.md_dark_surface, null));

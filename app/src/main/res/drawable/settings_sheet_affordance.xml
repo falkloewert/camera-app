@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Rahmen des "…"-Buttons im Kopf des Einstellungen-Blattes: Stadion-Kontur 52 x 40 dp,
+     Radius 20 dp, 1 dp Strich #919191, keine Fuellung (gemessen, Kickoff
+     redesign-einstellungen-blatt-benchmark.md 2.2). Radius in dp, weil das Rechteck selbst
+     nur 40 dp hoch ist - ein Radius von 20 dp macht daraus das Stadion der Referenz. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+    <stroke
+        android:width="1dp"
+        android:color="@color/settings_sheet_outline" />
+    <corners android:radius="20dp" />
+</shape>

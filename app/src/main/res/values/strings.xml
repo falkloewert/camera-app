@@ -1119,4 +1119,39 @@
             <li>Various other improvements and bug fixes.\n</li>
         </ul>
     </string>
+
+    <!-- Einstellungen-Blatt (ui/SettingsSheet, docs/kickoff/redesign-einstellungen-blatt-benchmark.md
+         3.8). Wording follows the Pixel Camera reference - deliberately not the wording of the
+         existing Open Camera strings (flash_off is "No flash" there, the reference says "None"). -->
+    <string name="settings_sheet_open">Open settings</string>
+    <string name="settings_sheet_more_options">All settings</string>
+    <string name="settings_sheet_photo">Photo settings</string>
+    <string name="settings_sheet_video">Video settings</string>
+    <string name="settings_sheet_tab_general">General</string>
+    <string name="settings_sheet_tab_pro">Pro</string>
+    <string name="settings_sheet_tab_more">More</string>
+    <string name="settings_sheet_more_light">More light</string>
+    <string name="settings_sheet_none">None</string>
+    <string name="settings_sheet_auto">Automatic</string>
+    <string name="settings_sheet_manual">Manual</string>
+    <string name="settings_sheet_flash">Flash</string>
+    <string name="settings_sheet_timer">Timer</string>
+    <string name="settings_sheet_off">Off</string>
+    <string name="settings_sheet_on">On</string>
+    <string name="settings_sheet_macro">Macro focus</string>
+    <string name="settings_sheet_aspect">Aspect ratio</string>
+    <string name="settings_sheet_aspect_wide">Widescreen (16:9)</string>
+    <string name="settings_sheet_aspect_full">Full screen (4:3)</string>
+    <string name="settings_sheet_resolution">Resolution</string>
+    <string name="settings_sheet_raw">RAW/JPEG</string>
+    <string name="settings_sheet_raw_off">JPEG only</string>
+    <string name="settings_sheet_raw_on">RAW + JPEG</string>
+    <string name="settings_sheet_lens">Lens selection</string>
+    <string name="settings_sheet_fps">fps</string>
+    <string name="settings_sheet_stabilization">Video stabilization</string>
+    <string name="settings_sheet_lens_uw">UW</string>
+    <string name="settings_sheet_lens_w">W</string>
+    <string name="settings_sheet_lens_t">T</string>
+    <string name="settings_sheet_seconds">%1$s s</string>
+    <string name="settings_sheet_mp">%1$sMP</string>
 </resources>

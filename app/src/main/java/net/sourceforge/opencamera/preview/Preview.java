@@ -490,7 +490,32 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
 			cameraSurface.getView().setLayoutParams(layoutParams);
 		}*/
 
-        gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener());
+        gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                if( MyDebug.LOG )
+                    Log.d(TAG, "onFling");
+                if( e1 == null || e2 == null )
+                    return false;
+                if( e1.getPointerCount() != 1 || e2.getPointerCount() != 1 )
+                    return false; // only one finger, a swipe isn't part of a pinch zoom
+                if( hasSmoothZoom() )
+                    return false;
+                // a swipe towards the physical bottom edge opens the settings sheet (Kickoff 3.6).
+                // That edge is the bottom edge of our portrait locked window in every device
+                // orientation (the gesture bar and the dock always sit there, see
+                // docs/design-reference/ui-spezifikation.md section 2), so the direction to swipe
+                // in is always downwards in window coordinates - no ui_rotation needed.
+                float density = getResources().getDisplayMetrics().density;
+                float dy = e2.getY() - e1.getY();
+                if( dy < 160.0f * density + 0.5f )
+                    return false;
+                if( velocityY < ViewConfiguration.get(getContext()).getScaledMinimumFlingVelocity() )
+                    return false;
+                applicationInterface.settingsSheetSwipe();
+                return true;
+            }
+        });
         gestureDetector.setOnDoubleTapListener(new DoubleTapListener());
         scaleGestureDetector = new ScaleGestureDetector(getContext(), new ScaleListener());
 

@@ -113,6 +113,10 @@ public class ZoomWheel extends LinearLayout {
     private boolean dragging;
     /** The touch moved mostly up or down before it moved sideways - leave it alone. */
     private boolean drag_rejected;
+    /** Whether dragging the pill sideways turns it into the ruler at all. Off while the pill
+     *  shows the manual lens selection, where the buttons are what the user wants (Kickoff
+     *  3.4) - a pinch in the viewfinder still brings the ruler up. */
+    private boolean drag_enabled = true;
     private float down_x;
     private float down_y;
     private float last_x;
@@ -480,9 +484,17 @@ public class ZoomWheel extends LinearLayout {
         }
     }
 
+    public void setDragEnabled(boolean enabled) {
+        this.drag_enabled = enabled;
+    }
+
     /** Once the touch has moved further than the slop: sideways starts a drag, up or down
      *  gives the touch up for good. */
     private void decideDrag(MotionEvent ev) {
+        if( !drag_enabled ) {
+            drag_rejected = true;
+            return;
+        }
         float dx = ev.getRawX() - down_x;
         float dy = ev.getRawY() - down_y;
         if( Math.abs(dx) < touch_slop && Math.abs(dy) < touch_slop )

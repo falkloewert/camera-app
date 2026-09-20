@@ -268,6 +268,9 @@ public class MainUI {
         views.add(main_activity.findViewById(R.id.panorama_lens_1x));
         views.addAll(zoomStepper.getStepButtons());
         views.add(main_activity.findViewById(R.id.zoom_badge));
+        // the left dock button: only its glyph turns, the circle it sits in is rotationally
+        // symmetric (Kickoff 3.1)
+        views.add(main_activity.findViewById(R.id.settings_sheet_button));
         return views;
     }
 
@@ -279,6 +282,11 @@ public class MainUI {
         photoVideoSwitch.setGlyphRotation(ui_rotation, animate);
         ZoomWheel zoomWheel = main_activity.findViewById(R.id.zoom_stepper);
         zoomWheel.setGlyphRotation(ui_rotation, animate);
+        // an open settings sheet hangs off the physical bottom edge, so it has to move to the
+        // new edge as a whole (Kickoff 3.2) - immediately, without an animation
+        SettingsSheet settingsSheet = main_activity.getSettingsSheet();
+        if( settingsSheet != null )
+            settingsSheet.onUIRotationChanged(ui_rotation);
     }
 
     public void layoutUI() {
@@ -535,6 +543,16 @@ public class MainUI {
             resetView(cs, view);
             centerHorizontally(cs, view_id);
             pinToBottom(cs, view_id, navigation_gap, (int) (109 * scale + 0.5f)); // reference pill bottom edge 133 dp from the screen edge - 24 dp inset
+
+            // The left dock button, at the same height as the switch's own row (Kickoff 3.1):
+            // centre 40 dp from the left screen edge and 85 dp from the bottom, i.e. a 16 dp
+            // left margin for the 48 dp circle, and 85 - 24 - 24 = 37 dp above the gesture
+            // inset, exactly like the switch. Not chained to any other view.
+            view = main_activity.findViewById(R.id.settings_sheet_button);
+            view_id = view.getId();
+            resetView(cs, view);
+            cs.connect(view_id, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT, (int) (16 * scale + 0.5f));
+            pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f));
 
             // The photo/video switch is the outermost element (the reference's bottom row; its
             // other two buttons come with audit step 2).
@@ -1072,6 +1090,12 @@ public class MainUI {
         if( MyDebug.LOG )
             Log.d(TAG, "setImmersiveMode: " + immersive_mode);
         this.immersive_mode = immersive_mode;
+        if( immersive_mode ) {
+            // hiding the GUI closes an open settings sheet (Kickoff 3.2)
+            SettingsSheet settingsSheet = main_activity.getSettingsSheet();
+            if( settingsSheet != null && settingsSheet.isOpen() )
+                settingsSheet.close();
+        }
         main_activity.runOnUiThread(new Runnable() {
             public void run() {
                 SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
@@ -1109,6 +1133,7 @@ public class MainUI {
                 int mode_visibility = immersive_mode ? View.INVISIBLE : View.VISIBLE;
                 main_activity.findViewById(R.id.mode_bar).setVisibility(mode_visibility);
                 main_activity.findViewById(R.id.photo_video_switch).setVisibility(mode_visibility);
+                main_activity.findViewById(R.id.settings_sheet_button).setVisibility(mode_visibility);
                 if( main_activity.showManualFocusSeekbar(false) )
                     focusSeekBar.setVisibility(visibility);
                 if( main_activity.showManualFocusSeekbar(true) )
@@ -1222,6 +1247,14 @@ public class MainUI {
                 int mode_visibility = (is_panorama_recording || !show_gui_video) ? View.INVISIBLE : View.VISIBLE;
                 main_activity.findViewById(R.id.mode_bar).setVisibility(mode_visibility);
                 main_activity.findViewById(R.id.photo_video_switch).setVisibility(mode_visibility);
+                // the left dock button goes with them (Kickoff 3.1) - and with it the sheet: a
+                // recording that starts while the sheet is open closes it (Kickoff 3.2)
+                main_activity.findViewById(R.id.settings_sheet_button).setVisibility(mode_visibility);
+                if( mode_visibility != View.VISIBLE ) {
+                    SettingsSheet settingsSheet = main_activity.getSettingsSheet();
+                    if( settingsSheet != null && settingsSheet.isOpen() )
+                        settingsSheet.close();
+                }
                 updateModeBar();
                 if( !(show_gui_photo && show_gui_video) ) {
                     closePopup(); // we still allow the popup when recording video, but need to update the UI (so it only shows flash options), so easiest to just close
