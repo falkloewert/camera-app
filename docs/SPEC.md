@@ -279,6 +279,10 @@ Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
     (`docs/kickoff/redesign-einstellungen-blatt-foto.md`, **nächster Chat**) → B Pro +
     Video-Blatt + Dock rechts → C Kopfzeile, dann Icon-Leiste + Popup weg. Bis C bleiben
     beide und müssen mit dem Blatt synchron sein.
+    **Geändert (Falk, 2026-09-20):** A + Blatt-Anteil von B (Pro-Reiter, Video-Blatt,
+    Objektivauswahl) in **einem** Lauf als Modell-Benchmark, je Modell ein Branch
+    `bench/blatt-<modell>`: `docs/kickoff/redesign-einstellungen-blatt-benchmark.md`
+    (enthält alle Messwerte und Entscheidungen). Offen danach: rechter Dock-Button, dann C.
 11. **Selbstauslöser-Countdown dreht noch mit** (`DrawPreview`); Videozeit ist fest.
     Konsistenz offen, vermutlich auch fest.
 12. **Rad-Optik gewählt, nicht gemessen** (kein Screenshot mit offenem Rad); bei Bedarf
