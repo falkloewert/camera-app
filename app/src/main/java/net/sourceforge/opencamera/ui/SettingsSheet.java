@@ -1111,7 +1111,10 @@ public class SettingsSheet {
         // the short badge is enough here, the resolution itself is what the knobs are for. The
         // selfie gets the same row (Falk 2026-09-21): it records up to 4K, so it shows FHD and 4K
         // its own scope: the flash row above has an "options" of its own
-        {
+        // In Zeitraffer and Zeitlupe the resolution and the frame rate are not chosen but set by
+        // the mode (SPEC 4.6, Falk 2026-09-21), so neither row appears there.
+        final boolean video_speed_mode = !MyApplicationInterface.VIDEO_SPEED_OFF.equals(applicationInterface.getVideoSpeedMode());
+        if( !video_speed_mode ) {
             // the front camera records 16:9 only, so a stored quality of another ratio (the pixel
             // offers 1:1) is put right before the row reads the qualities (Video-Blatt Runde 1, 4)
             if( front )
@@ -1205,7 +1208,7 @@ public class SettingsSheet {
         }
 
         // frame rate - the same candidates the settings list offers
-        {
+        if( !video_speed_mode ) {
             int [] candidates = {24, 30, 60};
             // "default" means whatever the camcorder profile of the current quality uses, so the
             // knobs are matched against that number instead of the word

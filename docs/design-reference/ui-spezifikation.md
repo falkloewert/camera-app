@@ -279,6 +279,13 @@ entschieden** – nicht erneut zur Diskussion stellen, sondern so bauen:
 Porträt/Nachtsicht/zufügen, solange die App diese Modi nicht wirklich beherrscht.
 (So bereits umgesetzt.)
 
+**Nachtrag 2026-09-21 (SPEC 4.6):** Im Video stehen die beiden echten Untermodi daneben:
+`Video · Zeitlupe · Zeitraffer` (`mode_bar_video`, `mode_bar_slow_motion`,
+`mode_bar_timelapse`), weiterhin statisch und in dieser Reihenfolge, ohne Karussell.
+Ein Modus, den die Kamera nicht kann, fehlt statt tot dazustehen (Selbstkamera ohne
+High-Speed bekommt keine Zeitlupe). Während einer Aufnahme ist die Leiste ganz weg –
+die Untermodi sind zum Wählen da, und die Stärke steht beim Öffnen der Datei fest.
+
 ## 6. Was bereits umgesetzt ist
 
 - **Einstellungen-Blätter Foto + Video, linker Dock-Button, Swipe-Geste (2026-09-20)**:
@@ -349,6 +356,13 @@ Porträt/Nachtsicht/zufügen, solange die App diese Modi nicht wirklich beherrsc
     Spec-Angabe „tension 300, friction 20"). Heavy Click per
     `HapticFeedbackConstants.CONFIRM` (= `EFFECT_HEAVY_CLICK` in Androids Zuordnung, ohne
     VIBRATE-Berechtigung) bei jedem Auslöser-Tipp (Foto, Video-Start/-Stopp, Panorama).
+    **Video-Arten (2026-09-21, SPEC 4.6):** Kern in allen drei Video-Arten rot, aber
+    kleiner als die Foto-Scheibe – **62 dp** statt 74 dp (Falk: „das Rote ein wenig
+    kleiner"; die Referenz misst die Scheibe der beiden Untermodi mit 53 dp, das wäre hier
+    ein sehr dicker Ring). In **Zeitraffer** und **Zeitlupe** trägt die Scheibe das Symbol
+    des Modus (▷▷ bzw. ◌▷, weiß, 30 dp, Referenz 4); im gewöhnlichen Video bleibt sie
+    leer. Das Symbol liegt als zweite Lage im selben Drawable
+    (`LayerDrawable`), damit der Druck-Federrücklauf beides zusammen skaliert.
   - **Kamera-Wechsel:** 56-dp-Squircle mit **Kreisbogen-Ecken 12 dp** (gemessen; 22 dp
     sichtbar zu rund, Superellipse hätte gewölbte Kanten), Hintergrund dasselbe Schwarz
     60 %, Pfeil-Glyph 24 dp (Padding 10,5 dp, weil die PNG-Grafik Leerraum hat). Zentrum
@@ -534,6 +548,12 @@ Farb-/Blur-Punkte (7.3):
   kein „Video" – die Anmerkung unter Abschnitt 9, die Detail-Spec und Referenz hätten beide
   „Video" im Karussell, stimmt für den Screenshot nicht). Wenn später Video-Untermodi
   kommen, stehen sie in derselben Leiste an derselben Stelle.
+- ~~**Im Videomodus leer**~~ **Gebaut (2026-09-21, SPEC 4.6):** `Video · Zeitlupe ·
+  Zeitraffer`, statisch, Reihenfolge wie die Referenz (Abschnitt 5 oben). Die Stärke selbst
+  sitzt nicht hier, sondern in einer eigenen Leiste am Platz der Zoom-Pille
+  (`video_speed_bar`, Chips wie die Modus-Einträge gestylt) und wird über die dunkle Pille
+  `video_speed_button` im rechten Dock geöffnet/geschlossen; offen ist die Zoom-Pille weg
+  (`MainUI.setZoomStepperVisibility()` gibt ihr den Vorrang).
 - Inaktiv `#F2F2F2` (`md_dark_on_surface`), normal. Soll: `#8E918F`, 14 dp, Gewicht 500.
 - Aktiv: Volltonfüllung `#F2F2F2` + dunkler Text `#1B1B1B` + `BOLD` 700. Beide Specs sagen
   **nicht volltonweiß** – Detail-Spec `rgba(255,255,255,0.15)` + weißer Text 600,

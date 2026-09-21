@@ -345,14 +345,17 @@ public class MainUI {
 
     /** Die Zoom-Stufen samt ihrer Blase. Solange das Pro-Panel offen ist, bleiben sie in jedem
      *  Fall weg - die Pille des Panels sitzt an ihrer Stelle, und die Stufen haben dort nichts
-     *  zu suchen (Falk 2026-09-21). Alle Stellen, die die Stufen ein- oder ausblenden, gehen
-     *  hier durch, damit keine sie zurueckholt. */
+     *  zu suchen (Falk 2026-09-21). Dasselbe gilt für die Stärke-Leiste: sie sitzt auf dem Platz
+     *  der Zoom-Pille und hat Vorrang (Falk 2026-09-21). Alle Stellen, die die Stufen ein- oder
+     *  ausblenden, gehen hier durch, damit keine sie zurueckholt. */
     public void setZoomStepperVisibility(int visibility) {
         View view = main_activity.findViewById(R.id.zoom_stepper);
         if( view == null )
             return;
         if( main_activity.proPanelIsOpen() )
             visibility = View.INVISIBLE;
+        else if( visibility == View.VISIBLE && isVideoSpeedBarOpen() )
+            visibility = View.GONE;
         view.setVisibility(visibility);
     }
 
@@ -905,7 +908,7 @@ public class MainUI {
             if( main_activity.getPreview().isVideo() ) {
                 if( MyDebug.LOG )
                     Log.d(TAG, "set icon to video");
-                state = main_activity.getPreview().isVideoRecording() ? ShutterButton.State.VIDEO_RECORDING : ShutterButton.State.VIDEO;
+                state = main_activity.getPreview().isVideoRecording() ? ShutterButton.State.VIDEO_RECORDING : videoShutterState();
                 switch_video_content_description = R.string.switch_to_photo;
             }
             else if( main_activity.getApplicationInterface().getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama &&
@@ -937,6 +940,18 @@ public class MainUI {
         }
     }
 
+    /** Der Zustand des Auslösers, solange nicht aufgenommen wird: rot in allen drei Video-Arten,
+     *  mit dem Symbol des Modus in Zeitraffer und Zeitlupe (Referenz 4, Falk 2026-09-21). Auch
+     *  MyApplicationInterface.stoppedVideo() holt sich hierüber den Zustand nach dem Stopp. */
+    public ShutterButton.State videoShutterState() {
+        String speed_mode = getVideoSpeedMode();
+        if( MyApplicationInterface.VIDEO_SPEED_SLOW.equals(speed_mode) )
+            return ShutterButton.State.VIDEO_SLOW;
+        if( MyApplicationInterface.VIDEO_SPEED_LAPSE.equals(speed_mode) )
+            return ShutterButton.State.VIDEO_LAPSE;
+        return ShutterButton.State.VIDEO;
+    }
+
     /** Puts the shutter button into the given state, including its content description. Video
      *  start/stop pass animate=true so the core morphs between disc and stop square; they call
      *  this directly rather than setTakePhotoIcon(), because at that moment
@@ -947,6 +962,8 @@ public class MainUI {
         int content_description;
         switch( state ) {
             case VIDEO:
+            case VIDEO_LAPSE:
+            case VIDEO_SLOW:
                 content_description = R.string.start_video;
                 break;
             case VIDEO_RECORDING:
@@ -1199,6 +1216,10 @@ public class MainUI {
         main_activity.updateForSettings(true, null, false, true);
         destroyPopup(); // the popup's video options depend on the rate
         updateModeBar();
+        // der Auslöser trägt das Symbol des Modus (Referenz 4) - hier und nicht in
+        // updateModeBar(), weil das auch beim Start einer Aufnahme läuft und den Stopp-Zustand
+        // wieder überschreiben würde
+        setTakePhotoIcon();
     }
 
     /** Picks one of the rates the row offers, without leaving the mode. */

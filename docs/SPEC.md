@@ -67,7 +67,7 @@ zu können (`git fetch upstream`).
 | 3 | Dual-Kamera (Selfie-Bubble, unabhängiger Zoom) | Idee / Konzept | Hoch (geräteabhängig) |
 | 4 | Panorama mit Weitwinkel-Option | **Fertig** | Niedrig-Mittel |
 | 5 | Kamera während Videoaufnahme umdrehen | Idee / Notiz (nice-to-have) | Niedrig |
-| 7 | Zeitraffer & Zeitlupe (Video-Modi wie in der Pixel-App, siehe 4.6) | **Begonnen** (2026-09-21) | Mittel |
+| 7 | Zeitraffer & Zeitlupe (Video-Modi wie in der Pixel-App, siehe 4.6) | **Fertig** (2026-09-21) | Mittel |
 | 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile, Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen, Datei-Prüfung abgeschlossen) und **Feinjustier-Rad** (Stand 2026-09-18) gebaut; offen: siehe `ui-spezifikation.md` Abschnitt 7 (Audit 2026-09-17) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
 
 ### 3.1 Vereinbarte Reihenfolge (aktualisiert 2026-09-14: Material-3-Redesign vor Feature 5 vorgezogen)
@@ -87,7 +87,7 @@ nochmal überarbeitet werden müssen (Falks Begründung, von Claude bestätigt: 
 5. **Feature 2** – Filmchen-Modus
 6. **Feature 3** – Dual-Kamera (voller Ausbau, nach positivem Spike-Ergebnis)
 7. **Feature 1** – 360°-Foto-Stitching (inkl. Immich-Kompatibilität, siehe 4.1)
-8. **Feature 7** – Zeitraffer & Zeitlupe (siehe 4.6) — **begonnen 2026-09-21**, von Falk
+8. **Feature 7** – Zeitraffer & Zeitlupe (siehe 4.6) — **fertig 2026-09-21**, von Falk
    vorgezogen; das Redesign (Feature 6) läuft daneben weiter (Schritt C noch offen).
 
 ---
@@ -336,7 +336,7 @@ Verlauf und Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
 
 ---
 
-### 4.6 Zeitraffer & Zeitlupe — Status: begonnen (2026-09-21)
+### 4.6 Zeitraffer & Zeitlupe — Status: Fertig (2026-09-21)
 
 **Ziel:** Zwei Video-Modi wie in der Pixel-App: **Zeitraffer** (lange Aufnahme, gerafft
 gespeichert) und **Zeitlupe** (Aufnahme mit hoher Bildrate, verlangsamt gespeichert).
@@ -364,6 +364,25 @@ gespeichert) und **Zeitlupe** (Aufnahme mit hoher Bildrate, verlangsamt gespeich
   Immich/Systemplayer das richtig ab?
 - Moduswahl ist heute statisch `Foto · Panorama`: die zwei Einträge kommen statisch dazu, das
   echte Karussell bleibt Schritt C/`ui-spezifikation.md` 7.2.
+
+**Stand (2026-09-21): Fertig, am Pixel 9 Pro abgenommen.** Referenz-Auswertung (Screenrecord
++ 4 Screenshots): `docs/design-reference/pixel-zeitraffer-zeitlupe-beschreibung.md`.
+Gebaut: Modusleiste im Video `Video · Zeitlupe · Zeitraffer` (statisch, kein Karussell); die
+Stärke sitzt in einer eigenen Leiste am Platz der Zoom-Pille, geöffnet über eine dunkle Pille
+im rechten Dock (Symbol + Wert, Vorgabe 5× bzw. 1/4×). Der Effekt steckt im MP4 über die
+vorhandene Aufnahme-Rate des Recorders (`MediaRecorder.setCaptureRate`) – nicht in der App –,
+Ton ist in beiden Modi automatisch aus. Am Gerät gemessen (ffprobe): Zeitraffer 5× → 10 s
+Aufnahme = 1,87 s Video (4K, 140 Bilder); Zeitlupe 1/4× → 3,6 s = 14,4 s (1080p High-Speed,
+432 Bilder @ 30); gewöhnliches Video 4K + Ton, 1:1. Der HAL liefert High-Speed (1080p/720p bis
+240 fps, `dumpsys media.camera`), damit sind 1/8× und 1/4× möglich; Zeitraffer bietet
+5/10/30/120×. **Entscheidungen (Falk 2026-09-21):** „Autom." entfällt (die Stärke steht beim
+Öffnen der Datei fest); Auflösung und Bildrate werden in beiden Modi gestellt statt gewählt
+(Zeitraffer: grösste normale Auflösung + Profil-Bildrate, Zeitlupe: grösste High-Speed-Auflösung
++ die für die Stärke nötige Bildrate) – nur beim Lesen übersteuert, die gespeicherten Werte des
+gewöhnlichen Videos bleiben unberührt; Blitz bleibt wählbar. Auslöser in den Video-Arten rot,
+aber kleiner (62 dp statt 74 dp) und mit dem Symbol des Modus (▷▷ / ◌▷, Referenz 4).
+Offene Fragen damit beantwortet: HAL kann High-Speed (ja), Effekt steckt als Aufnahme-Bildrate
+in der Datei, Moduswahl bleibt statisch.
 
 **Komplexität/Risiko:** Mittel – UI klein; Risiko liegt in der HAL-Unterstützung für
 High-Speed und in der Datei-Semantik (Playback-Rate).

@@ -2,7 +2,10 @@ package net.sourceforge.opencamera.ui;
 
 import net.sourceforge.opencamera.R;
 
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.view.Gravity;
 import android.widget.ImageButton;
 
 import androidx.core.content.ContextCompat;
@@ -29,6 +32,8 @@ public class ShutterButton {
     public enum State {
         PHOTO, // white disc
         VIDEO, // red disc
+        VIDEO_LAPSE, // red disc with the time lapse glyph, as in the reference
+        VIDEO_SLOW, // red disc with the slow motion glyph, as in the reference
         VIDEO_RECORDING, // red rounded square, tap to stop
         PANORAMA_RECORDING // check mark, tap to finish the panorama
     }
@@ -36,6 +41,13 @@ public class ShutterButton {
     // Geometry measured off the reference screenshot (2.25 px/dp on Falk's device), see
     // ui-spezifikation.md section 6; the ring around it is 6 dp (shutter_ring.xml)
     private static final float CORE_DIAMETER_DP = 74.0f;
+    // The video disc is a little smaller than the photo one and carries the mode's glyph
+    // (Falk 2026-09-21); the reference measures the disc of the two video sub-modes at 53 dp
+    // (pixel-zeitraffer-zeitlupe-beschreibung.md 4), which with our ring would leave a very
+    // thick border - this is the middle ground Falk asked for.
+    private static final float VIDEO_DIAMETER_DP = 62.0f;
+    // the glyph on the video disc, in the middle of it
+    private static final float GLYPH_DIAMETER_DP = 30.0f;
     // the stop square while recording (detail spec section 6)
     private static final float RECORDING_SIZE_DP = 32.0f;
     private static final float RECORDING_CORNER_DP = 8.0f;
@@ -117,14 +129,24 @@ public class ShutterButton {
             view.setImageResource(R.drawable.baseline_check_white_48);
             return;
         }
-        if( view.getDrawable() != core ) {
-            // first call, or coming back from the panorama check mark
-            view.setImageDrawable(core);
+        int glyph_resource;
+        switch( state ) {
+            case VIDEO_LAPSE:
+                glyph_resource = R.drawable.ic_fast_forward_white_48dp;
+                break;
+            case VIDEO_SLOW:
+                glyph_resource = R.drawable.ic_slow_motion_video_white_48dp;
+                break;
+            default:
+                glyph_resource = 0;
+                break;
         }
+        showGlyph(glyph_resource != 0 ? ContextCompat.getDrawable(view.getContext(), glyph_resource) : null);
+        boolean video = state == State.VIDEO || state == State.VIDEO_LAPSE || state == State.VIDEO_SLOW;
         boolean recording = state == State.VIDEO_RECORDING;
         core.setColor(ContextCompat.getColor(view.getContext(), state == State.PHOTO ? R.color.shutter_icon : R.color.shutter_icon_video));
-        float size = dp(recording ? RECORDING_SIZE_DP : CORE_DIAMETER_DP);
-        float corner = dp(recording ? RECORDING_CORNER_DP : CORE_DIAMETER_DP / 2);
+        float size = dp(recording ? RECORDING_SIZE_DP : (video ? VIDEO_DIAMETER_DP : CORE_DIAMETER_DP));
+        float corner = dp(recording ? RECORDING_CORNER_DP : (video ? VIDEO_DIAMETER_DP : CORE_DIAMETER_DP) / 2);
         if( animate ) {
             core_size_spring.animateToFinalPosition(size);
             core_corner_spring.animateToFinalPosition(corner);
@@ -135,6 +157,23 @@ public class ShutterButton {
             CORE_SIZE.setValue(this, size);
             CORE_CORNER.setValue(this, corner);
         }
+    }
+
+    /** Puts the mode's glyph into the middle of the disc (Zeitraffer, Zeitlupe) or takes it out
+     *  again - the photo and the ordinary video disc stay plain, as in the reference. The glyph
+     *  rides in the same drawable as the disc (a LayerDrawable), so the button keeps drawing one
+     *  image and the press spring scales the two together. */
+    private void showGlyph(Drawable glyph) {
+        if( glyph == null ) {
+            if( view.getDrawable() != core )
+                view.setImageDrawable(core);
+            return;
+        }
+        int glyph_size = Math.round(dp(GLYPH_DIAMETER_DP));
+        LayerDrawable layers = new LayerDrawable(new Drawable[]{core, glyph});
+        layers.setLayerGravity(1, Gravity.CENTER);
+        layers.setLayerSize(1, glyph_size, glyph_size);
+        view.setImageDrawable(layers);
     }
 
     /** Press feedback: springs the button to 92 % while held, and back on release. Fed from

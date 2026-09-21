@@ -444,6 +444,20 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   abgenommene Blatt überholt). Einziger verbleibender Baum: `~/Projects/camera-app` auf
   `master` (die abgenommene App ist auf dem Pixel installiert).
 
+- **2026-09-21 (Feature-Chat, Zeitraffer & Zeitlupe, SPEC 4.6):** Referenz (Screenrecord +
+  4 Screenshots) zuerst per Gemini ausgewertet → `docs/design-reference/pixel-zeitraffer-
+  zeitlupe-beschreibung.md`, Commit `30c02449`. Gebaut: Modusleiste `Video · Zeitlupe ·
+  Zeitraffer`, Stärke-Leiste am Zoom-Pillen-Platz mit dunkler Pille im rechten Dock
+  (Vorgabe 5×/1/4×), Auslöser in allen Video-Arten rot und kleiner (62 dp) mit Modussymbol,
+  Videotimer zeigt `00:0X → 00:0Y`, während der Aufnahme ist die Modusleiste weg.
+  Entscheidungen Falk: „Autom." entfällt, Auflösung + Bildrate in beiden Modi gestellt statt
+  gewählt (Zeitraffer max. normal, Zeitlupe max. High-Speed) – nur beim Lesen übersteuert,
+  die Video-Einstellungen bleiben unberührt; Blitz bleibt wählbar. Messwerte (ffprobe am
+  Gerät): Zeitraffer 5× 10 s → 1,87 s (4K), Zeitlupe 1/4× 3,6 s → 14,4 s (1080p High-Speed),
+  Video 4K + Ton 1:1. Commit `67afc3b3` (Modusleiste + Stärke-Leiste) und der
+  Abschluss-Commit dieser Runde (Auslöser-Symbole, Zoom-Blase, automatische
+  Auflösung/Bildrate), von Falk am Gerät abgenommen.
+
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 
 **Recherche-Ergebnis (2026-09-14, Researcher-Agent):**

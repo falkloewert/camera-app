@@ -210,7 +210,7 @@ public class VideoQualityHandler {
 
     /** Returns the maximum supported high speed video size.
      */
-    CameraController.Size getMaxSupportedVideoSizeHighSpeed() {
+    public CameraController.Size getMaxSupportedVideoSizeHighSpeed() {
         return getMaxVideoSize(video_sizes_high_speed);
     }
 

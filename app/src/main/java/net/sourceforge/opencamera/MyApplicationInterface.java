@@ -18,6 +18,7 @@ import net.sourceforge.opencamera.preview.ApplicationInterface;
 import net.sourceforge.opencamera.preview.BasicApplicationInterface;
 import net.sourceforge.opencamera.preview.Preview;
 import net.sourceforge.opencamera.preview.VideoProfile;
+import net.sourceforge.opencamera.preview.VideoQualityHandler;
 import net.sourceforge.opencamera.ui.DrawPreview;
 import net.sourceforge.opencamera.ui.ShutterButton;
 
@@ -37,6 +38,7 @@ import android.graphics.Rect;
 //import android.location.Geocoder; // don't use until we have info for data privacy!
 import android.hardware.camera2.CameraExtensionCharacteristics;
 import android.location.Location;
+import android.media.CamcorderProfile;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
@@ -727,6 +729,12 @@ public class MyApplicationInterface extends BasicApplicationInterface {
             }
         }
 
+        // Zeitraffer und Zeitlupe (SPEC 4.6, Falk 2026-09-21): die Auflösung steht fest, in der
+        // Blatt-Einstellung gibt es dafür keine Zeile mehr
+        String speed_quality = getVideoSpeedModeQuality();
+        if( speed_quality != null )
+            return speed_quality;
+
         // Conceivably, we might get in a state where the fps isn't supported at all (e.g., an upgrade changes the available
         // supported video resolutions/frame-rates).
         // through the getter, not the field: in video mode the lens is not pinned (see
@@ -772,6 +780,12 @@ public class MyApplicationInterface extends BasicApplicationInterface {
             }
         }
 
+        if( VIDEO_SPEED_LAPSE.equals(getVideoSpeedMode()) ) {
+            // Zeitraffer: auch die Bildrate wird nicht mehr gewählt, es gilt die Vorgabe des
+            // Profils - die Auflösung oben passt sie an, was sie hergibt (SPEC 4.6)
+            return "default";
+        }
+
         float capture_rate_factor = getVideoCaptureRateFactor();
         if( capture_rate_factor < 1.0f-1.0e-5f ) {
             if( MyDebug.LOG )
@@ -812,6 +826,40 @@ public class MyApplicationInterface extends BasicApplicationInterface {
      *  to it - hands the user the rate they last used there. */
     public String getVideoSpeedMode() {
         return sharedPreferences.getString(PreferenceKeys.getVideoSpeedModePreferenceKey(main_activity.getPreview().getCameraId(), getCameraIdSPhysicalPref()), VIDEO_SPEED_OFF);
+    }
+
+    /** Die Videoauflösung, die der laufende Untermodus erzwingt (SPEC 4.6, Falk 2026-09-21):
+     *  der Zeitraffer nimmt die grösste gewöhnliche, die Zeitlupe die grösste High-Speed-
+     *  Auflösung - in beiden gibt es dafür keine Auswahl mehr. Das ist nur eine Übersteuerung
+     *  beim Lesen: was der Nutzer im gewöhnlichen Video eingestellt hat, bleibt gespeichert und
+     *  gilt dort unverändert weiter. null heisst "kein Modus, nichts zu übersteuern". */
+    private String getVideoSpeedModeQuality() {
+        String speed_mode = getVideoSpeedMode();
+        if( VIDEO_SPEED_OFF.equals(speed_mode) )
+            return null;
+        VideoQualityHandler video_quality_handler = main_activity.getPreview().getVideoQualityHander();
+        List<String> qualities = video_quality_handler.getSupportedVideoQuality();
+        if( qualities == null || qualities.isEmpty() )
+            return null;
+        // die Auflösungen sind absteigend sortiert - die erste ist die grösste
+        if( VIDEO_SPEED_SLOW.equals(speed_mode) ) {
+            CameraController.Size high_speed = video_quality_handler.getMaxSupportedVideoSizeHighSpeed();
+            if( high_speed != null ) {
+                for(String quality : qualities) {
+                    CamcorderProfile profile = main_activity.getPreview().getCamcorderProfile(quality);
+                    if( profile != null && profile.videoFrameWidth == high_speed.width && profile.videoFrameHeight == high_speed.height ) {
+                        if( MyDebug.LOG )
+                            Log.d(TAG, "slow motion video quality: " + quality);
+                        return quality;
+                    }
+                }
+            }
+            // keine passende Auflösung im Angebot: die grösste melden - Preview weicht dann selbst
+            // auf die grösste High-Speed-Grösse aus (siehe dortiger "fall back" Zweig)
+        }
+        if( MyDebug.LOG )
+            Log.d(TAG, "video speed mode quality: " + qualities.get(0));
+        return qualities.get(0);
     }
 
     /** The slow motion rates the camera supports, ascending (Pixel 9 Pro: 1/8 and 1/4). Only the
@@ -2531,7 +2579,7 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         if( MyDebug.LOG )
             Log.d(TAG, "stoppingVideo()");
         main_activity.unlockScreen();
-        main_activity.getMainUI().setShutterState(ShutterButton.State.VIDEO, true);
+        main_activity.getMainUI().setShutterState(main_activity.getMainUI().videoShutterState(), true);
 
         main_activity.setZoomSticky(true); // reenable the zoom sticky available (for Camera2 API)
     }
