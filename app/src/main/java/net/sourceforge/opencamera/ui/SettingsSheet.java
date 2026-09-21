@@ -13,6 +13,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.preference.PreferenceManager;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -203,8 +204,42 @@ public class SettingsSheet {
             });
             return;
         }
+        if( !cameraReady() ) {
+            // A change just reopened the camera: right now it reports nothing, and a build would
+            // drop every camera dependent row the user is looking at for a moment. cameraSetup()
+            // asks again when it has finished; the retry is the net for the case where that call
+            // came before the camera was ready (found on the device 2026-09-21).
+            if( refresh_retries < MAX_REFRESH_RETRIES ) {
+                refresh_retries++;
+                handler.removeCallbacks(refresh_retry);
+                handler.postDelayed(refresh_retry, REFRESH_RETRY_DELAY);
+            }
+            return;
+        }
+        refresh_retries = 0;
         buildContent();
     }
+
+    /** Whether the camera can answer questions about itself - the rows ask it for its picture
+     *  sizes, video qualities, flash and focus values while they are being built. */
+    private boolean cameraReady() {
+        Preview preview = main_activity.getPreview();
+        if( preview == null || preview.getCameraController() == null || preview.isOpeningCamera() )
+            return false;
+        // the unfiltered list is only null while the camera has not been set up at all
+        return preview.getSupportedPictureSizes(false) != null;
+    }
+
+    private int refresh_retries;
+    private static final int MAX_REFRESH_RETRIES = 20;
+    private static final long REFRESH_RETRY_DELAY = 100;
+
+    private final Runnable refresh_retry = new Runnable() {
+        @Override
+        public void run() {
+            refresh();
+        }
+    };
 
     /* ---- geometry ------------------------------------------------------------------------- */
 
@@ -221,11 +256,29 @@ public class SettingsSheet {
         int handle_left, handle_top, handle_w, handle_h;
     }
 
+    /** The space the sheet hangs in, in the window's axes. The catcher container is the right
+     *  answer, but it starts out GONE and only gets its bounds in the first layout pass - on the
+     *  very first open it still measures 0, and the activity root is then the same rectangle.
+     *  The display metrics are no substitute: they also cover the window's top inset, and the
+     *  sheet would hang exactly that much too low, its bottom row off the screen (found on the
+     *  device 2026-09-21: first open after a start, panel 68 dp too deep). */
+    private int windowSize(boolean horizontal) {
+        int size = horizontal ? container.getWidth() : container.getHeight();
+        if( size <= 0 ) {
+            View root = main_activity.findViewById(R.id.activity_main_root);
+            if( root != null )
+                size = horizontal ? root.getWidth() : root.getHeight();
+        }
+        if( size <= 0 ) {
+            DisplayMetrics display_metrics = main_activity.getResources().getDisplayMetrics();
+            size = horizontal ? display_metrics.widthPixels : display_metrics.heightPixels;
+        }
+        return size;
+    }
+
     private Metrics metrics() {
         Metrics m = new Metrics();
-        int screen_w = container.getWidth();
-        if( screen_w <= 0 )
-            screen_w = main_activity.getResources().getDisplayMetrics().widthPixels;
+        int screen_w = windowSize(true);
         boolean landscape = ui_rotation == 90 || ui_rotation == 270;
         if( landscape ) {
             m.panel_w = dp(PANEL_DEPTH_LANDSCAPE);
@@ -276,10 +329,8 @@ public class SettingsSheet {
         params.height = m.panel_h;
         panel.setLayoutParams(params);
         panel.setRotation(ui_rotation);
-        int screen_w = container.getWidth() > 0 ? container.getWidth()
-                : main_activity.getResources().getDisplayMetrics().widthPixels;
-        int screen_h = container.getHeight() > 0 ? container.getHeight()
-                : main_activity.getResources().getDisplayMetrics().heightPixels;
+        int screen_w = windowSize(true);
+        int screen_h = windowSize(false);
         // how much room the turned panel takes up in the window's axes: a quarter turn swaps the
         // two, so the thickness ends up on the window's vertical
         int window_w = placed_landscape ? m.panel_h : m.panel_w;
@@ -539,12 +590,48 @@ public class SettingsSheet {
         return selected_tab == 0 ? photoGeneralRows(sizes) : photoProRows(sizes);
     }
 
-    /** The picture sizes the camera reports, or null while it is being reopened. Read once per
-     *  build: the rows work on this snapshot (Kickoff Runde 2, 1.5). */
+    /** The picture sizes the rows work on, read once per build (Kickoff Runde 2, 1.5). A camera
+     *  that is being reopened cannot answer for a moment; the list it gave last is then what the
+     *  sheet has to keep showing, otherwise the resolution and aspect rows drop out under the
+     *  user's finger (found on the device 2026-09-21, same as {@link #manualLenses()}). Kept per
+     *  camera, so switching to the other camera never puts the old camera's sizes into the new
+     *  one's rows. */
     private List<CameraController.Size> pictureSizes() {
         Preview preview = main_activity.getPreview();
-        return preview == null ? null : preview.getSupportedPictureSizes(true);
+        List<CameraController.Size> sizes = preview == null ? null : preview.getSupportedPictureSizes(true);
+        int camera_id = main_activity.getActualCameraId();
+        if( sizes != null && !sizes.isEmpty() ) {
+            last_sizes = sizes;
+            last_sizes_camera_id = camera_id;
+        }
+        else if( last_sizes != null && camera_id == last_sizes_camera_id ) {
+            sizes = last_sizes;
+        }
+        return sizes;
     }
+
+    private List<CameraController.Size> last_sizes;
+    private int last_sizes_camera_id = -1;
+
+    /** The physical lenses the lens row offers, or null when the current camera has none. During
+     *  a lens switch the camera reports none for a moment, which used to make the whole row
+     *  disappear and come back (device 2026-09-21): the lenses of the camera being switched are
+     *  the ones the row has to keep showing, and they are the same before and after the switch. */
+    private List<MainActivity.Lens> manualLenses() {
+        List<MainActivity.Lens> lenses = main_activity.getManualLenses();
+        int camera_id = main_activity.getActualCameraId();
+        if( lenses != null && lenses.size() >= 2 ) {
+            last_lenses = lenses;
+            last_lenses_camera_id = camera_id;
+        }
+        else if( last_lenses != null && camera_id == last_lenses_camera_id ) {
+            lenses = last_lenses;
+        }
+        return lenses != null && lenses.size() >= 2 ? lenses : null;
+    }
+
+    private List<MainActivity.Lens> last_lenses;
+    private int last_lenses_camera_id = -1;
 
     private List<Row> photoGeneralRows(final List<CameraController.Size> sizes) {
         List<Row> rows = new ArrayList<>();
@@ -733,10 +820,12 @@ public class SettingsSheet {
                     getString(raw ? R.string.settings_sheet_raw_on : R.string.settings_sheet_raw_off), options));
         }
 
-        // lens selection - only for the rear camera, which is the one with physical lenses
+        // lens selection - for every camera that reports physical lenses. That is the rear camera
+        // on this device, but the front camera reports a pair too (checked 2026-09-21), and the
+        // row is what "Manuell" switches the pill to, so the camera's own answer decides.
         {
-            List<MainActivity.Lens> lenses = main_activity.getManualLenses();
-            if( preview.hasPhysicalCameras() && lenses != null && lenses.size() >= 2 ) {
+            List<MainActivity.Lens> lenses = manualLenses();
+            if( lenses != null ) {
                 final boolean manual = applicationInterface.getCameraIdSPhysicalPref() != null;
                 List<Option> options = new ArrayList<>();
                 // "A" in a circle is the automatic lens choice, the aperture symbol the manual
@@ -872,9 +961,14 @@ public class SettingsSheet {
                             }
                         }));
             }
-            if( !options.isEmpty() )
+            if( !options.isEmpty() ) {
+                // the value line keeps the camera's own wording ("1920x1080 FullHD") rather than
+                // the button's short badge: the row used to switch between the two as soon as one
+                // of the badges was the current setting (device 2026-09-21)
+                CharSequence value_text = current == null ? null : preview.getCamcorderProfileDescriptionShort(current);
                 rows.add(new Row(getString(R.string.settings_sheet_resolution),
-                        selectedLabelOr(options, current == null ? null : preview.getCamcorderProfileDescriptionShort(current)), options));
+                        value_text != null ? value_text : selectedLabelOr(options, null), options));
+            }
         }
 
         // frame rate - the same candidates the settings list offers
