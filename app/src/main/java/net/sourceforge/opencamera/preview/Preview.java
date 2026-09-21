@@ -6,6 +6,7 @@ import net.sourceforge.opencamera.JavaImageProcessing;
 import net.sourceforge.opencamera.cameracontroller.RawImage;
 //import net.sourceforge.opencamera.MainActivity;
 import net.sourceforge.opencamera.MyDebug;
+import net.sourceforge.opencamera.PreferenceKeys;
 import net.sourceforge.opencamera.R;
 import net.sourceforge.opencamera.TakePhoto;
 import net.sourceforge.opencamera.ToastBoxer;
@@ -20,6 +21,7 @@ import net.sourceforge.opencamera.preview.ApplicationInterface.NoFreeStorageExce
 import net.sourceforge.opencamera.preview.camerasurface.CameraSurface;
 import net.sourceforge.opencamera.preview.camerasurface.MySurfaceView;
 import net.sourceforge.opencamera.preview.camerasurface.MyTextureView;
+import net.sourceforge.opencamera.ui.SelfieLightView;
 
 import java.io.File;
 //import java.io.FileOutputStream;
@@ -47,6 +49,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -58,7 +61,9 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
+import android.hardware.Sensor;
 import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.hardware.camera2.CameraExtensionCharacteristics;
 import android.location.Location;
@@ -86,6 +91,7 @@ import android.view.ScaleGestureDetector;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.TextureView;
+import android.preference.PreferenceManager;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
@@ -295,6 +301,8 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
 
     private List<String> supported_flash_values; // our "values" format
     private int current_flash_index = -1; // this is an index into the supported_flash_values array, or -1 if no flash modes available
+
+    private boolean selfie_light_on; // whether the white areas beside the preview are shown (front camera, video)
 
     private List<String> supported_focus_values; // our "values" format
     private int current_focus_index = -1; // this is an index into the supported_focus_values array, or -1 if no focus modes available
@@ -732,6 +740,13 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
             return true;
         }
 
+        // video macro focus: a touch must not start an autofocus, and must not move the focus
+        // areas either - the AF trigger would run the camera's normal range instead of the macro
+        // lens (device 2026-09-21: the focus mode itself stayed on macro, but the camera
+        // refocused). Only the lens is left in charge then (Kickoff Video-Blatt Runde 2, item 1).
+        // With macro off, a touch behaves as before.
+        final boolean video_macro = this.is_video && "focus_mode_macro".equals(getCurrentFocusValue());
+
         // note, we always try to force start the preview (in case is_preview_paused has become false)
         // except if recording video (firstly, the preview should be running; secondly, we don't want to reset the phase!)
         if( !this.is_video ) {
@@ -750,7 +765,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         // don't set focus areas on touch if the user is touching to unpause!
         // similarly if doing single touch to capture (we go straight to taking a photo)
         // and not supported for camera extensions
-        if( camera_controller != null && !this.using_face_detection && !was_paused && !touch_capture && !camera_controller.isCameraExtension() ) {
+        if( camera_controller != null && !this.using_face_detection && !was_paused && !touch_capture && !camera_controller.isCameraExtension() && !video_macro ) {
             if( clear_focus_areas ) {
                 // double tap to clear focus areas
                 // also if we were in autofocus_in_continuous_mode mode, reset back to continuous mode
@@ -802,7 +817,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         }
 
         // don't auto focus on touch if the user is touching to unpause!
-        if( !was_paused ) {
+        if( !was_paused && !video_macro ) {
             // if clear_focus_areas==true, don't want to reenter autofocus_in_continuous_mode mode
             tryAutoFocus(false, !clear_focus_areas);
         }
@@ -1490,6 +1505,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
             // no need to call camera_controller.setCaptureFollowAutofocusHint() as we're closing the camera
         }
         set_flash_value_after_autofocus = "";
+        updateTorchAuto(null); // let go of the light sensor while no camera is open
         successfully_focused = false;
         preview_targetRatio = 0.0;
         // the physical cameras belong to the camera being closed - if kept, the next camera's
@@ -5173,7 +5189,11 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
             // pausing
         }
         else if( this.supported_focus_values != null && camera_controller != null && is_video ) {
-            boolean focus_is_video = focusIsVideo();
+            // macro counts as a video focus mode here: the Samsung S5 workaround below used to
+            // reset it to continuous video on every camera close/open, which the sheet showed as
+            // "Aus" and left the camera focusing normally (device 2026-09-21, Kickoff Video-Blatt
+            // Runde 2, item 1)
+            boolean focus_is_video = focusIsVideo() || "focus_mode_macro".equals(getCurrentFocusValue());
             if( MyDebug.LOG ) {
                 Log.d(TAG, "focus_is_video: " + focus_is_video + " , is_video: " + is_video);
             }
@@ -5193,7 +5213,8 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         if( MyDebug.LOG )
             Log.d(TAG, "updateFlashForVideo()");
         if( is_video ) {
-            // check flash is not auto or on
+            // check flash is not auto or on - except "auto", which in video mode means the torch
+            // when it is dark (Kickoff Video-Blatt Runde 2, item 2)
             String current_flash = getCurrentFlashValue();
             if( current_flash != null && !isFlashSupportedForVideo(current_flash) ) {
                 if( MyDebug.LOG )
@@ -5201,13 +5222,129 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
                 current_flash_index = -1; // reset to initial, to prevent toast from showing
                 updateFlash("flash_off", false);
             }
+            else if( current_flash != null && current_flash.startsWith("flash_frontscreen") ) {
+                // the front camera has no flash: the white areas beside the preview replace it
+                // (Kickoff Video-Blatt Runde 2, item 3). Not saved - photo mode uses the same
+                // flash preference and keeps its own value.
+                if( MyDebug.LOG )
+                    Log.d(TAG, "front camera: no flash in video mode, use the selfie lighting instead");
+                updateFlash("flash_off", false);
+            }
         }
+        updateTorchAuto(getCurrentFlashValue());
+        updateSelfieLight();
     }
 
     /** Whether the flash mode is supported in video mode.
      */
     public static boolean isFlashSupportedForVideo(String flash_mode) {
-        return flash_mode != null && ( flash_mode.equals("flash_off") || flash_mode.equals("flash_torch") || flash_mode.equals("flash_frontscreen_torch") );
+        return flash_mode != null && ( flash_mode.equals("flash_off") || flash_mode.equals("flash_auto") ||
+                flash_mode.equals("flash_torch") || flash_mode.equals("flash_frontscreen_torch") );
+    }
+
+    /** Ambient light below this (in lux) switches the torch on for the video flash mode "auto"
+     *  (Kickoff Video-Blatt Runde 2, item 2). Measured with the device's light sensor; if Falk
+     *  wants the threshold elsewhere, this is the one number to change. */
+    private static final float TORCH_AUTO_LUX = 10.0f;
+
+    private Sensor light_sensor;
+    private SensorEventListener light_sensor_listener;
+    private boolean torch_auto_on;
+
+    /** The flash mode the camera itself gets: with the video flash "auto" the hardware flash
+     *  stays off, the torch is switched by the light sensor instead (see updateTorchAuto). */
+    private String flashValueForCamera(String flash_value) {
+        if( is_video && flash_value != null && flash_value.equals("flash_auto") )
+            return "flash_off";
+        return flash_value;
+    }
+
+    /** Registers or unregisters the light sensor that drives the torch for the video flash mode
+     *  "auto": in the dark the torch comes on, otherwise it stays off. Does nothing when the mode
+     *  isn't "auto" in video mode - the sensor is only held while it is needed. */
+    private void updateTorchAuto(String flash_value) {
+        boolean needed = is_video && flash_value != null && flash_value.equals("flash_auto") && camera_controller != null;
+        if( needed == (light_sensor_listener != null) )
+            return;
+        if( needed ) {
+            SensorManager sensor_manager = (SensorManager)getContext().getSystemService(Context.SENSOR_SERVICE);
+            light_sensor = sensor_manager == null ? null : sensor_manager.getDefaultSensor(Sensor.TYPE_LIGHT);
+            if( light_sensor == null ) {
+                Log.d(TAG, "no light sensor - video flash auto stays without torch");
+                return;
+            }
+            light_sensor_listener = new SensorEventListener() {
+                @Override
+                public void onSensorChanged(SensorEvent event) {
+                    setTorchForLight(event.values[0]);
+                }
+
+                @Override
+                public void onAccuracyChanged(Sensor sensor, int accuracy) {
+                }
+            };
+            sensor_manager.registerListener(light_sensor_listener, light_sensor, SensorManager.SENSOR_DELAY_NORMAL);
+            torch_auto_on = false;
+            if( MyDebug.LOG )
+                Log.d(TAG, "registered light sensor for video flash auto");
+        }
+        else {
+            if( light_sensor_listener != null ) {
+                SensorManager sensor_manager = (SensorManager)getContext().getSystemService(Context.SENSOR_SERVICE);
+                if( sensor_manager != null )
+                    sensor_manager.unregisterListener(light_sensor_listener);
+                if( MyDebug.LOG )
+                    Log.d(TAG, "unregistered light sensor");
+            }
+            light_sensor_listener = null;
+            light_sensor = null;
+            torch_auto_on = false;
+        }
+    }
+
+    /** Turns the torch on or off according to the ambient light - only when it changes, so the
+     *  camera is not reconfigured for every sensor reading. */
+    private void setTorchForLight(float lux) {
+        if( camera_controller == null )
+            return;
+        boolean on = lux < TORCH_AUTO_LUX;
+        if( on == torch_auto_on )
+            return;
+        if( MyDebug.LOG )
+            Log.d(TAG, "ambient light " + lux + " lux -> torch " + (on ? "on" : "off"));
+        torch_auto_on = on;
+        camera_controller.setFlashValue(on ? "flash_torch" : "flash_off");
+    }
+
+    /** Whether the selfie lighting is on: while recording with the front camera, the areas
+     *  beside the preview are filled with white (Kickoff Video-Blatt Runde 2, item 3). */
+    public boolean isSelfieLightOn() {
+        return selfie_light_on;
+    }
+
+    /** Sets the selfie lighting and stores it. The camera is untouched - the front camera has no
+     *  flash, this is only the white areas beside the preview. */
+    public void setSelfieLightOn(boolean on) {
+        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getContext()).edit();
+        editor.putBoolean(PreferenceKeys.VideoSelfieLightPreferenceKey, on);
+        editor.apply();
+        updateSelfieLight();
+    }
+
+    /** Applies the stored selfie lighting to the view. Only while recording with the front
+     *  camera - in photo mode and on the rear camera there is nothing to light. Called when the
+     *  mode or the camera changes, and after the setting was changed. */
+    public void updateSelfieLight() {
+        boolean on = is_video && camera_controller != null && camera_controller.getFacing() == CameraController.Facing.FACING_FRONT &&
+                PreferenceManager.getDefaultSharedPreferences(getContext()).getBoolean(PreferenceKeys.VideoSelfieLightPreferenceKey, false);
+        selfie_light_on = on;
+        Activity activity = (Activity)getContext();
+        View view = activity == null ? null : activity.findViewById(R.id.selfie_light);
+        if( view instanceof SelfieLightView ) {
+            if( MyDebug.LOG )
+                Log.d(TAG, "selfie light: " + on);
+            ((SelfieLightView)view).setOn(on);
+        }
     }
 
     public String getErrorFeatures(VideoProfile profile) {
@@ -5368,7 +5505,10 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
             return;
         }
         cancelAutoFocus();
-        camera_controller.setFlashValue(flash_value);
+        // with the video flash "auto" the camera gets "off" - the torch is switched by the light
+        // sensor instead (updateTorchAuto)
+        camera_controller.setFlashValue(flashValueForCamera(flash_value));
+        updateTorchAuto(flash_value);
     }
 
     // this returns the flash value indicated by the UI, rather than from the camera parameters (may be different, e.g., in startup autofocus!)
@@ -5757,6 +5897,11 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         if( flash_value_ui == null )
             return;
         if( flash_value_ui.equals("flash_torch") )
+            return;
+        // the video flash "auto" owns the torch through the light sensor - leaving the pulse to
+        // it, instead of switching the torch off here and leaving it off (the sensor only reacts
+        // to a change in the ambient light)
+        if( flash_value_ui.equals("flash_auto") )
             return;
         if( flash_value.equals("flash_torch") ) {
             // shouldn't happen? but set to what the UI is

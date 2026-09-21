@@ -20,6 +20,21 @@
         app:layout_constraintBottom_toBottomOf="parent"
         />
 
+    <!-- Selfie-Beleuchtung (Frontkamera, Video): fuellt die schwarzen Flaechen ueber und unter
+         dem Vorschaubild weiss (Kickoff Video-Blatt Runde 2, Punkt 3). Sie liegt direkt hinter
+         der Vorschau und vor allen Bedienelementen - die bleiben also obenauf - und wird von
+         MainUI.layoutUI() nie angefasst (bildschirmfuellend per Constraints). Nicht clickable,
+         damit Beruehrungen zum Sucher darunter durchfallen. -->
+    <net.sourceforge.opencamera.ui.SelfieLightView
+        android:id="@+id/selfie_light"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        />
+
     <!-- Everything below this point is positioned at runtime by MainUI.layoutUI() (using
          ConstraintSet) - one fixed portrait arrangement, the window never rotates (see the
          rotation model in docs/design-reference/ui-spezifikation.md section 2). The

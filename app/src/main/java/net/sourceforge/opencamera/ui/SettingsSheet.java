@@ -917,8 +917,34 @@ public class SettingsSheet {
         final String fps_value = applicationInterface.getVideoFPSPref();
         final boolean front = frontCamera();
 
-        // flash: only the values that make sense while recording
-        {
+        if( front ) {
+            // the front camera has no flash: this row lights the areas beside the preview white
+            // instead (Kickoff Video-Blatt Runde 2, item 3)
+            boolean on = preview.isSelfieLightOn();
+            String label_off = getString(R.string.settings_sheet_off);
+            String label_on = getString(R.string.settings_sheet_on);
+            List<Option> options = new ArrayList<>();
+            options.add(new Option(label_off, R.drawable.ms_lightbulb_off, null, null, 0.0f, !on,
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            main_activity.getPreview().setSelfieLightOn(false);
+                            refresh();
+                        }
+                    }));
+            options.add(new Option(label_on, R.drawable.ms_lightbulb, null, null, 0.0f, on,
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            main_activity.getPreview().setSelfieLightOn(true);
+                            refresh();
+                        }
+                    }));
+            rows.add(new Row(getString(R.string.settings_sheet_selfie_light), on ? label_on : label_off, options));
+        }
+        // flash: only the values that make sense while recording. The middle one is not a flash
+        // mode of the camera but the torch by ambient light (Kickoff Video-Blatt Runde 2, item 2)
+        else {
             List<String> supported = new ArrayList<>();
             List<String> all = preview.getSupportedFlashValues();
             if( all != null ) {
@@ -928,9 +954,9 @@ public class SettingsSheet {
                 }
             }
             String current = preview.getCurrentFlashValue();
-            String [] values = {"flash_off", "flash_torch"};
-            int [] labels = {R.string.settings_sheet_off, R.string.settings_sheet_on};
-            int [] icons = {R.drawable.ms_flash_off, R.drawable.ms_flash_on};
+            String [] values = {"flash_off", "flash_auto", "flash_torch"};
+            int [] labels = {R.string.settings_sheet_off, R.string.settings_sheet_auto, R.string.settings_sheet_on};
+            int [] icons = {R.drawable.ms_flash_off, R.drawable.ms_flash_auto, R.drawable.ms_flash_on};
             List<Option> options = new ArrayList<>();
             for(int i=0;i<values.length;i++) {
                 final String value = values[i];

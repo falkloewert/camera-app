@@ -323,6 +323,10 @@ public class PreferenceKeys {
 
     public static final String VideoStabilizationPreferenceKey = "preference_video_stabilization";
 
+    /** Selfie lighting (front camera, video): fills the areas beside the preview with white.
+     *  Set from the video sheet, so it has no entry in the settings list. */
+    public static final String VideoSelfieLightPreferenceKey = "preference_video_selfie_light";
+
     public static final String ForceVideo4KPreferenceKey = "preference_force_video_4k";
 
     public static final String VideoFormatPreferenceKey = "preference_video_output_format";

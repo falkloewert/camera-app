@@ -1,0 +1,12 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+  <!-- Birne wie ms_lightbulb, dazu der Schraegstrich wie in ms_flash_off. evenOdd schneidet
+       den Strich aus der Birne heraus, statt ihn zu ueberdecken. -->
+  <path
+      android:fillColor="@android:color/white"
+      android:fillType="evenOdd"
+      android:pathData="M360,840c0,20 16,40 40,40h160c24,0 40,-20 40,-40v-40H360v40Zm120,-760C324,80 200,204 200,360c0,96 48,180 120,228V680c0,20 16,40 40,40h240c24,0 40,-20 40,-40V576c72,-52 120,-136 120,-228c0,-156 -124,-280 -280,-280ZM55,169L112,112L848,848L791,905Z"/>
+</vector>

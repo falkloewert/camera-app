@@ -327,6 +327,21 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   Objektivauswahl-Zeile, gespeicherte 1:1-Videoqualität der Frontkamera wird auf 1080p
   korrigiert. Gerätetest: „FHD" → Wertzeile „1920x1080 FullHD", Selfie-Video 1920×1080,
   „Mehr" zeigt Stabilisierung „An", Rückkamera unverändert. Offen: Falk testet am Gerät.
+- **2026-09-21 (Feature-Chat, Video-Blatt Runde 2):** Kickoff
+  `docs/kickoff/redesign-video-blatt-runde2.md` umgesetzt: (1) Videomakro „An" blieb nicht
+  stehen – `updateFocusForVideo()` (Samsung-S5-Workaround) setzte es beim Schließen/Öffnen
+  der Kamera auf `continuous_video` zurück; Makro zählt dort jetzt als Video-Fokusmodus,
+  und im Makromodus löst ein Tipp keinen Autofokus mehr aus (Gerätelog vor dem Fix:
+  `updateFocusForVideo focus_is_video=false … ui=focus_mode_macro`). (2) Videoblitz
+  „Autom." (Rückkamera) ist kein Kamerablitz mehr, sondern die Taschenlampe per
+  `TYPE_LIGHT`-Sensor: an unter 10 lx, aus darüber; gespeichert bleibt „Autom.",
+  `flashVideo()` pulst in diesem Zustand nicht. (3) Frontkamera-Videoblitzzeile durch
+  „Selfiebeleuchtung" ersetzt (Glühbirnen-Symbole, Aus/An): `ui/SelfieLightView` malt die
+  schwarzen Flächen über/unter dem Sucher weiß, Bild und Bedienelemente bleiben unberührt,
+  eigener Pref `preference_video_selfie_light`. Gerätetest (Pixel 9 Pro): Makro bleibt nach
+  Foto↔Video im Blatt „An"; „Autom." → Taschenlampe im Dunkeln an, Blatt bleibt „Autom.";
+  Selfiebeleuchtung „An" → nur die zwei Streifen weiß. Blitz-Pref bleibt zwischen Foto und
+  Video geteilt (Videokorrekturen daher `save=false`). Offen: Falk testet am Gerät.
 
 
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)

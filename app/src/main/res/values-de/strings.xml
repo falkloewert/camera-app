@@ -989,6 +989,7 @@
     <string name="settings_sheet_lens">Objektivauswahl</string>
     <string name="settings_sheet_fps">fps</string>
     <string name="settings_sheet_stabilization">Videostabilisierung</string>
+    <string name="settings_sheet_selfie_light">Selfiebeleuchtung</string>
     <string name="settings_sheet_lens_uw">UW</string>
     <string name="settings_sheet_lens_w">W</string>
     <string name="settings_sheet_lens_t">T</string>
