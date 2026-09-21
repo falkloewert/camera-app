@@ -729,7 +729,10 @@ public class MyApplicationInterface extends BasicApplicationInterface {
 
         // Conceivably, we might get in a state where the fps isn't supported at all (e.g., an upgrade changes the available
         // supported video resolutions/frame-rates).
-        return sharedPreferences.getString(PreferenceKeys.getVideoQualityPreferenceKey(cameraId, cameraIdSPhysical, fpsIsHighSpeed()), "");
+        // through the getter, not the field: in video mode the lens is not pinned (see
+        // getCameraIdSPhysicalPref()), so the sheet writes this preference under the logical
+        // camera's key and reading it has to use the same one
+        return sharedPreferences.getString(PreferenceKeys.getVideoQualityPreferenceKey(cameraId, getCameraIdSPhysicalPref(), fpsIsHighSpeed()), "");
     }
 
     @Override
@@ -793,12 +796,14 @@ public class MyApplicationInterface extends BasicApplicationInterface {
             Log.e(TAG, "can't find valid fps for slow motion");
             return "default";
         }
-        return sharedPreferences.getString(PreferenceKeys.getVideoFPSPreferenceKey(cameraId, cameraIdSPhysical), "default");
+        // the getter, not the field - see getVideoQualityPref()
+        return sharedPreferences.getString(PreferenceKeys.getVideoFPSPreferenceKey(cameraId, getCameraIdSPhysicalPref()), "default");
     }
 
     @Override
     public float getVideoCaptureRateFactor() {
-        float capture_rate_factor = sharedPreferences.getFloat(PreferenceKeys.getVideoCaptureRatePreferenceKey(main_activity.getPreview().getCameraId(), cameraIdSPhysical), 1.0f);
+        // the getter, not the field - see getVideoQualityPref()
+        float capture_rate_factor = sharedPreferences.getFloat(PreferenceKeys.getVideoCaptureRatePreferenceKey(main_activity.getPreview().getCameraId(), getCameraIdSPhysicalPref()), 1.0f);
         if( MyDebug.LOG )
             Log.d(TAG, "capture_rate_factor: " + capture_rate_factor);
         if( Math.abs(capture_rate_factor - 1.0f) > 1.0e-5 ) {
@@ -3140,7 +3145,9 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     @Override
     public void setVideoQualityPref(String video_quality) {
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString(PreferenceKeys.getVideoQualityPreferenceKey(cameraId, cameraIdSPhysical, fpsIsHighSpeed()), video_quality);
+        // the getter, not the field - the write path has to use the key the read path uses
+        // (getVideoQualityPref())
+        editor.putString(PreferenceKeys.getVideoQualityPreferenceKey(cameraId, getCameraIdSPhysicalPref(), fpsIsHighSpeed()), video_quality);
         editor.apply();
     }
 

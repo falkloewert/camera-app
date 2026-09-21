@@ -110,6 +110,7 @@ public class SettingsSheet {
 
     /** The rotation that was used for the current layout, to skip rebuilding when unchanged. */
     private boolean placed_landscape;
+    private boolean placed_mirrored;    // see mirrored()
     private int depth_px;               // the panel's extent away from the physical bottom edge
     private int resting_translation_y;  // window translation of the closed/open resting position
 
@@ -143,6 +144,9 @@ public class SettingsSheet {
         Preview preview = main_activity.getPreview();
         if( preview == null )
             return;
+        // the sheet and the popup are never open at the same time (Kickoff 3.2) - the other
+        // direction is in MainUI.togglePopupSettings()
+        main_activity.closePopup();
         open = true;
         // the sheet always opens on the left tab (Kickoff 2.2)
         selected_tab = 0;
@@ -303,8 +307,26 @@ public class SettingsSheet {
         int cells_right;                // outer edge of the rightmost option cell
         int tabs_left, tabs_right, tabs_top;
         int title_centre, more_centre, rows_first_centre;
+        int row_step;                   // from one row's centre to the next, away from the viewfinder
         int strip_x, strip_width;
         int handle_left, handle_top, handle_w, handle_h;
+    }
+
+    /** Whether the panel lies on its side, i.e. its depth runs along local x instead of local y. */
+    private boolean landscape() {
+        return ui_rotation == 90 || ui_rotation == 270;
+    }
+
+    /** Whether the panel's local frame is turned away from the physical bottom edge.
+     *  {@link View#setRotation(float)} turns clockwise, so the panel's local origin ends up on the
+     *  window's top edge at 90 (a rectangle turned clockwise puts its left edge on top) and on the
+     *  window's bottom edge at 270; in portrait the same holds for local y at 0 and 180. The
+     *  numbers of the kickoff are all measured from the edge towards the viewfinder, which is the
+     *  local origin at 0/90 and the far end of the panel at 180/270 - there they have to be
+     *  mirrored, otherwise the rounded corners, the drag handle and the insets sit on the edge the
+     *  panel hangs off (Kickoff 2.2/2.3). */
+    private boolean mirrored() {
+        return ui_rotation == 180 || ui_rotation == 270;
     }
 
     /** The space the sheet hangs in, in the window's axes. The catcher container is the right
@@ -330,12 +352,15 @@ public class SettingsSheet {
     private Metrics metrics() {
         Metrics m = new Metrics();
         int screen_w = windowSize(true);
-        boolean landscape = ui_rotation == 90 || ui_rotation == 270;
-        if( landscape ) {
+        boolean mirrored = mirrored();
+        if( landscape() ) {
             m.panel_w = dp(PANEL_DEPTH_LANDSCAPE);
             m.panel_h = screen_w;
-            m.strip_x = dp(LANDSCAPE_STRIP_IN);
             m.strip_width = dp(LANDSCAPE_STRIP_WIDTH);
+            // the content strip keeps its 36 dp inset towards the viewfinder, which is the far end
+            // of the panel at 270 (see mirrored()); the rows inside it are not mirrored - their
+            // axis is the same local x, and a mirrored row would put its buttons left of its label
+            m.strip_x = mirrored ? m.panel_w - dp(LANDSCAPE_STRIP_IN) - m.strip_width : dp(LANDSCAPE_STRIP_IN);
             m.label_x = m.strip_x + dp(TITLE_INSET);
             m.cells_right = m.strip_x + m.strip_width;
             m.tabs_left = m.label_x;
@@ -344,10 +369,11 @@ public class SettingsSheet {
             m.more_centre = dp(MORE_CENTRE - LANDSCAPE_SHIFT);
             m.tabs_top = dp(TABS_TOP - LANDSCAPE_SHIFT);
             m.rows_first_centre = dp(ROW_FIRST_CENTRE - LANDSCAPE_SHIFT);
-            m.handle_left = dp(HANDLE_INSET);
-            m.handle_top = m.panel_h / 2 - dp(HANDLE_LONG) / 2;
+            m.row_step = dp(ROW_RASTER);    // the rows stack along local y, which is not mirrored
             m.handle_w = dp(HANDLE_THICK);
             m.handle_h = dp(HANDLE_LONG);
+            m.handle_left = mirrored ? m.panel_w - dp(HANDLE_INSET) - m.handle_w : dp(HANDLE_INSET);
+            m.handle_top = m.panel_h / 2 - dp(HANDLE_LONG) / 2;
         }
         else {
             m.panel_w = screen_w;
@@ -358,14 +384,28 @@ public class SettingsSheet {
             m.cells_right = screen_w - dp(TITLE_INSET);
             m.tabs_left = dp(TITLE_INSET);
             m.tabs_right = screen_w - dp(TITLE_INSET);
-            m.title_centre = dp(TITLE_CENTRE);
-            m.more_centre = dp(MORE_CENTRE);
-            m.tabs_top = dp(TABS_TOP);
-            m.rows_first_centre = dp(ROW_FIRST_CENTRE);
-            m.handle_left = screen_w / 2 - dp(HANDLE_LONG) / 2;
-            m.handle_top = dp(HANDLE_INSET);
             m.handle_w = dp(HANDLE_LONG);
             m.handle_h = dp(HANDLE_THICK);
+            m.handle_left = screen_w / 2 - dp(HANDLE_LONG) / 2;
+            // in portrait the depth runs along local y, so every one of these distances is
+            // measured from the other edge at 180 (see mirrored()) - the panel is then the mirror
+            // image of the portrait one, handle and rounded corners towards the viewfinder
+            if( mirrored ) {
+                m.title_centre = m.panel_h - dp(TITLE_CENTRE);
+                m.more_centre = m.panel_h - dp(MORE_CENTRE);
+                m.tabs_top = m.panel_h - dp(TABS_TOP) - dp(TABS_HEIGHT);
+                m.rows_first_centre = m.panel_h - dp(ROW_FIRST_CENTRE);
+                m.row_step = -dp(ROW_RASTER);
+                m.handle_top = m.panel_h - dp(HANDLE_INSET) - m.handle_h;
+            }
+            else {
+                m.title_centre = dp(TITLE_CENTRE);
+                m.more_centre = dp(MORE_CENTRE);
+                m.tabs_top = dp(TABS_TOP);
+                m.rows_first_centre = dp(ROW_FIRST_CENTRE);
+                m.row_step = dp(ROW_RASTER);
+                m.handle_top = dp(HANDLE_INSET);
+            }
         }
         return m;
     }
@@ -374,7 +414,8 @@ public class SettingsSheet {
      *  translations are in the window's axes, hence the plain centre arithmetic. */
     private void place() {
         Metrics m = metrics();
-        placed_landscape = ui_rotation == 90 || ui_rotation == 270;
+        placed_landscape = landscape();
+        placed_mirrored = mirrored();
         ViewGroup.LayoutParams params = panel.getLayoutParams();
         params.width = m.panel_w;
         params.height = m.panel_h;
@@ -398,16 +439,26 @@ public class SettingsSheet {
             Log.d(TAG, "place: panel " + window_w + "x" + window_h + ", translation " + panel.getTranslationX() + " / " + resting_translation_y);
     }
 
-    /** Rounded corners on the inboard edge: local y = 0 in portrait (the top), local x = 0 in
-     *  landscape (the left) - both are the edge towards the viewfinder (Kickoff 2.2/2.3). */
+    /** Rounded corners on the inboard edge, i.e. the edge towards the viewfinder (Kickoff
+     *  2.2/2.3): local y = 0 in portrait (the top) and local x = 0 in landscape (the left), and
+     *  the opposite edge of the panel when its frame is mirrored (see {@link #mirrored()}). */
     private GradientDrawable panelBackground() {
         GradientDrawable background = new GradientDrawable();
         background.setColor(ContextCompat.getColor(main_activity, R.color.settings_sheet_panel));
         float r = dp(CORNER_RADIUS);
-        if( placed_landscape )
-            background.setCornerRadii(new float [] {r, r, 0, 0, 0, 0, r, r});
-        else
-            background.setCornerRadii(new float [] {r, r, r, r, 0, 0, 0, 0});
+        // the radii run top-left, top-right, bottom-right, bottom-left, x and y of each
+        if( placed_landscape ) {
+            if( placed_mirrored )
+                background.setCornerRadii(new float [] {0, 0, r, r, r, r, 0, 0});
+            else
+                background.setCornerRadii(new float [] {r, r, 0, 0, 0, 0, r, r});
+        }
+        else {
+            if( placed_mirrored )
+                background.setCornerRadii(new float [] {0, 0, 0, 0, r, r, r, r});
+            else
+                background.setCornerRadii(new float [] {r, r, r, r, 0, 0, 0, 0});
+        }
         return background;
     }
 
@@ -508,7 +559,7 @@ public class SettingsSheet {
         // row asking for them again (Kickoff Runde 2, 1.5)
         List<Row> rows = buildRows(pictureSizes());
         for(int i=0;i<rows.size();i++)
-            createRow(rows.get(i), m.rows_first_centre + i * dp(ROW_RASTER), m);
+            createRow(rows.get(i), m.rows_first_centre + i * m.row_step, m);
     }
 
     /** One row of the sheet: a label, the current value, and the options right-aligned in it. */
@@ -741,7 +792,9 @@ public class SettingsSheet {
                         new Runnable() {
                             @Override
                             public void run() {
-                                preview.updateFlash(value);
+                                // quiet: the row marks the new value itself, and info toasts
+                                // aren't used (docs/SPEC.md 2.7)
+                                preview.updateFlashQuiet(value);
                                 MainUI mainUI = main_activity.getMainUI();
                                 mainUI.setPopupIcon();
                                 mainUI.destroyPopup();
@@ -828,9 +881,9 @@ public class SettingsSheet {
         {
             CameraController.Size current = preview.getCurrentPictureSize();
             // Kickoff 3.4: the resolution list the camera reports, for the first device test
-            // (Falk suspects the 50 MP size is reserved for the Google app). Deliberately not
-            // behind MyDebug.LOG - the debug build would hide it (Kickoff Runde 2, Punkt 6)
-            Log.d(TAG, "supported picture sizes: " + sizes);
+            // (Falk suspects the 50 MP size is reserved for the Google app)
+            if( MyDebug.LOG )
+                Log.d(TAG, "supported picture sizes: " + sizes);
             if( sizes != null && !sizes.isEmpty() ) {
                 // the camera's own size is the truth, but it is null while the camera is being
                 // reopened; then the stored preference decides, which is the value the reopen is
@@ -1010,7 +1063,8 @@ public class SettingsSheet {
                         new Runnable() {
                             @Override
                             public void run() {
-                                main_activity.getPreview().updateFlash(value);
+                                // quiet, as in the photo flash row above
+                                main_activity.getPreview().updateFlashQuiet(value);
                                 MainUI mainUI = main_activity.getMainUI();
                                 mainUI.setPopupIcon();
                                 mainUI.destroyPopup();
@@ -1034,10 +1088,11 @@ public class SettingsSheet {
             List<String> qualities = preview.getSupportedVideoQuality(fps_value);
             if( qualities == null || qualities.isEmpty() )
                 qualities = preview.getVideoQualityHander().getSupportedVideoQuality();
-            // Kickoff 3.4/3.5: the video quality and frame rate lists the camera reports.
-            // Deliberately not behind MyDebug.LOG, see the picture sizes above
-            Log.d(TAG, "supported video qualities: " + qualities);
-            Log.d(TAG, "video sizes: " + preview.getVideoQualityHander().getSupportedVideoSizes());
+            // Kickoff 3.4/3.5: the video quality and frame rate lists the camera reports
+            if( MyDebug.LOG ) {
+                Log.d(TAG, "supported video qualities: " + qualities);
+                Log.d(TAG, "video sizes: " + preview.getVideoQualityHander().getSupportedVideoSizes());
+            }
             List<Option> options = new ArrayList<>();
             int [] widths = {1920, 3840, 7680};
             int [] heights = {1080, 2160, 4320};
@@ -1133,7 +1188,8 @@ public class SettingsSheet {
             // the selected knob carries the number already; only an fps the knobs cannot show
             // falls back to the stored value
             CharSequence value_text = selectedLabelOr(options, fps_value);
-            Log.d(TAG, "supported frame rates: " + supported_fps + ", current " + fps_value + ", real " + real_fps);
+            if( MyDebug.LOG )
+                Log.d(TAG, "supported frame rates: " + supported_fps + ", current " + fps_value + ", real " + real_fps);
             if( value_text == null && fps_value != null )
                 value_text = fps_value.equals("default") ? getString(R.string.settings_sheet_auto) : fps_value;
             if( !options.isEmpty() )
@@ -1155,7 +1211,9 @@ public class SettingsSheet {
             String label_off = getString(R.string.settings_sheet_off);
             String label_on = getString(R.string.settings_sheet_on);
             List<Option> options = new ArrayList<>();
-            options.add(new Option(label_off, R.drawable.ms_video_stable, null, null, 0.0f, !on,
+            // "off" is the crossed out circle the other rows use for it, not the same symbol as
+            // "on" (Runde 1)
+            options.add(new Option(label_off, R.drawable.ms_block, null, null, 0.0f, !on,
                     new Runnable() {
                         @Override
                         public void run() {
@@ -1415,7 +1473,8 @@ public class SettingsSheet {
             fix = findQuality(qualities, 1280, 720);
         if( fix == null )
             return;  // nothing 16:9 to switch to - leave the camera alone
-        Log.d(TAG, "front camera video quality " + current + " is not 16:9, switching to " + fix);
+        if( MyDebug.LOG )
+            Log.d(TAG, "front camera video quality " + current + " is not 16:9, switching to " + fix);
         setVideoQuality(fix);
     }
 

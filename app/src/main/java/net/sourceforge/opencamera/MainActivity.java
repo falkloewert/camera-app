@@ -2591,6 +2591,31 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         return settingsSheet;
     }
 
+    /** Whether the sheet is open right now - null-safe, as the sheet is only created on first
+     *  use. */
+    public boolean settingsSheetIsOpen() {
+        return settingsSheet != null && settingsSheet.isOpen();
+    }
+
+    /** Whether the sheet may be opened right now: not while the camera is being opened, a photo
+     *  or video is being taken or the screen is locked (Kickoff 3.2). Both the dock button and the
+     *  swipe ask this. */
+    private boolean canOpenSettingsSheet() {
+        if( preview == null )
+            return false;
+        if( preview.isOpeningCamera() )
+            return false;
+        if( preview.isVideoRecording() || applicationInterface.getGyroSensor().isRecording() )
+            return false;
+        if( preview.isTakingPhotoOrOnTimer() )
+            return false;
+        if( isScreenLocked() )
+            return false;
+        if( popupIsOpen() )
+            return false;
+        return true;
+    }
+
     /** The left dock button: opens the sheet of the current mode, or closes it again. */
     public void clickedSettingsSheet(View view) {
         if( MyDebug.LOG )
@@ -2598,7 +2623,7 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         SettingsSheet sheet = getSettingsSheet();
         if( sheet.isOpen() )
             sheet.close();
-        else
+        else if( canOpenSettingsSheet() )
             sheet.open();
     }
 
@@ -2607,17 +2632,7 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     public void settingsSheetSwipe() {
         if( MyDebug.LOG )
             Log.d(TAG, "settingsSheetSwipe");
-        if( preview == null )
-            return;
-        if( preview.isOpeningCamera() )
-            return;
-        if( preview.isVideoRecording() || applicationInterface.getGyroSensor().isRecording() )
-            return;
-        if( preview.isTakingPhotoOrOnTimer() )
-            return;
-        if( isScreenLocked() )
-            return;
-        if( popupIsOpen() )
+        if( !canOpenSettingsSheet() )
             return;
         getSettingsSheet().open();
     }
@@ -4022,7 +4037,9 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                 if( MyDebug.LOG )
                     Log.d(TAG, "setImmersiveTimer: run");
                 // even though timer should have been cancelled when in background, check app_is_paused just in case
-                if( !app_is_paused && !camera_in_background && !popupIsOpen() && usingKitKatImmersiveMode() )
+                // an open settings sheet counts as activity, like an open popup (Kickoff 3.2):
+                // hiding the GUI would close it under the user's finger
+                if( !app_is_paused && !camera_in_background && !popupIsOpen() && !settingsSheetIsOpen() && usingKitKatImmersiveMode() )
                     setImmersiveMode(true);
             }
         }, 5000);

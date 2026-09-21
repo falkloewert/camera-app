@@ -5284,7 +5284,8 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
             SensorManager sensor_manager = (SensorManager)getContext().getSystemService(Context.SENSOR_SERVICE);
             light_sensor = sensor_manager == null ? null : sensor_manager.getDefaultSensor(Sensor.TYPE_LIGHT);
             if( light_sensor == null ) {
-                Log.d(TAG, "no light sensor - video flash auto stays without torch");
+                if( MyDebug.LOG )
+                    Log.d(TAG, "no light sensor - video flash auto stays without torch");
                 return;
             }
             light_sensor_listener = new SensorEventListener() {
@@ -5414,6 +5415,28 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
             return;
         }
         updateFlash(flash_value, true);
+    }
+
+    /** As {@link #updateFlash(String)}, but without the toast: the settings sheet marks the new
+     *  value in its own row, and info toasts aren't used in this app (docs/SPEC.md 2.7, as
+     *  updateFocus()'s "quiet"). Uses the same mechanism as updateFlashForVideo(): an index of -1
+     *  counts as the initial value, for which updateFlash() shows nothing. */
+    public void updateFlashQuiet(String flash_value) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "updateFlashQuiet(): " + flash_value);
+        if( this.phase == PHASE_TAKING_PHOTO && !is_video ) {
+            // as updateFlash(String): don't risk messing up a photo being taken
+            if( MyDebug.LOG )
+                Log.d(TAG, "currently taking a photo");
+            return;
+        }
+        int old_flash_index = current_flash_index;
+        current_flash_index = -1; // to prevent toast from showing
+        if( !updateFlash(flash_value, true) ) {
+            // the value isn't supported, so nothing was changed - put the index back, otherwise
+            // the UI state would be lost
+            current_flash_index = old_flash_index;
+        }
     }
 
     private boolean updateFlash(String flash_value, boolean save) {
@@ -5568,6 +5591,16 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
     private boolean updateFocus(String focus_value, boolean quiet, boolean save, boolean auto_focus) {
         if( MyDebug.LOG )
             Log.d(TAG, "updateFocus(): " + focus_value);
+        // there is no macro mode for video in the sheet anymore (2026-09-21) - a stored value left
+        // over from it would set the camera to the macro mode, which only focuses on a tap and
+        // then stays there, so treat it as the continuous video focus the video sheet uses. Here
+        // and not in setFocusValue(), so that current_focus_index, the saved value and the
+        // camera's focus mode all end up on the corrected value (Runde 1)
+        if( this.is_video && "focus_mode_macro".equals(focus_value) ) {
+            if( MyDebug.LOG )
+                Log.d(TAG, "macro focus isn't used in video mode, use the continuous video focus instead");
+            focus_value = "focus_mode_continuous_video";
+        }
         if( this.supported_focus_values != null ) {
             int new_focus_index = supported_focus_values.indexOf(focus_value);
             if( MyDebug.LOG )
@@ -5652,11 +5685,6 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         cancelAutoFocus();
         removePendingContinuousFocusReset(); // this isn't strictly needed as the reset_continuous_focus_runnable will check the ui focus mode when it runs, but good to remove it anyway
         autofocus_in_continuous_mode = false;
-        // there is no macro mode for video in the sheet anymore (2026-09-21) - a preference left
-        // over from it would set the camera to the macro mode, which only focuses on a tap and
-        // then stays there, so treat it as the continuous video focus the video sheet uses
-        if( this.is_video && "focus_mode_macro".equals(focus_value) )
-            focus_value = "focus_mode_continuous_video";
         camera_controller.setFocusValue(focus_value);
         setupContinuousFocusMove();
         clearFocusAreas();

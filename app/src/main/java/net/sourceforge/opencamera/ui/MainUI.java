@@ -2249,6 +2249,11 @@ public class MainUI {
             closePopup();
             return;
         }
+        // the sheet and the popup are never open at the same time (Kickoff 3.2) - the other
+        // direction is in SettingsSheet.open()
+        SettingsSheet settingsSheet = main_activity.getSettingsSheet();
+        if( settingsSheet != null && settingsSheet.isOpen() )
+            settingsSheet.close();
         if( main_activity.getPreview().getCameraController() == null ) {
             if( MyDebug.LOG )
                 Log.d(TAG, "camera not opened!");
