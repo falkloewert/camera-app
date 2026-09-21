@@ -2390,14 +2390,12 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     }
 
     /** One lens button of the manual lens selection, for the settings sheet (Kickoff 3.3/3.4) and
-     *  the lens buttons of the zoom pill. Two buttons can name the same physical id - that is the
-     *  ultra wide lens shown as "WW" (its own autofocus) and as "MA" (macro focus, Falk
-     *  2026-09-21). */
+     *  the lens buttons of the zoom pill. */
     public static class Lens {
         public final String physical_id;
-        public final int label_res;     // "WW", "NO", "MA" or "TE" (Falk 2026-09-21)
+        public final int label_res;     // "WW", "NO" or "TE" (Falk 2026-09-21)
         public final boolean main;
-        public final boolean macro;     // this button is the lens in macro focus
+        public final boolean macro;     // this button focuses as close as its lens can
 
         Lens(String physical_id, int label_res, boolean main, boolean macro) {
             this.physical_id = physical_id;
@@ -2486,22 +2484,22 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                 main_index = i;
             }
         }
-        // The buttons Falk asked for: WW (the widest lens), NO (the main one), MA (that widest lens
-        // with macro focus) and TE (the narrowest). WW and MA are the same physical lens - the
-        // ultra wide one focuses down to 2 cm, which is what makes it the macro lens on this
-        // device. A camera without an ultra wide gets NO/MA/TE, a camera with a single lens none.
+        // The buttons Falk asked for: WW (the widest lens), NO (the main one) and TE (the
+        // narrowest). WW and NO both carry the macro focus, so either of them focuses as close as
+        // its lens allows - the ultra wide down to 2 cm, the main one to about 10 cm. The separate
+        // macro button for the ultra wide is gone (Falk 2026-09-21). A camera without an ultra
+        // wide gets NO/TE, a camera with a single lens none.
         PhysicalLens widest = lenses.get(0);
         PhysicalLens main_lens = lenses.get(main_index);
         PhysicalLens narrowest = lenses.get(lenses.size() - 1);
         List<Lens> result = new ArrayList<>();
         if( widest != main_lens )
-            result.add(new Lens(widest.physical_id, R.string.settings_sheet_lens_ww, false, false));
-        result.add(new Lens(main_lens.physical_id, R.string.settings_sheet_lens_no, true, false));
-        result.add(new Lens(widest.physical_id, R.string.settings_sheet_lens_ma, false, true));
+            result.add(new Lens(widest.physical_id, R.string.settings_sheet_lens_ww, false, true));
+        result.add(new Lens(main_lens.physical_id, R.string.settings_sheet_lens_no, true, true));
         if( narrowest != main_lens ) {
             // only the narrowest lens gets a button, so a device with two teles has none for the
             // middle one
-            // ponytail: four buttons max, no such device seen yet; then a lens name row would be
+            // ponytail: three buttons max, no such device seen yet; then a lens name row would be
             // needed instead
             result.add(new Lens(narrowest.physical_id, R.string.settings_sheet_lens_te, false, false));
         }
@@ -2545,8 +2543,8 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     }
 
     /** Switches to one of the manual lens buttons: its physical lens plus the autofocus mode the
-     *  button stands for - MA is the ultra wide lens in macro focus, every other button keeps the
-     *  continuous autofocus it has (Falk 2026-09-21).
+     *  button stands for - WW and NO focus close (macro), TE keeps the continuous autofocus it has
+     *  (Falk 2026-09-21).
      *  <p>
      *  The focus mode is stored (updateFocus saves it), so the reopen that the lens switch starts
      *  comes back up on it instead of resetting the lens to the automatic autofocus. */

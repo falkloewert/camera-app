@@ -1151,7 +1151,6 @@
     <string name="settings_sheet_selfie_light">Selfie light</string>
     <string name="settings_sheet_lens_ww" translatable="false">WW</string>
     <string name="settings_sheet_lens_no" translatable="false">NO</string>
-    <string name="settings_sheet_lens_ma" translatable="false">MA</string>
     <string name="settings_sheet_lens_te" translatable="false">TE</string>
     <string name="settings_sheet_seconds">%1$s s</string>
     <string name="settings_sheet_mp" translatable="false">%1$sMP</string>

@@ -841,8 +841,9 @@ public class SettingsSheet {
                     selectedLabelOr(options, current == null ? null : getString(R.string.settings_sheet_seconds, current)), options));
         }
 
-        // no macro row (2026-09-21): macro is a lens, not a mode - it lives in the MA button of
-        // the manual lens selection now, and without that selection in video there is none at all
+        // no macro row (2026-09-21): macro is a lens, not a mode - it lives in the WW and NO
+        // buttons of the manual lens selection now, and without that selection in video there is
+        // none at all
 
         // aspect ratio - not in panorama mode
         if( main_activity.getApplicationInterface().getPhotoMode() != MyApplicationInterface.PhotoMode.Panorama ) {

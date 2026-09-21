@@ -122,7 +122,7 @@ public class ZoomStepper implements ZoomWheel.Listener {
             }
             wheel.setRange(preview.getMinZoomRatio(), preview.getMaxZoomRatio());
             wheel.setRatio(preview.getZoomRatio());
-            setLensSelection(main_activity.getApplicationInterface().getCameraIdSPhysicalPref(), macroSelected());
+            setLensSelection(main_activity.getApplicationInterface().getCameraIdSPhysicalPref());
             if( MyDebug.LOG )
                 Log.d(TAG, "manual lens buttons: " + lenses.size());
             return;
@@ -230,7 +230,7 @@ public class ZoomStepper implements ZoomWheel.Listener {
                 tick(view);
                 // show the tapped lens as selected right away, instead of waiting for the camera
                 // to reopen (as the zoom steps do)
-                setLensSelection(lens.physical_id, lens.macro);
+                setLensSelection(lens.physical_id);
             }
         });
         return button;
@@ -306,21 +306,15 @@ public class ZoomStepper implements ZoomWheel.Listener {
     }
 
     /** Marks the button of the given physical lens as selected - the manual mode's counterpart
-     *  of updateSelection(), which has no ratios to compare. WW and MA share their physical id, so
-     *  the macro flag decides between those two. */
-    private void setLensSelection(String physical_id, boolean macro) {
+     *  of updateSelection(), which has no ratios to compare. Every lens button names its own
+     *  physical id, so the id alone decides (it was the macro flag while WW and MA shared one). */
+    private void setLensSelection(String physical_id) {
         if( manual_lenses == null )
             return;
         for(int i=0;i<manual_lenses.size();i++) {
             MainActivity.Lens lens = manual_lenses.get(i);
-            applyStepStyle(i, physical_id != null && physical_id.equals(lens.physical_id) && lens.macro == macro);
+            applyStepStyle(i, physical_id != null && physical_id.equals(lens.physical_id));
         }
-    }
-
-    /** Whether the camera is in the macro focus of the MA button right now. */
-    private boolean macroSelected() {
-        Preview preview = main_activity.getPreview();
-        return preview != null && "focus_mode_macro".equals(preview.getCurrentFocusValue());
     }
 
     /** Highlights the step nearest to the supplied zoom (nearest in ratio, i.e. on the wheel's

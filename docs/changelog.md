@@ -390,6 +390,15 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   und die Kamera wählt die Linse selbst (die gemerkte Linse kommt beim Zurückwechseln wieder).
   Aufgeräumt: unbenutztes `ms_macro_off.xml`, String `settings_sheet_macro`, toter Kommentar
   in `CameraController2.onCaptureCompleted`.
+- **2026-09-21 (Feature-Chat, Objektivwahl):** Der zweite Ultraweit-Knopf `MA` (dasselbe
+  physische Objektiv wie `WW`, nur mit Makrofokus) ist weg – die Pille zeigt `WW · NO · TE`.
+  Falk: „beide sollen Makro können" → `Lens.macro` gilt für WW und NO, TE behält den Dauer-AF;
+  im Video korrigiert `Preview.updateFocus()` das Makro wie bisher auf den kontinuierlichen
+  Fokus. `ZoomStepper.setLensSelection()` ist auf den ID-Vergleich eingekürzt (WW und MA teilten
+  sich früher eine ID), `macroSelected()` und der String `settings_sheet_lens_ma` entfallen.
+  Davor aus dem Ponytail-Review: `Lens.view_angle`, der unbenutzte Parameter `mp_limit` und
+  `Preview.light_sensor` als Feld entfernt; der `backgroundTint`-Umbau der fünf Shape-Dateien
+  wurde am Gerät verworfen (Tint kam nicht an) und in `866115cd` zurückgerollt.
 
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 
