@@ -1142,17 +1142,17 @@
     <string name="settings_sheet_aspect_wide">Widescreen (16:9)</string>
     <string name="settings_sheet_aspect_full">Full screen (4:3)</string>
     <string name="settings_sheet_resolution">Resolution</string>
-    <string name="settings_sheet_raw">RAW/JPEG</string>
+    <string name="settings_sheet_raw" translatable="false">RAW/JPEG</string>
     <string name="settings_sheet_raw_off">JPEG only</string>
-    <string name="settings_sheet_raw_on">RAW + JPEG</string>
+    <string name="settings_sheet_raw_on" translatable="false">RAW + JPEG</string>
     <string name="settings_sheet_lens">Lens selection</string>
-    <string name="settings_sheet_fps">fps</string>
+    <string name="settings_sheet_fps" translatable="false">fps</string>
     <string name="settings_sheet_stabilization">Video stabilization</string>
     <string name="settings_sheet_selfie_light">Selfie light</string>
-    <string name="settings_sheet_lens_ww">WW</string>
-    <string name="settings_sheet_lens_no">NO</string>
-    <string name="settings_sheet_lens_ma">MA</string>
-    <string name="settings_sheet_lens_te">TE</string>
+    <string name="settings_sheet_lens_ww" translatable="false">WW</string>
+    <string name="settings_sheet_lens_no" translatable="false">NO</string>
+    <string name="settings_sheet_lens_ma" translatable="false">MA</string>
+    <string name="settings_sheet_lens_te" translatable="false">TE</string>
     <string name="settings_sheet_seconds">%1$s s</string>
-    <string name="settings_sheet_mp">%1$sMP</string>
+    <string name="settings_sheet_mp" translatable="false">%1$sMP</string>
 </resources>

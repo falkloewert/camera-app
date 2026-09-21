@@ -2396,14 +2396,12 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     public static class Lens {
         public final String physical_id;
         public final int label_res;     // "WW", "NO", "MA" or "TE" (Falk 2026-09-21)
-        public final float view_angle;
         public final boolean main;
         public final boolean macro;     // this button is the lens in macro focus
 
-        Lens(String physical_id, int label_res, float view_angle, boolean main, boolean macro) {
+        Lens(String physical_id, int label_res, boolean main, boolean macro) {
             this.physical_id = physical_id;
             this.label_res = label_res;
-            this.view_angle = view_angle;
             this.main = main;
             this.macro = macro;
         }
@@ -2497,15 +2495,15 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         PhysicalLens narrowest = lenses.get(lenses.size() - 1);
         List<Lens> result = new ArrayList<>();
         if( widest != main_lens )
-            result.add(new Lens(widest.physical_id, R.string.settings_sheet_lens_ww, widest.view_angle, false, false));
-        result.add(new Lens(main_lens.physical_id, R.string.settings_sheet_lens_no, main_lens.view_angle, true, false));
-        result.add(new Lens(widest.physical_id, R.string.settings_sheet_lens_ma, widest.view_angle, false, true));
+            result.add(new Lens(widest.physical_id, R.string.settings_sheet_lens_ww, false, false));
+        result.add(new Lens(main_lens.physical_id, R.string.settings_sheet_lens_no, true, false));
+        result.add(new Lens(widest.physical_id, R.string.settings_sheet_lens_ma, false, true));
         if( narrowest != main_lens ) {
             // only the narrowest lens gets a button, so a device with two teles has none for the
             // middle one
             // ponytail: four buttons max, no such device seen yet; then a lens name row would be
             // needed instead
-            result.add(new Lens(narrowest.physical_id, R.string.settings_sheet_lens_te, narrowest.view_angle, false, false));
+            result.add(new Lens(narrowest.physical_id, R.string.settings_sheet_lens_te, false, false));
         }
         manual_lenses = result;
         if( MyDebug.LOG )

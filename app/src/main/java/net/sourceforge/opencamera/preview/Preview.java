@@ -5261,7 +5261,6 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
      *  wants the threshold elsewhere, this is the one number to change. */
     private static final float TORCH_AUTO_LUX = 10.0f;
 
-    private Sensor light_sensor;
     private SensorEventListener light_sensor_listener;
     private boolean torch_auto_on;
 
@@ -5282,7 +5281,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
             return;
         if( needed ) {
             SensorManager sensor_manager = (SensorManager)getContext().getSystemService(Context.SENSOR_SERVICE);
-            light_sensor = sensor_manager == null ? null : sensor_manager.getDefaultSensor(Sensor.TYPE_LIGHT);
+            Sensor light_sensor = sensor_manager == null ? null : sensor_manager.getDefaultSensor(Sensor.TYPE_LIGHT);
             if( light_sensor == null ) {
                 if( MyDebug.LOG )
                     Log.d(TAG, "no light sensor - video flash auto stays without torch");
@@ -5312,7 +5311,6 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
                     Log.d(TAG, "unregistered light sensor");
             }
             light_sensor_listener = null;
-            light_sensor = null;
             torch_auto_on = false;
         }
     }

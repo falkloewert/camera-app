@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Nicht gewaehlter Options-Knopf des Einstellungen-Blattes: abgerundetes Quadrat 40 x 40 dp,
-     Radius 12 dp, Fuellung #1F1F1F (Kickoff redesign-einstellungen-blatt-benchmark.md 2.2).
-     Kein Ripple - die Referenz zeigt keine Wellenanimation. -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <solid android:color="@color/settings_sheet_button" />
-    <corners android:radius="12dp" />
-</shape>

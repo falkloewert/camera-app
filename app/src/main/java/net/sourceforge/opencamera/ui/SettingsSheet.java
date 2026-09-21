@@ -539,7 +539,9 @@ public class SettingsSheet {
             tab.setTextSize(TAB_SP);
             tab.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             tab.setGravity(Gravity.CENTER);
-            tab.setBackgroundResource(selected_tab == i ? R.drawable.settings_sheet_tab_active : R.drawable.settings_sheet_tab_inactive);
+            tab.setBackgroundResource(R.drawable.settings_sheet_tab);
+            tab.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(main_activity, selected_tab == i ?
+                    R.color.settings_sheet_tab_active : R.color.settings_sheet_tab_inactive)));
             tab.setTextColor(ContextCompat.getColor(main_activity, selected_tab == i ?
                     R.color.settings_sheet_tab_active_text : R.color.settings_sheet_tab_inactive_text));
             LinearLayout.LayoutParams tab_params = new LinearLayout.LayoutParams(tab_width, dp(TABS_HEIGHT));
@@ -685,7 +687,9 @@ public class SettingsSheet {
     /** Draws one option button as selected or not - also used when a tap marks its option
      *  immediately (Kickoff Runde 2, 1.5). */
     private void markOptionButton(View button, boolean selected) {
-        button.setBackgroundResource(selected ? R.drawable.settings_sheet_button_selected : R.drawable.settings_sheet_button);
+        button.setBackgroundResource(selected ? R.drawable.circle_background : R.drawable.squircle_background);
+        button.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(main_activity, selected ?
+                R.color.settings_sheet_button_selected : R.color.settings_sheet_button)));
         int glyph_color = ContextCompat.getColor(main_activity, selected ?
                 R.color.settings_sheet_button_glyph_selected : R.color.settings_sheet_button_glyph);
         View glyph = ((ViewGroup)button).getChildAt(0);
@@ -909,7 +913,7 @@ public class SettingsSheet {
                 // tolerance, so its row takes the largest size of the class instead - otherwise
                 // the one size it is supposed to use is not reachable (Runde 3)
                 CameraController.Size max_size = frontCamera() ?
-                        largestInAspectClass(sizes, ratio) : standardSize(sizes, ratio, Float.MAX_VALUE);
+                        largestInAspectClass(sizes, ratio) : standardSize(sizes, ratio);
                 CameraController.Size save_size = savingSize(sizes, ratio);
                 if( frontCamera() ) {
                     CameraController.Size only = max_size != null ? max_size : current;
@@ -1368,27 +1372,23 @@ public class SettingsSheet {
      *  full settings list lands on the nearer class - an unmarked aspect row looked like a bug on
      *  the device (2026-09-21). */
     private static float aspectClass(float size_ratio) {
-        float best = ASPECT_CLASSES[0];
+        return ASPECT_CLASSES[aspectClassIndex(size_ratio)];
+    }
+
+    /** The index of the class {@link #aspectClass(float)} puts the ratio into. */
+    private static int aspectClassIndex(float size_ratio) {
+        int best = 0;
         float best_distance = Float.MAX_VALUE;
-        for(float class_ratio : ASPECT_CLASSES) {
-            float distance = Math.abs(size_ratio - class_ratio);
+        for(int i=0;i<ASPECT_CLASSES.length;i++) {
+            float distance = Math.abs(size_ratio - ASPECT_CLASSES[i]);
             if( distance <= RATIO_TOLERANCE )
-                return class_ratio;
+                return i;
             if( distance < best_distance ) {
                 best_distance = distance;
-                best = class_ratio;
+                best = i;
             }
         }
         return best;
-    }
-
-    private static int aspectClassIndex(float size_ratio) {
-        float class_ratio = aspectClass(size_ratio);
-        for(int i=0;i<ASPECT_CLASSES.length;i++) {
-            if( ASPECT_CLASSES[i] == class_ratio )
-                return i;
-        }
-        return -1;
     }
 
     /** The space-saving size of an aspect class: its largest size that is still 1920 wide, the
@@ -1422,28 +1422,26 @@ public class SettingsSheet {
     }
 
     /** The standard size of the given ratio: its largest size within the camera's own 12 MP grid
-     *  (CameraController.STANDARD_PICTURE_WIDTH) and the megapixel limit - 4032x2268 in 16:9,
-     *  4032x3024 in 4:3 on the test device. The sensor's full readout (4080x3072) stays reachable
-     *  through the full settings, it is just no longer what the app starts with (Falk, 2026-09-21).
+     *  (CameraController.STANDARD_PICTURE_WIDTH) - 4032x2268 in 16:9, 4032x3024 in 4:3 on the test
+     *  device. The sensor's full readout (4080x3072) stays reachable through the full settings, it
+     *  is just no longer what the app starts with (Falk, 2026-09-21).
      *  Falls back to largestSize() when the camera has nothing that narrow. */
-    private static CameraController.Size standardSize(List<CameraController.Size> sizes, float ratio, float mp_limit) {
+    private static CameraController.Size standardSize(List<CameraController.Size> sizes, float ratio) {
         CameraController.Size best = null;
         for(CameraController.Size size : sizes) {
-            if( Math.abs(ratio(size) - ratio) > RATIO_TOLERANCE || size.width > CameraController.STANDARD_PICTURE_WIDTH || mp(size) > mp_limit )
+            if( Math.abs(ratio(size) - ratio) > RATIO_TOLERANCE || size.width > CameraController.STANDARD_PICTURE_WIDTH )
                 continue;
             if( best == null || mp(size) > mp(best) )
                 best = size;
         }
-        return best != null ? best : largestSize(sizes, ratio, mp_limit);
+        return best != null ? best : largestSize(sizes, ratio);
     }
 
-    /** The largest size of the given ratio that stays within the megapixel limit. */
-    private static CameraController.Size largestSize(List<CameraController.Size> sizes, float ratio, float mp_limit) {
+    /** The largest size of the given ratio. */
+    private static CameraController.Size largestSize(List<CameraController.Size> sizes, float ratio) {
         CameraController.Size best = null;
         for(CameraController.Size size : sizes) {
             if( Math.abs(ratio(size) - ratio) > RATIO_TOLERANCE )
-                continue;
-            if( mp(size) > mp_limit )
                 continue;
             if( best == null || mp(size) > mp(best) )
                 best = size;
@@ -1465,7 +1463,7 @@ public class SettingsSheet {
         // it needs the class match instead of the generic tolerance - see largestInAspectClass()
         if( frontCamera() )
             return largestInAspectClass(sizes, ratio);
-        return standardSize(sizes, ratio, Float.MAX_VALUE);
+        return standardSize(sizes, ratio);
     }
 
     /** The largest size belonging to the given aspect class, by {@link #aspectClass(float)}

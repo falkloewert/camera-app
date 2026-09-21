@@ -982,18 +982,10 @@
     <string name="settings_sheet_aspect_wide">Breitbild (16:9)</string>
     <string name="settings_sheet_aspect_full">Vollbild (4:3)</string>
     <string name="settings_sheet_resolution">Auflösung</string>
-    <string name="settings_sheet_raw">RAW/JPEG</string>
     <string name="settings_sheet_raw_off">Nur JPEG</string>
-    <string name="settings_sheet_raw_on">RAW + JPEG</string>
     <string name="settings_sheet_lens">Objektivauswahl</string>
-    <string name="settings_sheet_fps">fps</string>
     <string name="settings_sheet_stabilization">Videostabilisierung</string>
     <string name="settings_sheet_selfie_light">Selfiebeleuchtung</string>
-    <string name="settings_sheet_lens_ww">WW</string>
-    <string name="settings_sheet_lens_no">NO</string>
-    <string name="settings_sheet_lens_ma">MA</string>
-    <string name="settings_sheet_lens_te">TE</string>
     <string name="settings_sheet_seconds">%1$s s</string>
-    <string name="settings_sheet_mp">%1$sMP</string>
 
 </resources>
