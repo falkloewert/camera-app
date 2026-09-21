@@ -1691,8 +1691,10 @@ public class SettingsSheet {
                     canvas.drawCircle(w / 2, h / 2, dp(10.0f), paint);
                     paint.setStyle(Paint.Style.FILL);
                     paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-                    paint.setTextSize(sp(6.5f));
-                    canvas.drawText(text, w / 2, h * 0.68f, paint);
+                    // the A fills the circle: cap height centred on the circle's centre (Falk,
+                    // 2026-09-21: the letter was too small)
+                    paint.setTextSize(sp(12.0f));
+                    canvas.drawText(text, w / 2, h / 2 + paint.getTextSize() * 0.72f / 2, paint);
                     break;
                 }
                 case TEXT: {
