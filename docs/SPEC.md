@@ -253,7 +253,7 @@ dunkel) + ConstraintLayout (Phase 1); Zoom-Stufen-Pille `,5 1× 2 5` (gemessen 4
 `Foto · Panorama` (statisch, kein Karussell); Auslöser-Zeile nach Messung
 (`ui/ShutterButton`, Squircles, Galerie links, `ui/PhotoVideoSwitch`); Pixel-Drehmodell
 (Fenster fest Hochformat, nur Glyphen drehen, `MainUI.rotateGlyphs()`); keine Info-Toasts.
-**Neu (2026-09-20, noch nicht am Gerät abgenommen):** Einstellungen-Blätter Foto + Video
+**Neu (2026-09-20, am Gerät abgenommen 2026-09-21):** Einstellungen-Blätter Foto + Video
 (`ui/SettingsSheet`, Hoch- und Querformat), linker Dock-Button, Wisch-Geste auf dem Sucher,
 Objektivauswahl "Manuell" (Zoom-Pille zeigt `WW · NO · TE`).
 **Foto-Blatt Runde 1 (2026-09-21):** Verhältnis-Sprung weg (Blatt-Neubau nur noch bei echter
@@ -318,8 +318,10 @@ Verlauf und Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
     Objektivauswahl) in **einem** Lauf als Modell-Benchmark, je Modell ein Branch
     `bench/blatt-<modell>`: `docs/kickoff/redesign-einstellungen-blatt-benchmark.md`
     (enthält alle Messwerte und Entscheidungen). Offen danach: rechter Dock-Button, dann C.
-    **Blatt-Anteil gebaut (2026-09-20, Branch `bench/blatt-deepseek-flash-2`), noch nicht
-    am Gerät abgenommen.** Rechter Dock-Button und C bleiben offen.
+    **Blatt-Anteil gebaut (2026-09-20) und am 2026-09-21 am Pixel 9 Pro abgenommen**
+    (Falk: ausgiebig getestet, Thema abgeschlossen); Branch `bench/blatt-deepseek-flash-2`
+    per Fast-Forward nach `master` gemergt (`ca3a8f3d`), Verlierer-Branch
+    `bench/blatt-deepseek-flash` gelöscht. Rechter Dock-Button und C bleiben offen.
 11. **Selbstauslöser-Countdown dreht noch mit** (`DrawPreview`); Videozeit ist fest.
     Konsistenz offen, vermutlich auch fest.
 12. **Rad-Optik gewählt, nicht gemessen** (kein Screenshot mit offenem Rad); bei Bedarf

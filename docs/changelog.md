@@ -415,6 +415,15 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   Selfie-Video behält FHD, 3264x1836 heißt `3K` statt `6MP` (Falk-Entscheidung).
   Offen: Falk testet am Gerät.
 
+- **2026-09-21 (PM-Chat, Blatt abgenommen und gemergt):** Blatt-Anteil von Schritt A+B am
+  Pixel 9 Pro abgenommen (Falk: „ausgiebig getestet", Thema abgeschlossen). Branch
+  `bench/blatt-deepseek-flash-2` (HEAD `ca3a8f3d`) per Fast-Forward nach `master` gemergt,
+  damit ist der Modell-Benchmark entschieden; die installierte App stammt aus dem Worktree
+  `camera-app-ab-b` (APK 2026-09-21 15:24). Verlierer-Branch `bench/blatt-deepseek-flash`
+  (HEAD `2854b881`, Inhalt der Runde-2-Fixes zusätzlich in `review/alpha` `caf148b7`) lokal
+  und auf `origin` gelöscht. Nächstes offenes Bauteil: rechter Dock-Button (Pro-Panel, K13),
+  danach Schritt C.
+
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 
 **Recherche-Ergebnis (2026-09-14, Researcher-Agent):**
