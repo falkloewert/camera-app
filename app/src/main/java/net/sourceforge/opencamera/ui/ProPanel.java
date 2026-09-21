@@ -1427,11 +1427,13 @@ public class ProPanel {
     /* ---- Wert und Automatik-Knopf ---------------------------------------------------------- */
 
     private void updateAutoButton() {
-        // Der Knopf bleibt immer stehen, auch wenn der Reiter schon auf Automatik steht (Falk
-        // 2026-09-21): vorher verschwand er nach dem Druck, jetzt holt er immer den Standardwert
-        // des aktiven Reiters zurueck. Die Unterscheidung "steht auf Automatik" braucht er nicht
-        // mehr, deshalb faellt sie hier weg.
-        auto_button.setVisibility(View.VISIBLE);
+        // Der Knopf bleibt stehen, solange das Panel offen ist, auch wenn der Reiter schon auf
+        // Automatik steht (Falk 2026-09-21): vorher verschwand er nach dem Druck, jetzt holt er
+        // immer den Standardwert des aktiven Reiters zurueck. Die Unterscheidung "steht auf
+        // Automatik" braucht er nicht mehr, deshalb faellt sie hier weg - die Sichtbarkeit haengt
+        // nur noch am Panel: ohne diese Bedingung blieb er nach dem Schliessen stehen (Falk
+        // 2026-09-21), weil close() ihn nicht kennt.
+        auto_button.setVisibility(open ? View.VISIBLE : View.GONE);
     }
 
     /** Der Wert des aktiven Reglers, in der Blase ueber der Pille. */
@@ -1564,6 +1566,7 @@ public class ProPanel {
         sheet.setVisibility(View.GONE);
         handle.setVisibility(View.GONE);
         ruler.setVisibility(View.GONE);
+        auto_button.setVisibility(View.GONE);
     }
 
     /** Zoom-Pille, Modus-Leiste und Foto/Video-Umschalter gehen weg, solange das Panel offen ist
