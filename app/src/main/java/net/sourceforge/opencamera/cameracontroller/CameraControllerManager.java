@@ -17,12 +17,6 @@ public abstract class CameraControllerManager {
      */
     public abstract String getDescription(Context context, int cameraId);
 
-    /** If the camera is a logical camera with several physical ones, returns the physical camera
-     *  that can focus the closest - the near ("macro") lens. Null if there is no such lens.
-     *  Used to keep the video macro mode on that one lens (Kickoff Video-Blatt Runde 2, Nachtrag).
-     */
-    public abstract String getNearLensId(int cameraId);
-
     public static class CameraInfo {
         public SizeF view_angle;
     }

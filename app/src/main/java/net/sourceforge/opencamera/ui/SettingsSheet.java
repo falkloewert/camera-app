@@ -1056,37 +1056,8 @@ public class SettingsSheet {
                 rows.add(new Row(getString(R.string.settings_sheet_fps), value_text, options));
         }
 
-        // macro focus: keeps the near lens pinned while the autofocus stays continuous
-        // (Kickoff Video-Blatt Runde 2, Nachtrag). No macro lens in the front camera, so the row
-        // is dropped there (Kickoff Video-Blatt Runde 1, item 5)
-        if( !front ) {
-            List<String> focus_values = preview.getSupportedFocusValues();
-            if( focus_values != null && focus_values.contains("focus_mode_macro") ) {
-                boolean on = "focus_mode_macro".equals(preview.getCurrentFocusValue());
-                String label_off = getString(R.string.settings_sheet_off);
-                String label_on = getString(R.string.settings_sheet_on);
-                List<Option> options = new ArrayList<>();
-                options.add(new Option(label_off, R.drawable.ms_macro_off, null, null, 0.0f, !on,
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                main_activity.getPreview().setVideoMacro(false);
-                                main_activity.getMainUI().destroyPopup();
-                                refresh();
-                            }
-                        }));
-                options.add(new Option(label_on, R.drawable.ms_local_florist, null, null, 0.0f, on,
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                main_activity.getPreview().setVideoMacro(true);
-                                main_activity.getMainUI().destroyPopup();
-                                refresh();
-                            }
-                        }));
-                rows.add(new Row(getString(R.string.settings_sheet_macro), on ? label_on : label_off, options));
-            }
-        }
+        // no macro row for video (2026-09-21): the continuous autofocus gets as close as needed,
+        // and the camera picks the near lens on its own when the subject is closer than ~10 cm
 
         return rows;
     }

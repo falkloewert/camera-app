@@ -360,6 +360,16 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   greift der Pin erst beim nächsten Kamera-Öffnen. Die Nahlinse ist das Ultraweitwinkel,
   also weiter im Bildwinkel und detailärmer als die Hauptlinse.
 
+- **2026-09-21 (Feature-Chat, Video-Blatt Runde 2, Nachtrag 2):** Makro-Zeile im Video-Blatt
+  wieder **entfernt** – Falks Entscheidung: der kontinuierliche Autofokus kommt von allein
+  nah genug heran, die Kamera wählt bei < ~10 cm selbst die nahe Linse, und Weitwinkel/
+  Normal bleiben über die Zoom-Stufen wählbar (wie in der Pixel-App). Damit fällt der ganze
+  Nachtrag-1-Apparat weg: `getNearLensId()` in `CameraControllerManager{,1,2}`, das Pinnen
+  der Nahlinse in `Preview.openCameraCore()` und `setVideoMacro()`. Die Zeile in
+  `setFocusValue()`, die ein altes `focus_mode_macro` im Video auf `continuous_video`
+  abbildet, bleibt: sonst würde eine auf dem Gerät noch gespeicherte Makro-Einstellung die
+  Kamera in den trigger-only-Makromodus schicken (genau der unscharfe Zustand von vorher).
+
 
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 

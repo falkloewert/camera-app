@@ -55,9 +55,4 @@ public class CameraControllerManager1 extends CameraControllerManager {
     public String getDescription(CameraInfo info, Context context, String cameraIdS, boolean include_type, boolean include_angles) {
         throw new RuntimeException("getDescription() not supported for old Camera API");
     }
-
-    @Override
-    public String getNearLensId(int cameraId) {
-        return null; // the old camera API has no physical cameras
-    }
 }
