@@ -15,7 +15,7 @@ Stellen **falsch** und wird im Abschluss nachgezogen).
 | Element | Position | Größe | Farbe |
 |---|---|---|---|
 | Auflösungs-Chip | links, feste Achse Mitte x 38,0 dp · y 42,9 dp | „FHD" 21,3 × 16,0 dp; „4K"/„50 MP" 17,8 × 17,8 dp; **Radius ~2 dp** (nicht 6 dp); Innenabstand 3,1 dp seitlich | Füllung `#FFFFFF`, Schrift `#000000` |
-| Makro-Chip (Blumen-Symbol) | **Falk will ihn**, Einzelheiten offen | Referenz wird noch gesucht/gemessen, siehe 3.6 | – |
+| Makro-Chip (Blüte + „A") | **rechts neben** dem Auflösungs-Chip, gleiche Mittelachse – **nicht** darunter gestapelt, wie die Textreferenz behauptet | 19,1 × 21,3 dp (43 × 48 px), Abstand zur Chip-Kante 34,2 dp | Glyphe `#FFFFFF` auf `#000000`, **keine Pille, keine Füllung** |
 | Kopfzeilenband | über dem Sucher | 70,7 dp (159 px) hoch | `#000000`, kein Verlauf, kein Scrim |
 
 - **Das „?" entfällt** – es ist Googles Hilfe-Symbol, Falk will es nicht (Entscheidung
@@ -25,8 +25,8 @@ Stellen **falsch** und wird im Abschluss nachgezogen).
 - **Während einer Aufnahme ist die ganze Zeile aus:** erst das „?", ~0,25 s später der Chip;
   beim Ende umgekehrt.
 - **Querformat** (belegt aus `pixel-original-querformat.png`, 2142 × 960): die Leiste wandert
-  als 70,7 dp breite schwarze Spalte an die Seite, Chip unten links. **Bei uns bleibt es beim
-  Pixel-Drehmodell (K3)** – Entscheidung Falk 2026-09-21.
+  als 70,7 dp breite schwarze Spalte an die Seite – „?" oben, Makro-Symbol in der Mitte, Chip
+  unten links. **Bei uns bleibt es beim Pixel-Drehmodell (K3)** – Entscheidung Falk 2026-09-21.
 
 ## 2. Inventar: was heute woran hängt
 
@@ -65,7 +65,10 @@ fertigstellen, dann Icon-Leiste und Popup in **einem eigenen Commit** entfernen.
    Wunsch, siehe 6.2.
 6. **Fotomodus-Liste** (DRO, HDR, Nacht …): **keine Übergangszeile** – Falk nutzt die App noch
    nicht aktiv, die Modi dürfen bis zum Karussell (7.2) unerreichbar bleiben.
-7. **Makro-Chip:** kommt, Blumen-Symbol wie bei Google; Referenz wird noch beigebracht.
+7. **Makro-Chip:** kommt, Googles Blüten-Symbol – in den Referenz-PNGs gefunden und vermessen
+   (Abschnitt 1 und `pixel-kopfzeile-beschreibung.md` Abschnitt 9). Erscheint dort nur im
+   einfachen 12-MP-Fotomodus; im Record (Video/50 MP) fehlt er. **Am Gerät prüfen, wann unsere
+   App ihn zeigen soll** – vermutlich analog zur Objektivwahl, sobald WW oder NO nah herangeht.
 8. Alles nicht ausdrücklich Anderslautende wird wie im PM-Vorschlag umgesetzt.
 
 ## 4. Bauen

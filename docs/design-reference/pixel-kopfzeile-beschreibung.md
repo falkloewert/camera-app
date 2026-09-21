@@ -38,6 +38,8 @@ dieses Bild, nicht der Record:
   ist (beides 159 px) – die Leiste wandert also um 90° gedreht an die Seite.
 - **„?" sitzt im Querformat oben links in dieser Spalte** (Ring-Mitte 95,5 | 116,5 px =
   42,4 | 51,8 dp), also an derselben Ecke wie im Hochformat oben rechts – nur gespiegelt.
+- **Das Makro-Symbol sitzt im Querformat in der Mitte der Spalte** (x 77–118 · y 733–781 px),
+  74 px = 32,9 dp über der Chip-Oberkante (Abschnitt 9).
 - **Der Auflösungs-Chip sitzt im Querformat unten links** in derselben Spalte (Chip
   78–116 × 855–893 px, Mitte 43,1 | 388,4 dp, also 38,2 dp über dem unteren Rand) und zeigt
   dort „12 MP".
@@ -97,10 +99,10 @@ Was das „?" öffnet, sagt der Record also **nicht**.
 
 ## 5. Makro-Chip
 
-**Nicht sichtbar.** In allen 522 Bildern gibt es in der Kopfzeile nur die drei Chip-Formen
-„FHD" (48 × 36 px), „4K" und „50 MP" (je 40 × 40 px); keine breitere Pille, kein Symbol-Chip,
-keine Beschriftung „Makro". Der Chip ändert sich im Record nur zwischen diesen drei
-Beschriftungen. Auch die Screenshots zeigen keinen Makro-Chip.
+**Im Record nicht sichtbar, in den Referenz-PNGs aber vorhanden** – Googles Makrofokus-Symbol:
+eine weiße Blüte mit Blättern und einem kleinen „A". Der Record lief durchgehend im Video-
+bzw. 50-MP-Modus; dort fehlt das Symbol in allen 522 Bildern, ebenso in den vier Screenshots.
+Messwerte und Fundstellen in Abschnitt 9.
 
 ## 6. Inhalt der Leiste in anderen Modi
 
@@ -141,12 +143,14 @@ Von links nach rechts, eine Zeile, vertikal auf derselben Achse:
 
 1. **Auflösungs-Chip** – linke Kante 62 px (27,6 dp) bei „FHD", 66 px (29,3 dp) bei „4K"/
    „50 MP"; Mitte x 85,5 px = 38,0 dp. Vertikale Mitte y 96,5 px = 42,9 dp.
-2. **„?"-Icon** – Ring 820–865 px, Mitte x 842,5 px = 374,4 dp; rechte Ringkante 95 px =
+2. **Makro-Symbol** (nur im 12-MP-Fotomodus, Abschnitt 9) – x 182–224 px, Mitte x 203,0 px =
+   90,2 dp, dieselbe Mittelachse wie der Chip; Abstand zur Chip-Rechtskante 77 px = 34,2 dp.
+3. **„?"-Icon** – Ring 820–865 px, Mitte x 842,5 px = 374,4 dp; rechte Ringkante 95 px =
    **42,2 dp vom rechten Displayrand**; vertikale Mitte y 95,5 px = 42,4 dp (also dieselbe
    Achse wie der Chip, Abstand der Mitten 0,9 px = 0,4 dp).
 
-Abstände: zwischen Chip und „?" liegen 712 px (316 dp) – die beiden sitzen an den
-gegenüberliegenden Enden, es gibt kein drittes Element dazwischen.
+Abstände: ohne Makro-Symbol liegen zwischen Chip und „?" 712 px (316 dp) – die beiden sitzen
+an den gegenüberliegenden Enden, es gibt dann kein drittes Element dazwischen.
 Randabstände gemessen an den sichtbaren Kanten: links 27,6–29,3 dp bis zur Chip-Kante,
 rechts 42,2 dp bis zur Ring-Außenkante. Sitzt das „?" wie bei Material üblich in einem
 24-dp-Viewport, liegt dessen rechtes Ende bei ~386 dp (41 dp Rand); ein 48-dp-Touchziel
@@ -155,3 +159,49 @@ endet bei ~398 dp (29 dp Rand).
 **Sichtbares Verhalten:** Chip-Beschriftung wechselt mit Modus/Auflösung (50 MP · 4K · FHD,
 Hochformat) bzw. 12 MP im Querformat; während einer Aufnahme wird die ganze Zeile
 aus- und wieder eingeblendet. Ein Antippen von Chip oder „?" ist im Record nicht zu sehen.
+
+## 9. Makro-Chip – Messwerte (Nachtrag 2026-09-21)
+
+In den Referenz-PNGs vorhanden: eine **weiße Blüte mit Blättern und einem kleinen „A"**
+(Automatik) – Googles Makrofokus-Symbol. Ergänzt Abschnitt 5.
+
+**Wo (gemessen, Pixelauswertung Weißanteil > 200):**
+
+| Datei | Makro-Symbol | Auflösungs-Chip |
+|---|---|---|
+| `pixel-original-hochformat.png` | x 182–224 · y 73–120 | „12 MP", x 66–105 · y 77–116 |
+| `pixel-original-hochformat-2026-09-18.png` | dito (identisch) | dito |
+| `pixel-sheet-allgemein-hochformat.png` | dito | dito |
+| `pixel-sheet-pro-hochformat.png` | dito | dito |
+| `pixel-original-querformat.png` | x 77–118 · y 733–781 | „12 MP", x 78–116 · y 855–893 |
+| `pixel-sheet-allgemein-querformat.png` | dito | dito |
+| `pixel-sheet-pro-querformat.png` | **fehlt** | „12 MP", x 78–116 · y 855–893 |
+| die 4 Screenshots + Record | **fehlt** (Video-Modus) | „4K" / „FHD" / „50 MP" |
+
+**Maße Hochformat** (960 × 2142, 2,25 px/dp):
+
+- Symbol gesamt: **43 × 48 px = 19,1 × 21,3 dp** (Bbox x 182–224, y 73–120); Blüte+Blätter
+  y 79–120, das „A" sitzt oben rechts (x ~197–224, y 73–91) und überschneidet die Blüte.
+- Position: linker Rand → Symbol 182 px = **80,9 dp**; Oberkante → Symbol 73 px = **32,4 dp**.
+  Der Auflösungs-Chip beginnt bei y 77 px = 34,2 dp, das Symbol sitzt also 4 px höher.
+- **Keine Pille, keine Füllung:** schwarzer Hintergrund `#000000`, Glyphe **`#FFFFFF`**
+  (reines Weiß; nur Kanten-Aliasing in Graustufen). Im Gegensatz zum invertierten
+  Auflösungs-Chip (weißer Block, schwarze Schrift).
+- Abstand zum Auflösungs-Chip: Chip-Rechtskante 105 px → Symbol-Linkskante 182 px =
+  **77 px = 34,2 dp**.
+- Beide sitzen auf **derselben Mittelachse**: Chip-Mitte 85,5 | 96,5 px, Symbol-Mitte
+  203,0 | 96,5 px → Δx **117,5 px = 52,2 dp**, Δy 0.
+
+**Maße Querformat** (2142 × 960, um 90° gedreht, Kopfzeile = linke schwarze Spalte 0–158 px):
+„?" oben (y 95–138), Makro-Symbol in der Mitte (x 77–118 · y 733–781), „12 MP"-Chip unten
+(y 855–893). Symbol **42 × 49 px = 18,7 × 21,8 dp**, linker Rand → Symbol 77 px = 34,2 dp;
+Abstand Symbol-Unterkante 781 → Chip-Oberkante 855 = **74 px = 32,9 dp**.
+
+**Wann erscheint er?** Alle Bilder mit Makro-Symbol zeigen den Chip als **„12 MP"**. Wo der
+Chip „50 MP" / „4K" / „FHD" zeigt (Record + die 4 Screenshots, alle im Video- bzw.
+50-MP-Modus), fehlt das Symbol. *Hypothese (nicht belegt):* das Makrofokus-Symbol wird nur
+im einfachen 12-MP-Fotomodus eingeblendet, nicht bei High-Res/Video. Der Record zeigt keinen
+Ein-/Ausblend-Moment; er lief durchgehend im Video-Modus.
+
+**Offen:** `pixel-sheet-pro-querformat.png` hat den „12 MP"-Chip, aber kein Makro-Symbol –
+unklar, ob das Makrofokus dort auf „Aus" stand oder im Pro-Tab anders dargestellt wird.
