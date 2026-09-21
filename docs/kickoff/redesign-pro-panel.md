@@ -11,7 +11,8 @@ Session-Titel: `camera-app – Pro-Panel`.
 ## 1. Referenz erzeugen (zuerst, vor jedem Code)
 
 Falk legt einen Screenrecord der Pixel-App ab: `/home/falk/Videos/pixel-pro-panel-screenrecord.mp4`
-(bleibt außerhalb des Repos – kein Video committen). Er zeigt Knopf, Öffnen, jede
+(liegt dort seit 2026-09-21: 960 × 2142 px wie die Referenz-Screenshots, also 2,25 px/dp,
+74 s; bleibt außerhalb des Repos – kein Video committen). Er zeigt Knopf, Öffnen, jede
 Regler-Position, Tab-Reihe, Hoch- und Querformat, Zurücksetzen, Schließen.
 
 Den Record **selbst** mit Gemini bis ins Detail beschreiben lassen (nicht Falk fragen):
