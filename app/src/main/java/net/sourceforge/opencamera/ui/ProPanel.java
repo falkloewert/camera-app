@@ -79,12 +79,19 @@ public class ProPanel {
     private static final int TAB_SP = 11;  // kleiner als die Referenzschrift: die deutschen
                                            // Beschriftungen brauchen sonst drei Zeilen
     private static final int BADGE_POLL_MS = 150;
+    /** Der Strich-Abstand des Massbands ({@code RulerSlider.PX_PER_STEP_DP} ist der Vorgabewert).
+     *  ISO und Fokus bekommen mehr Platz je Strich: ihre Zahlen kleben sonst aneinander - bei ISO
+     *  liegen zwischen zwei Zahlen drei Striche, und eine vierstellige Zahl ist breiter als zwei
+     *  Striche (am Geraet gesehen, Falk 2026-09-21). */
+    private static final float RULER_STEP_DP = 8.0f;
+    private static final float RULER_STEP_FOCUS_DP = 11.0f;
+    private static final float RULER_STEP_ISO_DP = 14.0f;
     /** Zwischen zwei Zahlen des Massbands liegen mindestens so viele Striche (8 dp je Strich). */
     private static final int MIN_LABEL_STEPS = 5;
-    /** Und hoechstens so viele, wo eine Zwischenzahl erlaubt ist. Die gibt es nur beim Fokus
-     *  (Meter) und bei der Verschlusszeit (Nenner) - dort ist auch der Zwischenwert eine runde
-     *  Zahl. Bei Belichtung, ISO und Weissabgleich stehen ausschliesslich die runden Werte:
-     *  eine Zahl wie "+2,83" will Falk dort nicht sehen (2026-09-21). */
+    /** Und hoechstens so viele, wo eine Zwischenzahl erlaubt ist. Die gibt es nur bei der
+     *  Verschlusszeit (Nenner) - dort ist auch der Zwischenwert eine runde Zahl. Bei Belichtung,
+     *  Weissabgleich, ISO und Fokus stehen ausschliesslich die runden Werte: eine Zahl wie "+2,83"
+     *  oder "0,74" will Falk dort nicht sehen (2026-09-21). */
     private static final int MAX_LABEL_STEPS = 12;
     /** Der Belichtungsregler teilt in Sechstel-EV; eine volle Zahl sind sechs Schritte. */
     private static final int EV_SIXTHS = 6;
@@ -110,10 +117,15 @@ public class ProPanel {
     /** Der Fokuswert der App fuer "von Hand gestellt" - nur dann wirkt der Fokus-Regler. */
     private static final String FOCUS_MANUAL = "focus_mode_manual2";
 
-    /** Die ISO-Stufen einer Kamera: die Zahl, die ein Fotograf erwartet (und die einzigen, die
-     *  eine Zahl auf dem Massband bekommen). */
-    private static final int [] NICE_ISO = {50, 60, 70, 80, 90, 100, 125, 160, 200, 250, 320, 400,
-            500, 640, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000, 5000, 6400, 8000, 10000, 12800};
+    /** Die ISO-Stufen einer Kamera: die Drittelstufen-Reihe, die ein Fotograf erwartet (und die
+     *  einzigen, die eine Zahl auf dem Massband bekommen). Bewusst <b>nur</b> diese Reihe - eine
+     *  dichtere Folge am unteren Ende (50, 60, 70, 80, 90, 100) rueckte die Zahlen dort zusammen
+     *  und liess die Striche ungleichmaessig aussehen (Falk 2026-09-21). */
+    private static final int [] NICE_ISO = {50, 64, 80, 100, 125, 160, 200, 250, 320, 400, 500,
+            640, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000, 5000, 6400, 8000, 10000, 12800};
+    /** ISO: so viele Striche liegen mindestens zwischen zwei Zahlen. Drei Striche sind eine volle
+     *  Blende (100, 200, 400 ...) - die Reihe hat genau diese Teilung. */
+    private static final int ISO_LABEL_STEPS = 3;
 
     /** Die Nenner der Verschlusszeit, die eine Zahl bekommen (1/60 s usw.). */
     private static final long [] NICE_DENOMINATORS = {1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 25, 30, 40,
@@ -124,11 +136,18 @@ public class ProPanel {
     private static final long [] NICE_SECONDS = {1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30, 60, 90, 120,
             180, 240, 300, 420, 600, 900, 1200};
 
-    /** Die Entfernungen des Fokus-Reglers, die eine Zahl bekommen (aufsteigend) - die Meter-Skala
-     *  eines Objektivs. */
-    private static final double [] NICE_METRES = {0.1, 0.12, 0.15, 0.2, 0.25, 0.3, 0.5, 0.7, 1.0,
-            1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0, 15.0, 20.0, 30.0, 50.0, 70.0, 100.0,
-            150.0, 200.0, 250.0, 300.0, 400.0, 500.0};
+    /** Die Entfernungen des Fokus-Massbands: <b>eine Stufe je Strich</b>, von unendlich (0.0) bis
+     *  zur Naheinstellgrenze - die Meter-Skala eines Objektivs, nach rechts werden die
+     *  Entfernungen kleiner. Nur runde Werte, die man ansagen kann.
+     *
+     *  <p>Das Band folgt nicht der Diaptrien-Teilung des App-Reglers: die hat tausend Striche, ein
+     *  Zug quer durch die Pille bewegte den Wert dann um ein Prozent, und die Zahlen darauf waeren
+     *  krumme Zwischenwerte wie "0,74" (Falk 2026-09-21).</p> */
+    private static final double [] FOCUS_LADDER = {0.0 /* unendlich */, 15.0, 10.0, 7.0, 5.0, 4.0,
+            3.0, 2.0, 1.5, 1.0, 0.7, 0.5, 0.4, 0.3, 0.25, 0.2, 0.15, 0.12, 0.1};
+    /** Beim Fokus steht nur jede dritte Stufe angeschrieben (8 dp je Strich), gezaehlt von der
+     *  Naheinstellgrenze her: die nahen Entfernungen sind die, die man einstellt. */
+    private static final int FOCUS_LABEL_STEPS = 3;
     private static final float HANDLE_HEIGHT = 3.0f;  // wie das Griffstueck des Einstellungen-Blatts
     private static final float CLOSE_SWIPE = 16.0f;   // so weit nach unten wischen schliesst
 
@@ -170,6 +189,19 @@ public class ProPanel {
     /** Der Reiter, fuer den das Massband zuletzt beschriftet wurde. */
     private int ruler_labels_tab = -1;
 
+    /** Die Leitern von ISO und Fokus, gebaut fuer die Grenzen, die dabei galten ({@link #isoLadder()},
+     *  {@link #focusLadder()}). */
+    private int [] iso_ladder;
+    private int iso_ladder_min, iso_ladder_max;
+    private double [] focus_ladder;
+    private double focus_ladder_min;
+    /** Ein Zug am Band hat den Fokus auf manuell gestellt, die Kamera hat es noch nicht
+     *  uebernommen (siehe {@link #pendingManualFocus()}). */
+    private boolean focus_manual_pending;
+    /** Der Schritt, den ein Zug am Band vorgemerkt hat, solange die Kamera noch auf Automatik
+     *  steht ({@link #onRulerScrollEnd()}). */
+    private int focus_pending_step = -1;
+
     /** Der Regler des eigenen Fokus-SeekBars - dasselbe Verhalten wie der Fokus-Regler der App
      *  (MainActivity.setManualFocusSeekbar()), nur auf einer eigenen View. */
     private final SeekBar.OnSeekBarChangeListener focus_listener = new SeekBar.OnSeekBarChangeListener() {
@@ -200,10 +232,14 @@ public class ProPanel {
         public void run() {
             if( !open )
                 return;
-            if( selected_tab == TAB_FOCUS )
+            if( selected_tab == TAB_FOCUS ) {
+                if( focusIsManual() )
+                    // die Kamera hat den manuellen Fokus uebernommen - die Vormerkung ist erfuellt
+                    focus_manual_pending = false;
                 // sucht die Kamera selbst, wandert die Entfernung mit dem Motiv - der Regler
                 // laeuft dann mit (von Hand gestellt bleibt er stehen)
                 setFocusSeekbarProgress();
+            }
             updateBadge();
             updateRuler();
             handler.postDelayed(this, BADGE_POLL_MS);
@@ -235,6 +271,11 @@ public class ProPanel {
             @Override
             public void onScroll(int step) {
                 onRulerScroll(step);
+            }
+
+            @Override
+            public void onScrollEnd() {
+                onRulerScrollEnd();
             }
         });
         slider_holder.addView(ruler);
@@ -461,7 +502,9 @@ public class ProPanel {
         if( preview == null )
             return;
         if( selected_tab == TAB_FOCUS )
-            setFocusSeekbarProgress();
+            // beim Reiterwechsel kommt der Wert von der Kamera: der Regler dieses Panels wurde
+            // dann noch nie gestellt und stuende sonst auf unendlich (Falk 2026-09-21)
+            setFocusSeekbarProgress(false);
         SeekBar slider = activeSeekbar();
         hostSlider(slider);
         // ein stehengebliebener Sechstel-Wert (etwa aus einer frueheren Sitzung) wird beim
@@ -513,20 +556,57 @@ public class ProPanel {
     /** Den Fokus-Regler auf die aktuelle Entfernung stellen (der eigene SeekBar wird von
      *  cameraSetup() nicht mitgestellt, anders als die vier anderen). */
     private void setFocusSeekbarProgress() {
+        setFocusSeekbarProgress(focusHoldsValue());
+    }
+
+    /** @param hold wenn true, bleibt der Wert des Reglers stehen - er hat ihn selbst gestellt;
+     *  sonst kommt er von der Kamera. */
+    private void setFocusSeekbarProgress(boolean hold) {
         Preview preview = main_activity.getPreview();
         if( preview == null || preview.getCameraController() == null )
             return;
-        CameraController camera_controller = preview.getCameraController();
-        float distance = camera_controller.getFocusDistance();
-        if( !FOCUS_MANUAL.equals(preview.getCurrentFocusValue()) && camera_controller.captureResultHasFocusDistance() ) {
-            // sucht die Kamera selbst, ist die von ihr gemessene Entfernung der Wert, den der
-            // Regler zeigen muss - sonst bliebe er auf der zuletzt von Hand gestellten stehen
-            // und der Automatik-Knopf saehe wirkungslos aus (Falk 2026-09-21)
-            distance = camera_controller.captureResultFocusDistance();
-        }
         focus_seekbar.setOnSeekBarChangeListener(null);
-        ManualSeekbars.setProgressSeekbarScaled(focus_seekbar, 0.0, preview.getMinimumFocusDistance(), distance);
+        ManualSeekbars.setProgressSeekbarScaled(focus_seekbar, 0.0, preview.getMinimumFocusDistance(),
+                (float) shownFocusDioptres(hold));
         focus_seekbar.setOnSeekBarChangeListener(focus_listener);
+    }
+
+    /** Ob das Band den Wert haelt, statt der Kamera zu folgen: von Hand gestellt - oder gerade
+     *  dabei, es zu werden (siehe {@link #focus_manual_pending}). */
+    private boolean focusHoldsValue() {
+        return focusIsManual() || focus_manual_pending;
+    }
+
+    /** Die Schaerfestellung, die das Band zeigen soll, in Dioptrien (0 = unendlich): von Hand
+     *  gestellt der Wert des Reglers, sonst das, was die Kamera gerade selbst misst. */
+    private double shownFocusDioptres(boolean hold) {
+        Preview preview = main_activity.getPreview();
+        if( preview == null || preview.getCameraController() == null )
+            return 0.0;
+        CameraController camera_controller = preview.getCameraController();
+        if( hold || !camera_controller.captureResultHasFocusDistance() ) {
+            // von Hand gestellt bleibt der Wert stehen; sucht die Kamera selbst, ist ihre Messung
+            // der Wert, den das Band zeigen muss (Falk 2026-09-21)
+            return focusDioptres(focus_seekbar.getProgress());
+        }
+        return camera_controller.captureResultFocusDistance();
+    }
+
+    /** Einen Zug am Band oder einen Druck auf +/- vormerken: der Fokus wird dabei von Hand
+     *  gestellt, die Kamera uebernimmt das aber erst mit dem naechsten updateForSettings -
+     *  solange darf der Poll den Regler nicht auf den gemessenen Wert zurueckstellen, sonst ist
+     *  der erste Druck verloren (am Geraet gesehen, 2026-09-21). */
+    private void pendingManualFocus() {
+        if( !focusManualSupported() )
+            return;
+        focus_manual_pending = true;
+    }
+
+    /** Ob die Kamera einen von Hand gestellten Fokus ueberhaupt kann. */
+    private boolean focusManualSupported() {
+        Preview preview = main_activity.getPreview();
+        List<String> values = preview != null ? preview.getSupportedFocusValues() : null;
+        return values != null && values.contains(FOCUS_MANUAL);
     }
 
     /** Ob der Fokus von Hand gestellt ist - dann gehoert das Band dem Finger und die Kamera misst
@@ -554,6 +634,8 @@ public class ProPanel {
             return;
         // steht der Reiter auf Auto (Automatik-Knopf, "Alle zuruecksetzen"), wirkt ein Schritt nur
         // im manuellen Modus - erst den einschalten, wie es das ISO-Fenster der App auch macht
+        if( selected_tab == TAB_FOCUS && !focusIsManual() )
+            pendingManualFocus();
         ensureModeForTab(selected_tab);
         switch( selected_tab ) {
             case TAB_EXPOSURE:
@@ -622,60 +704,33 @@ public class ProPanel {
         setSliderValue(TAB_WB, target);
     }
 
-    /** ISO: die naechste Stufe der Kamera-Reihe (100, 125, 160, 200, ...), nicht der naechste
-     *  Schritt des Reglers - der waere nur 5 oder 10 ISO weit. */
+    /** ISO: eine Stufe der Kamera-Reihe weiter (100, 125, 160, 200, ...) - genau ein Strich des
+     *  Massbands, nicht der naechste Schritt des Reglers (der waere nur 5 oder 10 ISO weit). */
     private void stepISO(int direction) {
-        SeekBar seekbar = main_activity.findViewById(R.id.iso_seekbar);
-        int iso = main_activity.getManualSeekbars().getISO(seekbar.getProgress());
-        long target = 0;
-        if( direction > 0 ) {
-            for(int value : NICE_ISO) {
-                if( value > iso ) {
-                    target = value;
-                    break;
-                }
-            }
-        }
-        else {
-            for(int i = NICE_ISO.length - 1; i >= 0; i--) {
-                if( NICE_ISO[i] < iso ) {
-                    target = NICE_ISO[i];
-                    break;
-                }
-            }
-        }
-        if( target > 0 )
-            setSliderValue(TAB_ISO, target);
+        stepLadder(TAB_ISO, direction, main_activity.findViewById(R.id.iso_seekbar));
     }
 
-    /** Fokus: die naechste runde Entfernung - wie die Meter-Skala eines Objektivs. Plus geht
-     *  naeher heran (die Skala laeuft nach rechts zu den kleinen Entfernungen), Minus weiter weg. */
+    /** Fokus: eine Stufe der Meter-Skala weiter - ein Strich des Massbands. Plus geht naeher
+     *  heran (die Skala laeuft nach rechts zu den kleinen Entfernungen), Minus weiter weg.
+     *
+     *  <p>Vorher suchte der Schritt den naechsten runden Wert in einer Liste; weil die Liste
+     *  abwaerts durchlaufen wurde, sprang Minus von 0,3 m gleich auf 500 m (Falk 2026-09-21).</p> */
     private void stepFocus(int direction) {
-        double metres = focusMetres(focus_seekbar.getProgress(), focus_seekbar.getMax());
-        double target = 0.0;
-        if( metres <= 0.0 ) {
-            // steht auf unendlich: der erste runde Wert ist der weiteste
-            if( direction > 0 )
-                target = NICE_METRES[NICE_METRES.length - 1];
-        }
-        else if( direction > 0 ) {
-            for(double value : NICE_METRES) {
-                if( value < metres * 0.98 )
-                    target = value;
-                else
-                    break;
-            }
-        }
-        else {
-            for(int i = NICE_METRES.length - 1; i >= 0; i--) {
-                if( NICE_METRES[i] > metres * 1.02 ) {
-                    target = NICE_METRES[i];
-                    break;
-                }
-            }
-        }
-        if( target > 0.0 )
-            focus_seekbar.setProgress(focusProgress(target));
+        stepLadder(TAB_FOCUS, direction, focus_seekbar);
+    }
+
+    /** Einen Strich der Leiter weiter: der Wert unter dem Balken, ein Schritt davor oder danach.
+     *  Beide Enden halten (unendlich bzw. die Naheinstellgrenze). */
+    private void stepLadder(int tab, int direction, SeekBar seekbar) {
+        if( seekbar == null )
+            return;
+        int step = rulerStep(tab, seekbar.getProgress()) + direction;
+        int max = rulerMax(tab);
+        if( step < 0 )
+            step = 0;
+        else if( step > max )
+            step = max;
+        seekbar.setProgress(seekbarProgress(tab, step));
     }
 
     /** Den Regler auf einen Wert stellen: den Schritt suchen, dessen Wert am naechsten liegt. Die
@@ -704,13 +759,18 @@ public class ProPanel {
 
     /** Der hoechste Schritt des Massbands. Beim Belichtungsregler ist das Band groeber geteilt
      *  als der Regler (halbe EV statt Sechstel) und die drei Nullen in der Mitte fallen auf einen
-     *  Schritt zusammen (MainActivity baut sie fuer das Einrasten ein). */
+     *  Schritt zusammen (MainActivity baut sie fuer das Einrasten ein). ISO und Fokus haben ihre
+     *  eigene Leiter ({@link #isoLadder()}, {@link #focusLadder()}). */
     private int rulerMax(int tab) {
         SeekBar seekbar = activeSeekbar();
         if( seekbar == null )
             return 0;
         if( tab == TAB_EXPOSURE && main_activity.hasExposureSeekbarValues() )
             return exposureHalfSteps(seekbar.getMax()) - exposureHalfSteps(0);
+        if( tab == TAB_ISO )
+            return isoLadder().length - 1;
+        if( tab == TAB_FOCUS )
+            return focusLadder().length - 1;
         return seekbar.getMax();
     }
 
@@ -718,11 +778,20 @@ public class ProPanel {
     private int rulerStep(int tab, int progress) {
         if( tab == TAB_EXPOSURE && main_activity.hasExposureSeekbarValues() )
             return exposureHalfSteps(progress) - exposureHalfSteps(0);
+        // der Regler kennt feinere Werte, das Band nur seine eigenen Stufen: die naechste nehmen
+        if( tab == TAB_ISO )
+            return nearestISOStep(main_activity.getManualSeekbars().getISO(progress));
+        if( tab == TAB_FOCUS )
+            return nearestFocusStep(focusDioptres(progress));
         return progress;
     }
 
     /** Die Umkehrung: der Schritt des App-Reglers zu einem Schritt des Massbands. */
     private int seekbarProgress(int tab, int step) {
+        if( tab == TAB_ISO )
+            return isoSeekbarProgress(isoLadder()[step]);
+        if( tab == TAB_FOCUS )
+            return focusProgress(focusLadder()[step]);
         if( tab == TAB_EXPOSURE && main_activity.hasExposureSeekbarValues() ) {
             SeekBar seekbar = main_activity.findViewById(R.id.exposure_seekbar);
             int value = (step + exposureHalfSteps(0)) * EXPOSURE_STEP_SIXTHS;
@@ -743,6 +812,132 @@ public class ProPanel {
         return Math.round(main_activity.getExposureSeekbarValue(progress) / (float) EXPOSURE_STEP_SIXTHS);
     }
 
+    /* ---- die Leitern von ISO und Fokus ----------------------------------------------------- */
+
+    /** Die ISO-Stufen des Massbands, aufsteigend: die Reihe der Kamera ({@link #NICE_ISO}) plus
+     *  die Grenzen, die der Regler der App kennt. Die Werteliste des Reglers selbst hat Hunderte
+     *  Eintraege (jeder fuenfte, zehnte, fuenfzigste Wert) - ein Strich je Eintrag ergaebe ein
+     *  Band von tausend Strichen, an dem ein Zug kaum etwas bewegt (Falk 2026-09-21). */
+    private int [] isoLadder() {
+        ManualSeekbars manualSeekbars = main_activity.getManualSeekbars();
+        SeekBar seekbar = main_activity.findViewById(R.id.iso_seekbar);
+        int min = manualSeekbars.getISO(0);
+        int max = manualSeekbars.getISO(seekbar.getMax());
+        if( iso_ladder != null && iso_ladder_min == min && iso_ladder_max == max )
+            return iso_ladder;
+        List<Integer> values = new ArrayList<>();
+        values.add(min);
+        for(int value : NICE_ISO) {
+            if( value > min && value <= max )
+                values.add(value);
+        }
+        if( values.get(values.size() - 1) != max )
+            values.add(max);
+        iso_ladder = new int [values.size()];
+        for(int i = 0; i < values.size(); i++)
+            iso_ladder[i] = values.get(i);
+        iso_ladder_min = min;
+        iso_ladder_max = max;
+        return iso_ladder;
+    }
+
+    /** Die Entfernungen des Fokus-Massbands, von unendlich bis zur Naheinstellgrenze der Kamera
+     *  ({@link #FOCUS_LADDER}, gekuerzt um das, was naeher liegt als das Objektiv kann - und mit
+     *  der Naheinstellgrenze selbst als letzter Stufe: die Kamera misst dort einen Wert, den die
+     *  runden Zahlen der Reihe nicht haben, das Band zeigte dann etwas anderes als die Blase). */
+    private double [] focusLadder() {
+        Preview preview = main_activity.getPreview();
+        double min_focus_distance = preview != null ? preview.getMinimumFocusDistance() : 0.0f;
+        if( focus_ladder != null && focus_ladder_min == min_focus_distance )
+            return focus_ladder;
+        double near_limit = min_focus_distance > 0.0f ? 1.0 / min_focus_distance : 0.0;
+        List<Double> values = new ArrayList<>();
+        values.add(FOCUS_LADDER[0]);            // unendlich
+        for(int i = 1; i < FOCUS_LADDER.length; i++) {
+            if( near_limit > 0.0 && FOCUS_LADDER[i] < near_limit )
+                break;
+            values.add(FOCUS_LADDER[i]);
+        }
+        double last_value = values.get(values.size() - 1);
+        if( near_limit > 0.0 && near_limit < last_value )
+            values.add(near_limit);
+        focus_ladder = new double [values.size()];
+        for(int i = 0; i < values.size(); i++)
+            focus_ladder[i] = values.get(i);
+        focus_ladder_min = min_focus_distance;
+        return focus_ladder;
+    }
+
+    /** Die Stufe der ISO-Leiter, die einem Wert am naechsten liegt. */
+    private int nearestISOStep(long iso) {
+        int [] ladder = isoLadder();
+        int best = 0;
+        long best_distance = Long.MAX_VALUE;
+        for(int step = 0; step < ladder.length; step++) {
+            long distance = Math.abs(ladder[step] - iso);
+            if( distance < best_distance ) {
+                best_distance = distance;
+                best = step;
+            }
+        }
+        return best;
+    }
+
+    /** Die Stufe der Fokus-Leiter zu einer Schaerfestellung - verglichen in Dioptrien, so wie der
+     *  Regler der App geteilt ist (in Metern laege "unendlich" naeher an 15 m als an 10 m). */
+    private int nearestFocusStep(double dioptres) {
+        double [] ladder = focusLadder();
+        int best = 0;
+        double best_distance = Double.MAX_VALUE;
+        for(int step = 0; step < ladder.length; step++) {
+            double step_dioptres = ladder[step] > 0.0 ? 1.0 / ladder[step] : 0.0;
+            double distance = Math.abs(step_dioptres - dioptres);
+            if( distance < best_distance ) {
+                best_distance = distance;
+                best = step;
+            }
+        }
+        return best;
+    }
+
+    /** Und umgekehrt: die Stelle des Massbands zu einer Entfernung, auch zwischen zwei Strichen.
+     *  Die messende Kamera liefert keine Striche, das Band soll ihr aber stetig folgen. */
+    private float focusPosition(double metres) {
+        double [] ladder = focusLadder();
+        int last = ladder.length - 1;
+        if( metres <= 0.0 )
+            return 0.0f;                            // unendlich
+        if( metres <= ladder[last] )
+            return last;
+        double dioptres = 1.0 / metres;
+        for(int step = 0; step < last; step++) {
+            double far = ladder[step] > 0.0 ? 1.0 / ladder[step] : 0.0;
+            double near = 1.0 / ladder[step + 1];
+            if( dioptres >= far && dioptres <= near )
+                return (float) (step + (dioptres - far) / (near - far));
+        }
+        return last;
+    }
+
+    /** Der Schritt des ISO-Reglers zu einer Stufe der Leiter (die Werteliste der App ist
+     *  aufsteigend, deshalb genuegt das Suchen). */
+    private int isoSeekbarProgress(long iso) {
+        SeekBar seekbar = main_activity.findViewById(R.id.iso_seekbar);
+        int max = seekbar.getMax();
+        int best = 0;
+        long best_distance = Long.MAX_VALUE;
+        for(int progress = 0; progress <= max; progress++) {
+            long distance = Math.abs(main_activity.getManualSeekbars().getISO(progress) - iso);
+            if( distance < best_distance ) {
+                best_distance = distance;
+                best = progress;
+                if( distance == 0 )
+                    break;
+            }
+        }
+        return best;
+    }
+
     /** Der Wert hinter einem Schritt des Massbands. */
     private long sliderValueAt(int tab, int step) {
         ManualSeekbars manualSeekbars = main_activity.getManualSeekbars();
@@ -754,7 +949,11 @@ public class ProPanel {
             case TAB_WB:
                 return manualSeekbars.getWhiteBalanceTemperature(step);
             case TAB_ISO:
-                return manualSeekbars.getISO(step);
+                return isoLadder()[step];
+            case TAB_FOCUS: {
+                double metres = focusLadder()[step];
+                return metres > 0.0 ? (long) (1000.0 / metres) : 0;   // Dioptrien, wie der Regler
+            }
             case TAB_SHUTTER:
                 return manualSeekbars.getExposureTime(step);
             default:
@@ -763,7 +962,7 @@ public class ProPanel {
     }
 
     /** Der Schritt des Fokus-Reglers zu einer Entfernung (die Umkehrung von
-     *  {@link #focusMetres(int, int)}, dieselbe Rechnung wie ManualSeekbars). */
+     *  {@link #focusDioptres(int)}, dieselbe Rechnung wie ManualSeekbars). */
     private int focusProgress(double metres) {
         Preview preview = main_activity.getPreview();
         if( preview == null || metres <= 0.0 )
@@ -787,16 +986,29 @@ public class ProPanel {
         }
         int max = rulerMax(selected_tab);
         boolean rescaled = ruler.getMax() != max || ruler_labels_tab != selected_tab;
+        float step_dp = RULER_STEP_DP;
+        if( selected_tab == TAB_ISO )
+            step_dp = RULER_STEP_ISO_DP;
+        else if( selected_tab == TAB_FOCUS )
+            step_dp = RULER_STEP_FOCUS_DP;
+        ruler.setStepSpacingDp(step_dp);
         if( rescaled ) {
             ruler.setMax(max);
             ruler.setLabels(buildLabels(selected_tab, max));
             ruler_labels_tab = selected_tab;
         }
         // beim Reiterwechsel springt das Massband (die Skala ist eine andere), sonst faehrt es
-        // den neuen Wert an wie ein Drehrad. Beim Fokus nicht: dort ist das Band eine Anzeige der
-        // messenden Kamera und wandert bei jedem Poll - eine Fahrt dazwischen waere nur Unruhe
-        ruler.setProgress(rulerStep(selected_tab, seekbar.getProgress()),
-                !rescaled && !(selected_tab == TAB_FOCUS && !focusIsManual()));
+        // den neuen Wert an wie ein Drehrad
+        if( selected_tab == TAB_FOCUS && !focusHoldsValue() ) {
+            // sucht die Kamera selbst, steht das Band auf ihrem Wert - und zwar stetig, auch
+            // zwischen zwei Strichen: die Kamera misst keine Striche, und in Achter-dp-Spruengen
+            // saehe das Band aus, als haenge es (Falk 2026-09-21)
+            double dioptres = shownFocusDioptres(false);
+            ruler.setValue(focusPosition(dioptres > 0.0 ? 1.0 / dioptres : 0.0), true);
+        }
+        else {
+            ruler.setProgress(rulerStep(selected_tab, seekbar.getProgress()), !rescaled);
+        }
         ruler.setVisibility(View.VISIBLE);
     }
 
@@ -809,14 +1021,43 @@ public class ProPanel {
         SeekBar seekbar = activeSeekbar();
         if( seekbar == null )
             return;
+        // von Hand gestellte Werte wirken nur im manuellen Modus des Reiters - nach "Auto"
+        // (Automatik-Knopf oder "Alle zuruecksetzen") schaltet der erste Zug ihn wieder ein.
+        // Das aber erst, wenn der Finger das Band loslaesst: ein Fokuswert waehrend der
+        // Automatik laesst die Kamera neu starten, und das reisst die laufende Beruehrung ab -
+        // der Zug kam dann nur bis zu dieser Stelle an (am Geraet gesehen, Falk 2026-09-21).
+        if( selected_tab == TAB_FOCUS && !focusHoldsValue() ) {
+            pendingManualFocus();
+            focus_pending_step = step;
+            return;
+        }
         int progress = seekbarProgress(selected_tab, step);
         if( progress == seekbar.getProgress() )
             return;
-        // von Hand gestellte Werte wirken nur im manuellen Modus des Reiters - nach "Auto"
-        // (Automatik-Knopf oder "Alle zuruecksetzen") schaltet der erste Zug ihn wieder ein
         ensureModeForTab(selected_tab);
         seekbar.setProgress(progress);
         updateBadge();
+    }
+
+    /** Der Finger hat das Band losgelassen: jetzt den Modus stellen, den der Zug einschalten
+     *  musste (siehe {@link #onRulerScroll(int)}), und den Wert noch einmal an die Kamera geben -
+     *  waehrend des Zuges stand sie noch auf Auto und hat ihn nicht angenommen. */
+    private void onRulerScrollEnd() {
+        if( !open || selected_tab != TAB_FOCUS )
+            return;
+        if( !focus_manual_pending || focusIsManual() )
+            return;
+        ensureModeForTab(TAB_FOCUS);
+        focus_manual_pending = false;
+        if( focus_pending_step >= 0 ) {
+            // der Zug hat den Wert nur vorgemerkt: jetzt, im manuellen Modus, kommt er in den
+            // Regler der App (setProgress loest den Zuhoerer aus und stellt die Kamera darauf)
+            focus_seekbar.setProgress(seekbarProgress(TAB_FOCUS, focus_pending_step));
+            focus_pending_step = -1;
+        }
+        else {
+            focus_listener.onProgressChanged(focus_seekbar, focus_seekbar.getProgress(), false);
+        }
     }
 
     /** Die Beschriftung des Massbands. Beschriftet werden nur runde Werte - die Referenz schreibt
@@ -837,6 +1078,29 @@ public class ProPanel {
                 labels[step] = roundLabel(tab, step);
             return labels;
         }
+        if( tab == TAB_ISO ) {
+            // die vollen Blenden (100, 200, 400, 800 ...), und die im gleichen Abstand: die
+            // Drittelstufen-Reihe hat zwischen zwei Blenden genau drei Striche. Eine Stufe, die
+            // die Kamera zusaetzlich kennt (ihr kleinstes ISO), bekommt keine Zahl, wenn sie
+            // dadurch zu dicht an der naechsten staende (Falk 2026-09-21)
+            int [] ladder = isoLadder();
+            int last = -ISO_LABEL_STEPS;
+            for(int step = 0; step <= max; step++) {
+                if( step - last < ISO_LABEL_STEPS || !isStopISO(ladder[step]) )
+                    continue;
+                labels[step] = String.valueOf(ladder[step]);
+                last = step;
+            }
+            return labels;
+        }
+        if( tab == TAB_FOCUS ) {
+            // von unendlich her gezaehlt, damit die Zahlen immer dieselben sind: die
+            // Naheinstellgrenze am Ende der Reihe haengt an der Kamera und verschob die Zahlen
+            // sonst bei jedem Geraet (Falk 2026-09-21)
+            for(int step = 0; step <= max; step += FOCUS_LABEL_STEPS)
+                labels[step] = roundLabel(tab, step);
+            return labels;
+        }
         // erst die runden Werte: sie stehen fest, egal was die Zwischenzahlen machen
         List<Integer> rounds = new ArrayList<>();
         int last = -MIN_LABEL_STEPS;
@@ -850,10 +1114,10 @@ public class ProPanel {
             rounds.add(step);
             last = step;
         }
-        // dann die Luecken, wo eine Zwischenzahl erlaubt ist (Fokus, Verschlusszeit): gleichmaessig
+        // dann die Luecken, wo eine Zwischenzahl erlaubt ist (Verschlusszeit): gleichmaessig
         // verteilt und mit Abstand zu beiden Nachbarn - sonst verdraengt eine Zwischenzahl die
         // naechste runde Zahl
-        if( tab == TAB_FOCUS || tab == TAB_SHUTTER ) {
+        if( tab == TAB_SHUTTER ) {
             for(int i = 0; i < rounds.size(); i++) {
                 int from = rounds.get(i);
                 int to = (i + 1 < rounds.size()) ? rounds.get(i + 1) : max;
@@ -881,55 +1145,54 @@ public class ProPanel {
                 int temperature = main_activity.getManualSeekbars().getWhiteBalanceTemperature(step);
                 return temperature % WB_LABEL_STEP == 0 ? String.valueOf(temperature) : null;
             }
-            case TAB_ISO: {
-                int iso = main_activity.getManualSeekbars().getISO(step);
-                return isNiceISO(iso) ? String.valueOf(iso) : null;
-            }
+            case TAB_ISO:
+                return String.valueOf(isoLadder()[step]);
             case TAB_SHUTTER:
                 return niceExposureLabel(main_activity.getManualSeekbars().getExposureTime(step));
             case TAB_FOCUS: {
-                double metres = focusMetres(step, focus_seekbar.getMax());
-                if( metres <= 0.0 )
-                    return main_activity.getResources().getString(R.string.infinite);
-                for(double value : NICE_METRES) {
-                    if( Math.abs(metres - value) < value * 0.02 )
-                        return formatMetres(metres);
-                }
-                return null;
+                double metres = focusLadder()[step];
+                return metres > 0.0 ? formatMetres(metres)
+                        : main_activity.getResources().getString(R.string.pro_panel_infinite_short);
             }
             default:
                 return null;
         }
     }
 
-    /** Der Wert an einem beliebigen Schritt (die Zwischenzahl zwischen zwei runden Werten). */
+    /** Der Wert an einem beliebigen Schritt (die Zwischenzahl zwischen zwei runden Werten) - nur
+     *  bei der Verschlusszeit: ISO und Fokus haben eine Leiter aus lauter runden Werten, dort gibt
+     *  es keine Luecke zu fuellen. */
     private String valueLabel(int tab, int step) {
-        switch( tab ) {
-            case TAB_SHUTTER:
-                return exposureTimeText(main_activity.getManualSeekbars().getExposureTime(step));
-            case TAB_FOCUS:
-                return formatMetres(focusMetres(step, focus_seekbar.getMax()));
-            default:
-                return null;
-        }
+        if( tab == TAB_SHUTTER )
+            return exposureTimeText(main_activity.getManualSeekbars().getExposureTime(step));
+        return null;
     }
 
-    /** Die Entfernung in Metern zu einem Schritt des Fokus-Reglers (0 = unendlich). */
-    private double focusMetres(int step, int max) {
+    /** Die Schaerfestellung eines Schritts des Fokus-Reglers in Dioptrien (0 = unendlich, wie
+     *  {@code Preview.getMinimumFocusDistance()}). */
+    private double focusDioptres(int progress) {
         Preview preview = main_activity.getPreview();
-        if( preview == null || max <= 0 )
+        if( preview == null || focus_seekbar.getMax() <= 0 )
             return 0.0;
-        // der Regler ist in Dioptrien geteilt: Wert = Brennweite * Skalierung, Meter = 1 / Wert
-        double dioptres = ManualSeekbars.seekbarScaling(step / (double) max) * preview.getMinimumFocusDistance();
-        return dioptres > 0.0 ? 1.0 / dioptres : 0.0;
+        // der Regler ist in Dioptrien geteilt: Wert = Brennweite * Skalierung
+        return ManualSeekbars.seekbarScaling(progress / (double) focus_seekbar.getMax())
+                * preview.getMinimumFocusDistance();
     }
 
     /** Eine Entfernung als kurze Zahl: bis 10 m mit Nachkommastelle, darueber in ganzen Metern
-     *  (niemand sagt "302,2 Meter"). */
+     *  (niemand sagt "302,2 Meter"). Die ueberfluessige Null faellt weg - "0,50" ist keine Zahl,
+     *  die man ansagt (Falk 2026-09-21). */
     private static String formatMetres(double metres) {
-        if( metres >= 10.0 )
-            return String.format(java.util.Locale.getDefault(), "%.0f", metres);
-        return String.format(java.util.Locale.getDefault(), metres < 1.0 ? "%.2f" : "%.1f", metres);
+        String text = String.format(java.util.Locale.getDefault(), metres < 10.0 ? "%.2f" : "%.0f", metres);
+        int sep = text.indexOf(',') >= 0 ? text.indexOf(',') : text.indexOf('.');
+        if( sep < 0 )
+            return text;
+        int end = text.length();
+        while( end > sep + 1 && text.charAt(end - 1) == '0' )
+            end--;
+        if( end == sep + 1 )
+            end = sep;                              // "2,00" -> "2"
+        return text.substring(0, end);
     }
 
     /** Die Belichtungskorrektur als glatte Zahl: ganze EV ohne Nachkommastelle ("+1"), halbe mit
@@ -948,13 +1211,15 @@ public class ProPanel {
         return main_activity.getResources().getString(R.string.pro_panel_auto_value);
     }
 
-    /** Die ISO-Werte, die eine Zahl bekommen (die Stufen der Kamera, nicht jeder Schritt). */
-    private static boolean isNiceISO(int iso) {
-        for(int value : NICE_ISO) {
-            if( value == iso )
-                return true;
-        }
-        return false;
+    /** Die ISO-Werte, die eine Zahl bekommen: die Stufen, die ein Fotograf ansagt (25, 50, 100,
+     *  200, 400, 800 ...) - jede zweite Stufe der Leiter bleibt damit ohne Zahl, sonst klebten die
+     *  Zahlen aneinander (Falk 2026-09-21). */
+    private static boolean isStopISO(long iso) {
+        if( iso <= 0 )
+            return false;
+        while( iso > 25 && iso % 2 == 0 )
+            iso /= 2;
+        return iso == 25;
     }
 
     /** Die Verschlusszeiten, die eine Zahl bekommen: die Nenner bzw. Sekunden der Kamera-Skala. */
@@ -1093,6 +1358,8 @@ public class ProPanel {
                 break;
             case TAB_FOCUS:
                 applicationInterface.setFocusPref("focus_mode_continuous_picture", preview.isVideo());
+                // die Kamera sucht wieder selbst: die Vormerkung eines Zuges ist damit hinfaellig
+                focus_manual_pending = false;
                 break;
             case TAB_SHUTTER:
             case TAB_ISO:
@@ -1113,7 +1380,8 @@ public class ProPanel {
                 setSliderValue(TAB_WB, WB_DEFAULT_TEMPERATURE);
                 break;
             case TAB_FOCUS:
-                setFocusSeekbarProgress();
+                // zurueck auf Automatik: der Wert kommt wieder von der Kamera
+                setFocusSeekbarProgress(false);
                 break;
             default:
                 // ISO und Verschlusszeit: die App stellt ihre Regler auf die gemessenen Auto-Werte
@@ -1135,15 +1403,21 @@ public class ProPanel {
         applicationInterface.setExposureCompensationPref(0);
         applicationInterface.clearWhiteBalancePref();
         applicationInterface.setFocusPref("focus_mode_continuous_picture", preview.isVideo());
+        focus_manual_pending = false;
         applicationInterface.setISOPref(CameraController.ISO_DEFAULT);
         applicationInterface.setExposureTimePref(CameraController.EXPOSURE_TIME_DEFAULT);
+        if( main_activity.getApplicationInterface().getFocusPeakingPref() )
+            // der Fokus-Peaking-Knopf der Icon-Leiste schaltet um, nicht ein - nur druecken, wenn
+            // es an ist (Falk 2026-09-21: "bei reset fuer alle soll fokus peaking aus")
+            main_activity.getMainUI().getOnScreenIcons().clickedFocusPeaking();
         main_activity.updateForSettings(true, "");
         // den Regler des offenen Reiters mitstellen - die App tut es nicht in jedem Fall (wie
         // clickedAuto). setSliderValue() arbeitet immer auf dem offenen Reiter.
         if( selected_tab == TAB_EXPOSURE )
             setSliderValue(TAB_EXPOSURE, 0);
         else if( selected_tab == TAB_FOCUS )
-            setFocusSeekbarProgress();
+            setFocusSeekbarProgress(false);
+        markTabs();
         preview.showToast(null, main_activity.getResources().getString(R.string.pro_panel_reset_done), 0, true);
         updateAutoButton();
         updateRuler();
@@ -1193,14 +1467,11 @@ public class ProPanel {
                 break;
             }
             case TAB_FOCUS: {
-                float distance = (float) (ManualSeekbars.seekbarScaling(focus_seekbar.getProgress() / (double) focus_seekbar.getMax()) * preview.getMinimumFocusDistance());
                 // Dioptrien -> Meter, wie Preview.setFocusDistance() es fuer den Toast macht
-                if( distance > 0.0f ) {
-                    text = String.format(java.util.Locale.getDefault(), "%.2f %s", 1.0f / distance, main_activity.getResources().getString(R.string.metres_abbreviation));
-                }
-                else {
-                    text = main_activity.getResources().getString(R.string.infinite);
-                }
+                double dioptres = focusDioptres(focus_seekbar.getProgress());
+                text = dioptres > 0.0
+                        ? formatMetres(1.0 / dioptres) + " " + main_activity.getResources().getString(R.string.metres_abbreviation)
+                        : main_activity.getResources().getString(R.string.infinite);
                 break;
             }
             case TAB_SHUTTER:

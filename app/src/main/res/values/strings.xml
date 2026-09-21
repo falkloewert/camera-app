@@ -1133,6 +1133,9 @@
     <string name="pro_panel_open">Open pro panel</string>
     <string name="pro_panel_reset">Reset all</string>
     <string name="pro_panel_focus">Focus</string>
+    <!-- Auf dem Massband ist fuer "Unendlich" kein Platz: die Nachbarzahl klebte daran (am Geraet
+         gesehen, Falk 2026-09-21). In der Blase steht weiter das ausgeschriebene Wort. -->
+    <string name="pro_panel_infinite_short">∞</string>
     <string name="pro_panel_auto">Automatic</string>
     <string name="pro_panel_auto_value">Auto</string>
     <string name="pro_panel_reset_done">Exposure, white balance, focus, ISO and shutter speed reset.</string>

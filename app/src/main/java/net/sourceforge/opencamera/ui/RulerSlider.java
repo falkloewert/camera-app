@@ -59,8 +59,12 @@ public class RulerSlider extends View {
      *  der App darauf). */
     public interface OnScrollListener {
         void onScroll(int step);
+
+        /** Der Finger hat das Band losgelassen. */
+        void onScrollEnd();
     }
 
+    private float px_per_step_dp = PX_PER_STEP_DP;  // Abstand zweier Striche, je Reiter
     private int max = 0;            // hoechster Wert, den der SeekBar kennt
     private int progress = 0;       // aktueller Wert (derselbe wie im SeekBar)
     private float shown = 0.0f;     // der gezeichnete Wert - zwischen zwei Schritten unterwegs
@@ -86,6 +90,13 @@ public class RulerSlider extends View {
         // Alpha-Maske wie beim Zoom-Massband: die Skala blendet zu beiden Raendern hin aus
         fade_paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+    }
+
+    /** Der Abstand zweier Striche. ISO und Fokus bekommen mehr davon: ihre Leiter hat vierstellige
+     *  Zahlen, die bei 8 dp aneinanderkleben (am Geraet gesehen, Falk 2026-09-21). */
+    public void setStepSpacingDp(float dp) {
+        this.px_per_step_dp = dp;
+        invalidate();
     }
 
     /** Der hoechste Wert des zugehoerigen SeekBars. */
@@ -134,11 +145,24 @@ public class RulerSlider extends View {
             snapTo(progress);
     }
 
+    /** Einen Zwischenwert anfahren: die messende Kamera liefert keine Striche (Fokus), das Band
+     *  soll ihr aber stetig folgen - in ganzen Schritten saehe das wie Ruckeln aus (Falk
+     *  2026-09-21). {@link #getProgress()} bleibt der gerundete Schritt. */
+    public void setValue(float value, boolean animate) {
+        if( dragging )
+            return;
+        progress = Math.round(value);
+        if( animate )
+            rollTo(value);
+        else
+            snapTo(value);
+    }
+
     public int getProgress() {
         return progress;
     }
 
-    private void snapTo(int progress) {
+    private void snapTo(float progress) {
         cancelRoll();
         shown = progress;
         invalidate();
@@ -207,7 +231,7 @@ public class RulerSlider extends View {
                     return false;
                 float dx = event.getX() - last_x;
                 last_x = event.getX();
-                float value = shown - dx / dp(PX_PER_STEP_DP);
+                float value = shown - dx / dp(px_per_step_dp);
                 if( value < 0.0f )
                     value = 0.0f;
                 else if( value > max )
@@ -226,6 +250,8 @@ public class RulerSlider extends View {
             case MotionEvent.ACTION_CANCEL:
                 if( dragging ) {
                     dragging = false;
+                    if( scroll_listener != null )
+                        scroll_listener.onScrollEnd();
                     // den halben Schritt, auf dem der Finger stehen geblieben ist, einschnappen
                     rollTo(Math.round(shown));
                 }
@@ -262,7 +288,7 @@ public class RulerSlider extends View {
         if( w <= 0 || h <= 0 )
             return;
         float centre_x = w / 2.0f;
-        float px_per_step = dp(PX_PER_STEP_DP);
+        float px_per_step = dp(px_per_step_dp);
         float tick_bottom = dp(TICK_BOTTOM_DP);
         float baseline = dp(LABEL_BASELINE_DP);
 
