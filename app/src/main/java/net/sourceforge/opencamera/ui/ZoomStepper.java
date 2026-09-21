@@ -104,9 +104,11 @@ public class ZoomStepper implements ZoomWheel.Listener {
 
         // manual lens selection (Kickoff 3.4): the pill shows the physical lenses of the current
         // camera instead of the zoom steps, and the wheel no longer opens on a drag - but a
-        // pinch in the viewfinder still brings it up
+        // pinch in the viewfinder still brings it up. Only in the manual mode itself: a rear
+        // camera with several lenses must keep its zoom steps (Kickoff Runde 2, 1.1)
         List<MainActivity.Lens> lenses = main_activity.getManualLenses();
-        if( lenses != null && lenses.size() >= 2 ) {
+        boolean manual = main_activity.getApplicationInterface().getCameraIdSPhysicalPref() != null;
+        if( manual && lenses != null && lenses.size() >= 2 ) {
             manual_lenses = lenses;
             wheel.setDragEnabled(false);
             for(MainActivity.Lens lens : lenses) {

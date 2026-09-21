@@ -402,8 +402,9 @@ public class SettingsSheet {
         }
         addChild(tabs, m.tabs_left, m.tabs_top, tabs_width, dp(TABS_HEIGHT));
 
-        // rows
-        List<Row> rows = buildRows();
+        // rows - the camera's picture sizes are read once here and handed down, instead of every
+        // row asking for them again (Kickoff Runde 2, 1.5)
+        List<Row> rows = buildRows(pictureSizes());
         for(int i=0;i<rows.size();i++)
             createRow(rows.get(i), m.rows_first_centre + i * dp(ROW_RASTER), m);
     }
@@ -469,56 +470,83 @@ public class SettingsSheet {
         // the buttons sit in a 48 dp raster that ends at the right edge of the content
         int cells_right = m.cells_right - m.strip_x;
         int count = row.options.size();
+        List<View> buttons = new ArrayList<>();
         for(int i=0;i<count;i++) {
             Option option = row.options.get(i);
             int cell_left = cells_right - (count - i) * dp(OPTION_RASTER);
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(dp(OPTION_SIZE), dp(OPTION_SIZE));
             params.leftMargin = cell_left + dp(OPTION_PAD);
             params.topMargin = dp(ROW_RASTER) / 2 - dp(OPTION_SIZE) / 2;
-            strip.addView(createOptionButton(option), params);
+            View button = createOptionButton(option);
+            buttons.add(button);
+            strip.addView(button, params);
+        }
+        // a tap marks its option right away instead of waiting for the camera to be reconfigured
+        // (Kickoff Runde 2, 1.5); the next refresh() corrects it if the camera disagrees
+        for(int i=0;i<count;i++) {
+            final int index = i;
+            final Option option = row.options.get(i);
+            buttons.get(index).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if( MyDebug.LOG )
+                        Log.d(TAG, "option: " + option.label);
+                    for(int j=0;j<buttons.size();j++)
+                        markOptionButton(buttons.get(j), j == index);
+                    option.action.run();
+                }
+            });
         }
 
         addChild(strip, m.strip_x, centre_y - dp(ROW_RASTER) / 2, m.strip_width, dp(ROW_RASTER));
     }
 
     private View createOptionButton(final Option option) {
-        int glyph_color = ContextCompat.getColor(main_activity, option.selected ?
-                R.color.settings_sheet_button_glyph_selected : R.color.settings_sheet_button_glyph);
         FrameLayout button = new FrameLayout(main_activity);
-        button.setBackgroundResource(option.selected ? R.drawable.settings_sheet_button_selected : R.drawable.settings_sheet_button);
         button.setContentDescription(option.label);
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if( MyDebug.LOG )
-                    Log.d(TAG, "option: " + option.label);
-                option.action.run();
-            }
-        });
         View glyph;
         if( option.glyph == null ) {
             ImageView symbol = new ImageView(main_activity);
             symbol.setImageResource(option.symbol);
-            symbol.setImageTintList(ColorStateList.valueOf(glyph_color));
             glyph = symbol;
         }
         else {
-            GlyphView drawn = new GlyphView(option.glyph, option.text, option.ratio, glyph_color);
-            glyph = drawn;
+            glyph = new GlyphView(option.glyph, option.text, option.ratio, option.selected);
         }
         button.addView(glyph, new FrameLayout.LayoutParams(dp(SYMBOL_SIZE), dp(SYMBOL_SIZE), Gravity.CENTER));
+        markOptionButton(button, option.selected);
         return button;
+    }
+
+    /** Draws one option button as selected or not - also used when a tap marks its option
+     *  immediately (Kickoff Runde 2, 1.5). */
+    private void markOptionButton(View button, boolean selected) {
+        button.setBackgroundResource(selected ? R.drawable.settings_sheet_button_selected : R.drawable.settings_sheet_button);
+        int glyph_color = ContextCompat.getColor(main_activity, selected ?
+                R.color.settings_sheet_button_glyph_selected : R.color.settings_sheet_button_glyph);
+        View glyph = ((ViewGroup)button).getChildAt(0);
+        if( glyph instanceof ImageView )
+            ((ImageView)glyph).setImageTintList(ColorStateList.valueOf(glyph_color));
+        else if( glyph instanceof GlyphView )
+            ((GlyphView)glyph).setColor(glyph_color);
     }
 
     /* ---- rows of the photo sheet (Kickoff 3.3/3.4) ---------------------------------------- */
 
-    private List<Row> buildRows() {
+    private List<Row> buildRows(List<CameraController.Size> sizes) {
         if( is_video )
             return selected_tab == 0 ? videoGeneralRows() : videoMoreRows();
-        return selected_tab == 0 ? photoGeneralRows() : photoProRows();
+        return selected_tab == 0 ? photoGeneralRows(sizes) : photoProRows(sizes);
     }
 
-    private List<Row> photoGeneralRows() {
+    /** The picture sizes the camera reports, or null while it is being reopened. Read once per
+     *  build: the rows work on this snapshot (Kickoff Runde 2, 1.5). */
+    private List<CameraController.Size> pictureSizes() {
+        Preview preview = main_activity.getPreview();
+        return preview == null ? null : preview.getSupportedPictureSizes(true);
+    }
+
+    private List<Row> photoGeneralRows(final List<CameraController.Size> sizes) {
         List<Row> rows = new ArrayList<>();
         Preview preview = main_activity.getPreview();
 
@@ -613,7 +641,6 @@ public class SettingsSheet {
         // aspect ratio - not in panorama mode
         if( main_activity.getApplicationInterface().getPhotoMode() != MyApplicationInterface.PhotoMode.Panorama ) {
             CameraController.Size current = preview.getCurrentPictureSize();
-            List<CameraController.Size> sizes = preview.getSupportedPictureSizes(true);
             if( current != null && sizes != null && !sizes.isEmpty() ) {
                 float current_ratio = ratio(current);
                 List<Option> options = new ArrayList<>();
@@ -627,7 +654,9 @@ public class SettingsSheet {
                             new Runnable() {
                                 @Override
                                 public void run() {
-                                    CameraController.Size size = largestSize(main_activity.getPreview().getSupportedPictureSizes(true), ratio, aspectLimit());
+                                    // the snapshot of this build, so a tap doesn't query the
+                                    // camera characteristics again (Kickoff Runde 2, 1.5)
+                                    CameraController.Size size = largestSize(sizes, ratio, aspectLimit(sizes));
                                     if( size != null )
                                         setPictureSize(size);
                                 }
@@ -641,7 +670,7 @@ public class SettingsSheet {
         return rows;
     }
 
-    private List<Row> photoProRows() {
+    private List<Row> photoProRows(final List<CameraController.Size> sizes) {
         List<Row> rows = new ArrayList<>();
         Preview preview = main_activity.getPreview();
         final MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
@@ -649,22 +678,33 @@ public class SettingsSheet {
         // resolution: two classes - the largest size up to 13 MP, and the largest size at all
         {
             CameraController.Size current = preview.getCurrentPictureSize();
-            List<CameraController.Size> sizes = preview.getSupportedPictureSizes(true);
             // Kickoff 3.4: the resolution list the camera reports, for the first device test
-            // (Falk suspects the 50 MP size is reserved for the Google app)
-            if( MyDebug.LOG )
-                Log.d(TAG, "supported picture sizes: " + sizes);
-            if( current != null && sizes != null && !sizes.isEmpty() ) {
-                float ratio = ratio(current);
+            // (Falk suspects the 50 MP size is reserved for the Google app). Deliberately not
+            // behind MyDebug.LOG - the debug build would hide it (Kickoff Runde 2, Punkt 6)
+            Log.d(TAG, "supported picture sizes: " + sizes);
+            if( sizes != null && !sizes.isEmpty() ) {
+                // the camera's own size is the truth, but it is null while the camera is being
+                // reopened; then the stored preference decides, which is the value the reopen is
+                // going to apply anyway (Kickoff Runde 2, 1.4)
+                String current_text = current != null ? sizeText(current) : storedPictureSize(preview);
+                float ratio = current != null ? ratio(current) : currentRatio(current_text);
                 CameraController.Size max_size = largestSize(sizes, ratio, Float.MAX_VALUE);
                 CameraController.Size small_size = largestSize(sizes, ratio, SMALL_MP_CLASS);
                 if( max_size != null && small_size != null && mp(max_size) > SMALL_MP_CLASS ) {
-                    boolean small_selected = mp(current) <= SMALL_MP_CLASS;
+                    // exactly one button is marked at all times: the one holding the camera's
+                    // size, otherwise the megapixel class the camera is in (Kickoff Runde 2, 1.4)
+                    boolean matches_small = sizeText(small_size).equals(current_text);
+                    boolean matches_max = sizeText(max_size).equals(current_text);
+                    boolean small_selected = matches_small || (!matches_max && (current == null || mp(current) <= SMALL_MP_CLASS));
                     List<Option> options = new ArrayList<>();
                     options.add(resolutionOption(small_size, small_selected));
                     options.add(resolutionOption(max_size, !small_selected));
-                    rows.add(new Row(getString(R.string.settings_sheet_resolution),
-                            getString(R.string.settings_sheet_mp, String.valueOf(Math.round(mp(current)))), options));
+                    // the value line shows the marked class, or the real size when neither
+                    // button holds it
+                    CharSequence value_text = current != null && !matches_small && !matches_max ?
+                            getString(R.string.settings_sheet_mp, String.valueOf(Math.round(mp(current)))) :
+                            selectedLabelOr(options, null);
+                    rows.add(new Row(getString(R.string.settings_sheet_resolution), value_text, options));
                 }
             }
         }
@@ -674,7 +714,8 @@ public class SettingsSheet {
             SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
             boolean raw = "preference_raw_yes".equals(sharedPreferences.getString(PreferenceKeys.RawPreferenceKey, "preference_raw_no"));
             List<Option> options = new ArrayList<>();
-            options.add(new Option(getString(R.string.settings_sheet_raw_off), 0, Glyph.RAW, "RAW", 0.0f, !raw,
+            // "off" is the same RAW text with a diagonal stroke through it (Kickoff 2.4)
+            options.add(new Option(getString(R.string.settings_sheet_raw_off), 0, Glyph.RAW_OFF, "RAW", 0.0f, !raw,
                     new Runnable() {
                         @Override
                         public void run() {
@@ -698,7 +739,9 @@ public class SettingsSheet {
             if( preview.hasPhysicalCameras() && lenses != null && lenses.size() >= 2 ) {
                 final boolean manual = applicationInterface.getCameraIdSPhysicalPref() != null;
                 List<Option> options = new ArrayList<>();
-                options.add(new Option(getString(R.string.settings_sheet_auto), R.drawable.ms_camera, null, null, 0.0f, !manual,
+                // "A" in a circle is the automatic lens choice, the aperture symbol the manual
+                // one (Kickoff 2.4)
+                options.add(new Option(getString(R.string.settings_sheet_auto), 0, Glyph.LENS_AUTO, "A", 0.0f, !manual,
                         new Runnable() {
                             @Override
                             public void run() {
@@ -707,7 +750,7 @@ public class SettingsSheet {
                                 refresh();
                             }
                         }));
-                options.add(new Option(getString(R.string.settings_sheet_manual), 0, Glyph.LENS_AUTO, "A", 0.0f, manual,
+                options.add(new Option(getString(R.string.settings_sheet_manual), R.drawable.ms_camera, null, null, 0.0f, manual,
                         new Runnable() {
                             @Override
                             public void run() {
@@ -722,6 +765,42 @@ public class SettingsSheet {
         }
 
         return rows;
+    }
+
+    private static String sizeText(CameraController.Size size) {
+        return size == null ? null : size.width + " " + size.height;
+    }
+
+    /** The resolution the stored preference holds for this camera, in the camera's own
+     *  "width height" format, or null. */
+    private String storedPictureSize(Preview preview) {
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
+        String stored = sharedPreferences.getString(PreferenceKeys.getResolutionPreferenceKey(
+                preview.getCameraId(), main_activity.getApplicationInterface().getCameraIdSPhysicalPref()), null);
+        if( MyDebug.LOG )
+            Log.d(TAG, "stored picture size: " + stored);
+        return stored;
+    }
+
+    /** The ratio of the "width height" string the preference holds, for the rows that need one
+     *  while the camera is closed. Anything unparsable falls back to 16:9, the reference's own
+     *  ratio. */
+    private static float currentRatio(String size_text) {
+        if( size_text != null ) {
+            String [] parts = size_text.trim().split(" ");
+            if( parts.length == 2 ) {
+                try {
+                    int width = Integer.parseInt(parts[0]);
+                    int height = Integer.parseInt(parts[1]);
+                    if( width > 0 && height > 0 )
+                        return width / (float)height;
+                }
+                catch(NumberFormatException e ) {
+                    // fall through to the default
+                }
+            }
+        }
+        return 16.0f / 9.0f;
     }
 
     /* ---- rows of the video sheet (Kickoff 3.5) -------------------------------------------- */
@@ -772,9 +851,9 @@ public class SettingsSheet {
             List<String> qualities = preview.getSupportedVideoQuality(fps_value);
             if( qualities == null || qualities.isEmpty() )
                 qualities = preview.getVideoQualityHander().getSupportedVideoQuality();
-            // Kickoff 3.4/3.5: the video quality and frame rate lists the camera reports
-            if( MyDebug.LOG )
-                Log.d(TAG, "supported video qualities: " + qualities);
+            // Kickoff 3.4/3.5: the video quality and frame rate lists the camera reports.
+            // Deliberately not behind MyDebug.LOG, see the picture sizes above
+            Log.d(TAG, "supported video qualities: " + qualities);
             List<Option> options = new ArrayList<>();
             int [] widths = {1920, 3840, 7680};
             // the labels are the same on screen and in the content description, so they stay
@@ -802,10 +881,12 @@ public class SettingsSheet {
         {
             int [] candidates = {24, 30, 60};
             List<Option> options = new ArrayList<>();
+            List<String> supported_fps = new ArrayList<>();
             for(int i=0;i<candidates.length;i++) {
                 final String value = String.valueOf(candidates[i]);
                 if( !preview.fpsIsHighSpeed(value) && !preview.getVideoQualityHander().videoSupportsFrameRate(candidates[i]) )
                     continue;
+                supported_fps.add(value);
                 options.add(new Option(value, 0, Glyph.TEXT, value, 0.0f, value.equals(fps_value),
                         new Runnable() {
                             @Override
@@ -815,6 +896,7 @@ public class SettingsSheet {
                         }));
             }
             CharSequence value_text = selectedLabelOr(options, fps_value);
+            Log.d(TAG, "supported frame rates: " + supported_fps + ", current " + fps_value);
             if( value_text == null && fps_value != null )
                 value_text = fps_value.equals("default") ? getString(R.string.settings_sheet_auto) : fps_value;
             if( !options.isEmpty() )
@@ -1009,9 +1091,8 @@ public class SettingsSheet {
     }
 
     /** The megapixel class the aspect row has to stay in: the class of the current resolution
-     *  as the Pro tab defines it (Kickoff 3.3/3.4). */
-    private float aspectLimit() {
-        List<CameraController.Size> sizes = main_activity.getPreview().getSupportedPictureSizes(true);
+     *  as the Pro tab defines it (Kickoff 3.3/3.4). Works on the build's size snapshot. */
+    private float aspectLimit(List<CameraController.Size> sizes) {
         CameraController.Size current = main_activity.getPreview().getCurrentPictureSize();
         if( current == null || sizes == null || sizes.isEmpty() )
             return Float.MAX_VALUE;
@@ -1049,7 +1130,7 @@ public class SettingsSheet {
     /* ---- the self-drawn glyphs of the option buttons -------------------------------------- */
 
     /** The shapes of the option buttons that are not Material Symbols (Kickoff 2.4). */
-    private enum Glyph { ASPECT, MP, RAW, LENS_AUTO, TEXT }
+    private enum Glyph { ASPECT, MP, RAW, RAW_OFF, LENS_AUTO, TEXT }
 
     private class GlyphView extends View {
         private final Glyph glyph;
@@ -1058,13 +1139,19 @@ public class SettingsSheet {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF rect = new RectF();
 
-        GlyphView(Glyph glyph, String text, float ratio, int color) {
+        GlyphView(Glyph glyph, String text, float ratio, boolean selected) {
             super(main_activity);
             this.glyph = glyph;
             this.text = text;
             this.ratio = ratio;
-            paint.setColor(color);
             paint.setTextAlign(Paint.Align.CENTER);
+            setColor(ContextCompat.getColor(main_activity, selected ?
+                    R.color.settings_sheet_button_glyph_selected : R.color.settings_sheet_button_glyph));
+        }
+
+        void setColor(int color) {
+            paint.setColor(color);
+            invalidate();
         }
 
         @Override
@@ -1090,11 +1177,19 @@ public class SettingsSheet {
                     canvas.drawText("MP", w / 2, h * 0.92f, paint);
                     break;
                 }
-                case RAW: {
+                case RAW:
+                case RAW_OFF: {
                     paint.setStyle(Paint.Style.FILL);
                     paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
                     paint.setTextSize(sp(6.0f));
                     canvas.drawText(text, w / 2, h * 0.68f, paint);
+                    if( glyph == Glyph.RAW_OFF ) {
+                        // RAW switched off: the same text with a diagonal stroke (Kickoff 2.4)
+                        paint.setStyle(Paint.Style.STROKE);
+                        paint.setStrokeWidth(dp(1.0f));
+                        float half = dp(9.0f);
+                        canvas.drawLine(w / 2 - half, h / 2 + half, w / 2 + half, h / 2 - half, paint);
+                    }
                     break;
                 }
                 case LENS_AUTO: {
