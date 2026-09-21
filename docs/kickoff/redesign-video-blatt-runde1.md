@@ -31,10 +31,10 @@ eigene Runden, nachdem V1 am Gerät sitzt.
    korrigieren. *Fertig:* Selfie-Blatt ohne Auflösungszeile, Video 1920×1080.
 5. **Selfie-Video: Makro entfällt.** Frontkamera bekommt keine Makro-Zeile (Rückkamera
    unverändert). *Fertig:* Selfie-Blatt ohne Makro-Zeile.
-
-## Offen (Falk entscheidet)
-- Erscheint bei Selfie auch die Zeile „Objektivauswahl"? Die Frontkamera meldet auf
-  diesem Gerät 2 physische Objektive (Fund 2026-09-21) – Zeile also derzeit vorhanden.
+6. **Selfie auch ohne Objektivauswahl.** Die Zeile im Foto-Blatt (Reiter „Pro") entfällt
+   bei der Frontkamera – sie meldet auf diesem Gerät 2 physische Objektive (Fund
+   2026-09-21), die Auswahl ist dort aber sinnlos (Entscheidung Falk 2026-09-21).
+   *Fertig:* Selfie-Blatt ohne Objektivauswahl; Rückkamera unverändert.
 
 ## Nicht in dieser Runde
 - V2: Makro soll fixiert bleiben (Tippen darf nicht auf Autofokus zurückstellen);

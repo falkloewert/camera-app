@@ -727,7 +727,8 @@ public class MyApplicationInterface extends BasicApplicationInterface {
 
     @Override
     public boolean getVideoStabilizationPref() {
-        return sharedPreferences.getBoolean(PreferenceKeys.VideoStabilizationPreferenceKey, false);
+        // on by default (Falk 2026-09-21, Kickoff Video-Blatt Runde 1): a stored value still wins
+        return sharedPreferences.getBoolean(PreferenceKeys.VideoStabilizationPreferenceKey, true);
     }
 
     @Override

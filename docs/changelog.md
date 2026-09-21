@@ -318,6 +318,16 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   abgenommen.** Offen: rechter Dock-Button, Schritt C. Details: `ui-spezifikation.md`
   4/4a/4b/6/7.1/8/9 (K13).
 
+- **2026-09-21 (Feature-Chat, Video-Blatt Runde 1):** Kickoff
+  `docs/kickoff/redesign-video-blatt-runde1.md` umgesetzt: Auflösungszeile trifft nur noch
+  exakt 1920×1080/3840×2160/7680×4320 (`findQuality` prüft jetzt auch die Höhe) – „FHD" war
+  zuvor 1920×1920 (1:1); bei FPS-Pref „default" markiert der fps-Knopf den echten
+  CamcorderProfile-Wert, die Wertzeile zeigt die Zahl statt „Standard"; Videostabilisierung
+  default `true` (Code, Blatt, XML); Frontkamera ohne Auflösungs-, Makro- und
+  Objektivauswahl-Zeile, gespeicherte 1:1-Videoqualität der Frontkamera wird auf 1080p
+  korrigiert. Gerätetest: „FHD" → Wertzeile „1920x1080 FullHD", Selfie-Video 1920×1080,
+  „Mehr" zeigt Stabilisierung „An", Rückkamera unverändert. Offen: Falk testet am Gerät.
+
 
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 

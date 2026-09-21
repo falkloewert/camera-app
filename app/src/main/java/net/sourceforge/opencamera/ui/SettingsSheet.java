@@ -230,6 +230,15 @@ public class SettingsSheet {
         return preview.getSupportedPictureSizes(false) != null;
     }
 
+    /** Whether the camera that is open right now looks at the user. Rows that only make sense
+     *  for the rear camera (resolution, macro, lens choice) are dropped for the front one
+     *  (Kickoff Video-Blatt Runde 1, items 4-6). */
+    private boolean frontCamera() {
+        Preview preview = main_activity.getPreview();
+        CameraController controller = preview == null ? null : preview.getCameraController();
+        return controller != null && controller.getFacing() == CameraController.Facing.FACING_FRONT;
+    }
+
     private int refresh_retries;
     private static final int MAX_REFRESH_RETRIES = 20;
     private static final long REFRESH_RETRY_DELAY = 100;
@@ -821,9 +830,10 @@ public class SettingsSheet {
         }
 
         // lens selection - for every camera that reports physical lenses. That is the rear camera
-        // on this device, but the front camera reports a pair too (checked 2026-09-21), and the
-        // row is what "Manuell" switches the pill to, so the camera's own answer decides.
-        {
+        // on this device; the front camera reports a pair too (checked 2026-09-21) but choosing
+        // between them is pointless, so the row is dropped there (Kickoff Video-Blatt Runde 1,
+        // item 6).
+        if( !frontCamera() ) {
             List<MainActivity.Lens> lenses = manualLenses();
             if( lenses != null ) {
                 final boolean manual = applicationInterface.getCameraIdSPhysicalPref() != null;
@@ -851,6 +861,12 @@ public class SettingsSheet {
                 rows.add(new Row(getString(R.string.settings_sheet_lens),
                         getString(manual ? R.string.settings_sheet_manual : R.string.settings_sheet_auto), options));
             }
+        }
+        else if( applicationInterface.getCameraIdSPhysicalPref() != null ) {
+            // without the row a manual lens picked earlier could not be given up any more, so the
+            // front camera falls back to the automatic choice. No camera restart: the pref is
+            // only cleared here, the next open picks it up.
+            applicationInterface.setCameraIdPref(main_activity.getActualCameraId(), null);
         }
 
         return rows;
@@ -899,6 +915,7 @@ public class SettingsSheet {
         Preview preview = main_activity.getPreview();
         final MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
         final String fps_value = applicationInterface.getVideoFPSPref();
+        final boolean front = frontCamera();
 
         // flash: only the values that make sense while recording
         {
@@ -935,8 +952,9 @@ public class SettingsSheet {
                 rows.add(new Row(getString(R.string.settings_sheet_flash), selectedLabelOr(options, current), options));
         }
 
-        // video resolution: FHD / 4K / 8K where the current frame rate offers them
-        {
+        // video resolution: FHD / 4K / 8K where the current frame rate offers them. Only 16:9 -
+        // the short badge is enough here, the resolution itself is what the knobs are for
+        if( !front ) {
             List<String> qualities = preview.getSupportedVideoQuality(fps_value);
             if( qualities == null || qualities.isEmpty() )
                 qualities = preview.getVideoQualityHander().getSupportedVideoQuality();
@@ -945,12 +963,13 @@ public class SettingsSheet {
             Log.d(TAG, "supported video qualities: " + qualities);
             List<Option> options = new ArrayList<>();
             int [] widths = {1920, 3840, 7680};
+            int [] heights = {1080, 2160, 4320};
             // the labels are the same on screen and in the content description, so they stay
             // untranslated (Kickoff 3.5)
             String [] labels = {"FHD", "4K", "8K"};
             String current = preview.getVideoQualityHander().getCurrentVideoQuality();
             for(int i=0;i<widths.length;i++) {
-                final String quality = findQuality(qualities, widths[i]);
+                final String quality = findQuality(qualities, widths[i], heights[i]);
                 if( quality == null )
                     continue;
                 options.add(new Option(labels[i], 0, Glyph.TEXT, labels[i], 0.0f, quality.equals(current),
@@ -970,10 +989,20 @@ public class SettingsSheet {
                         value_text != null ? value_text : selectedLabelOr(options, null), options));
             }
         }
+        else {
+            // the front camera records 16:9 only - it has no resolution row to say so, so a
+            // stored non-16:9 quality (the pixel offers 1:1) is put right here once
+            // (Kickoff Video-Blatt Runde 1, item 4)
+            fixFrontVideoQuality();
+        }
 
         // frame rate - the same candidates the settings list offers
         {
             int [] candidates = {24, 30, 60};
+            // "default" means whatever the camcorder profile of the current quality uses, so the
+            // knobs are matched against that number instead of the word
+            // (Kickoff Video-Blatt Runde 1, item 2)
+            final int real_fps = defaultFPS(preview);
             List<Option> options = new ArrayList<>();
             List<String> supported_fps = new ArrayList<>();
             for(int i=0;i<candidates.length;i++) {
@@ -981,7 +1010,9 @@ public class SettingsSheet {
                 if( !preview.fpsIsHighSpeed(value) && !preview.getVideoQualityHander().videoSupportsFrameRate(candidates[i]) )
                     continue;
                 supported_fps.add(value);
-                options.add(new Option(value, 0, Glyph.TEXT, value, 0.0f, value.equals(fps_value),
+                boolean selected = value.equals(fps_value) ||
+                        ("default".equals(fps_value) && candidates[i] == real_fps);
+                options.add(new Option(value, 0, Glyph.TEXT, value, 0.0f, selected,
                         new Runnable() {
                             @Override
                             public void run() {
@@ -989,16 +1020,19 @@ public class SettingsSheet {
                             }
                         }));
             }
+            // the selected knob carries the number already; only an fps the knobs cannot show
+            // falls back to the stored value
             CharSequence value_text = selectedLabelOr(options, fps_value);
-            Log.d(TAG, "supported frame rates: " + supported_fps + ", current " + fps_value);
+            Log.d(TAG, "supported frame rates: " + supported_fps + ", current " + fps_value + ", real " + real_fps);
             if( value_text == null && fps_value != null )
                 value_text = fps_value.equals("default") ? getString(R.string.settings_sheet_auto) : fps_value;
             if( !options.isEmpty() )
                 rows.add(new Row(getString(R.string.settings_sheet_fps), value_text, options));
         }
 
-        // macro focus, as in photo mode but with the video focus mode
-        {
+        // macro focus, as in photo mode but with the video focus mode. No macro lens in the front
+        // camera, so the row is dropped there (Kickoff Video-Blatt Runde 1, item 5)
+        if( !front ) {
             List<String> focus_values = preview.getSupportedFocusValues();
             if( focus_values != null && focus_values.contains("focus_mode_macro") ) {
                 boolean on = "focus_mode_macro".equals(preview.getCurrentFocusValue());
@@ -1035,7 +1069,7 @@ public class SettingsSheet {
         Preview preview = main_activity.getPreview();
         if( preview.supportsVideoStabilization() ) {
             boolean on = PreferenceManager.getDefaultSharedPreferences(main_activity)
-                    .getBoolean(PreferenceKeys.VideoStabilizationPreferenceKey, false);
+                    .getBoolean(PreferenceKeys.VideoStabilizationPreferenceKey, true);
             String label_off = getString(R.string.settings_sheet_off);
             String label_on = getString(R.string.settings_sheet_on);
             List<Option> options = new ArrayList<>();
@@ -1196,13 +1230,44 @@ public class SettingsSheet {
         return mp(current) <= SMALL_MP_CLASS ? SMALL_MP_CLASS : Float.MAX_VALUE;
     }
 
-    /** The quality string with the given video width, or null if this camera doesn't offer it. */
-    private String findQuality(List<String> qualities, int width) {
+    /** The frame rate the current video quality really records with, or -1 if the camera cannot
+     *  say. This is what "default" resolves to (Kickoff Video-Blatt Runde 1, item 2). */
+    private int defaultFPS(Preview preview) {
+        String quality = preview.getVideoQualityHander().getCurrentVideoQuality();
+        CamcorderProfile profile = quality == null ? null : preview.getCamcorderProfile(quality);
+        return profile == null ? -1 : profile.videoFrameRate;
+    }
+
+    /** The front camera records 16:9; a stored quality with another ratio (the pixel offers
+     *  1:1) is replaced by the 16:9 one of the same class. Does nothing when the stored value
+     *  is fine, so the camera is not restarted over and over. */
+    private void fixFrontVideoQuality() {
+        Preview preview = main_activity.getPreview();
+        String current = preview.getVideoQualityHander().getCurrentVideoQuality();
+        CamcorderProfile profile = current == null ? null : preview.getCamcorderProfile(current);
+        if( profile == null || profile.videoFrameHeight == 0 )
+            return;
+        if( profile.videoFrameWidth * 9 == profile.videoFrameHeight * 16 )
+            return;
+        List<String> qualities = preview.getVideoQualityHander().getSupportedVideoQuality();
+        String fix = findQuality(qualities, 1920, 1080);
+        if( fix == null && qualities != null )
+            fix = findQuality(qualities, 1280, 720);
+        if( fix == null )
+            return;  // nothing 16:9 to switch to - leave the camera alone
+        Log.d(TAG, "front camera video quality " + current + " is not 16:9, switching to " + fix);
+        setVideoQuality(fix);
+    }
+
+    /** The quality string whose profile is exactly this frame size, or null if the camera
+     *  doesn't offer it. Both numbers have to match: the pixel offers 1920x1920, and matching
+     *  the width alone used to pick that for "FHD" (Kickoff Video-Blatt Runde 1, item 1). */
+    private String findQuality(List<String> qualities, int width, int height) {
         if( qualities == null )
             return null;
         for(String quality : qualities) {
             CamcorderProfile profile = main_activity.getPreview().getCamcorderProfile(quality);
-            if( profile != null && profile.videoFrameWidth == width )
+            if( profile != null && profile.videoFrameWidth == width && profile.videoFrameHeight == height )
                 return quality;
         }
         return null;
