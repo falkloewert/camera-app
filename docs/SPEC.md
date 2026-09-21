@@ -68,6 +68,8 @@ zu können (`git fetch upstream`).
 | 4 | Panorama mit Weitwinkel-Option | **Fertig** | Niedrig-Mittel |
 | 5 | Kamera während Videoaufnahme umdrehen | Idee / Notiz (nice-to-have) | Niedrig |
 | 7 | Zeitraffer & Zeitlupe (Video-Modi wie in der Pixel-App, siehe 4.6) | **Fertig** (2026-09-21) | Mittel |
+| 8 | Doppeltippen auf den Sucher wechselt die Kamera (Selfie ↔ hinten) | Idee (2026-09-21) | Niedrig |
+| 9 | Serienbilder als Stapel in der Galerie statt einzelner Bilder | Idee (2026-09-21, Recherche nötig) | Mittel |
 | 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile, Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen, Datei-Prüfung abgeschlossen) und **Feinjustier-Rad** (Stand 2026-09-18) gebaut; offen: siehe `ui-spezifikation.md` Abschnitt 7 (Audit 2026-09-17) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
 
 ### 3.1 Vereinbarte Reihenfolge (aktualisiert 2026-09-14: Material-3-Redesign vor Feature 5 vorgezogen)
@@ -89,6 +91,10 @@ nochmal überarbeitet werden müssen (Falks Begründung, von Claude bestätigt: 
 7. **Feature 1** – 360°-Foto-Stitching (inkl. Immich-Kompatibilität, siehe 4.1)
 8. **Feature 7** – Zeitraffer & Zeitlupe (siehe 4.6) — **fertig 2026-09-21**, von Falk
    vorgezogen; das Redesign (Feature 6) läuft daneben weiter (Schritt C noch offen).
+9. **Feature 8 und 9** (neu 2026-09-21, aus der Schritt-C-Abstimmung) – noch nicht
+   eingeordnet: Feature 8 ist klein (Doppeltippen ist heute anders belegt, siehe Kickoff
+   `redesign-kopfzeile.md` Abschnitt 6.1), Feature 9 braucht vorher eine Recherche, woran
+   Galerie und Immich einen Serienbild-Stapel erkennen.
 
 ---
 
