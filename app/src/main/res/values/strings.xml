@@ -1138,7 +1138,6 @@
     <string name="settings_sheet_timer">Timer</string>
     <string name="settings_sheet_off">Off</string>
     <string name="settings_sheet_on">On</string>
-    <string name="settings_sheet_macro">Macro focus</string>
     <string name="settings_sheet_aspect">Aspect ratio</string>
     <string name="settings_sheet_aspect_wide">Widescreen (16:9)</string>
     <string name="settings_sheet_aspect_full">Full screen (4:3)</string>

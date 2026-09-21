@@ -379,6 +379,17 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   Video-Wertzeile nur noch in MP. **Punkt 5 am Gerät geloggt:** die Linse bleibt beim Tippen
   gepinnt (`pinned`/`contributing`/`LENS_FOCAL_LENGTH` konstant) – kein Fix nötig, Sonden wieder
   entfernt. Nicht erreichbar mit Camera2: 50 MP (nur RAW10, kein JPEG) und 4K-Selfie-Video.
+- **2026-09-21 (Feature-Chat, Nachtrag):** 50 MP bleiben draußen - die Kamera bietet 8160x6144
+  auf allen vier Linsen nur als RAW10 an (MaximumResolution-Session), JPEG/YUV enden bei
+  4080x3072; Googles 50-MP-JPEG entsteht in deren eigener Pipeline. Stattdessen Foto-Standard
+  auf das native 12-MP-Raster gelegt (`CameraController.STANDARD_PICTURE_WIDTH` = 4032):
+  16:9 startet mit 4032x2268 (9 MP), 4:3 mit 4032x3024 (12 MP), die 4080er Vollauslesung bleibt
+  über die vollen Einstellungen erreichbar (`standardSize()` im Blatt, Default in `Preview`).
+  Review-Befund behoben: die Objektiv-Pille `WW · NO · MA · TE` erscheint nur noch im Foto -
+  `getCameraIdSPhysicalPref()` liefert im Video `null`, dort gilt wieder die normale Zoom-Pille
+  und die Kamera wählt die Linse selbst (die gemerkte Linse kommt beim Zurückwechseln wieder).
+  Aufgeräumt: unbenutztes `ms_macro_off.xml`, String `settings_sheet_macro`, toter Kommentar
+  in `CameraController2.onCaptureCompleted`.
 
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 

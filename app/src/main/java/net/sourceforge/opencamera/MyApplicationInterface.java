@@ -426,6 +426,13 @@ public class MyApplicationInterface extends BasicApplicationInterface {
 
     @Override
     public String getCameraIdSPhysicalPref() {
+        // a manual lens is a photo setting (Falk, 2026-09-21): in video the camera picks its lens
+        // itself (Kickoff Video-Blatt Runde 1, item 6), so the pin is not handed on - video opens
+        // on the logical camera and the zoom pill keeps its standard steps instead of WW/NO/MA/TE.
+        // The stored lens stays untouched, so photo mode comes back with it
+        Preview preview = main_activity.getPreview();
+        if( preview != null && preview.isVideo() )
+            return null;
         return cameraIdSPhysical;
     }
 

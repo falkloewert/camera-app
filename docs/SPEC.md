@@ -263,6 +263,12 @@ Verhältnis-Klasse in MP, Selfie ohne Auswahl, Video-Blatt Auflösung als MP-Wer
 Selfie-Beleuchtung statt Frontblitz auch im Foto-Blatt. Punkt 5 (AF bleibt auf der gewählten
 Linse, auch beim Tippen ins Bild) am Gerät mitgeloggt: die Linse bleibt gepinnt
 (`MC probe`-Logs, 2026-09-21) – kein Code nötig.
+**Nachtrag (2026-09-21):** 50 MP bleiben draußen (nur RAW10, kein JPEG auf allen Linsen).
+Foto-Standard ist das native 12-MP-Raster (`CameraController.STANDARD_PICTURE_WIDTH` = 4032):
+16:9 startet mit 4032x2268 (9 MP), 4:3 mit 4032x3024 (12 MP); die 4080er Vollauslesung bleibt
+über die vollen Einstellungen erreichbar. Die manuelle Objektivwahl gilt nur im Foto – im Video
+liefert `getCameraIdSPhysicalPref()` `null`, dort wählt die Kamera die Linse und die Zoom-Pille
+zeigt wieder `,5 1× 2 5`.
 **Offen:** rechter Dock-Button (Pro-Regler-Panel), danach Schritt C (Kopfzeile, dann
 Icon-Leiste + Popup weg); Rest `ui-spezifikation.md` Abschnitt 7 (Karussell →
 Sucher-Overlays → Farben/Blur/Schrift).

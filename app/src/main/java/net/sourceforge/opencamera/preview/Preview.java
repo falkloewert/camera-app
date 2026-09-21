@@ -3124,13 +3124,26 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
             }
 
             if( current_size_index == -1 ) {
-                // set to largest
+                // the app's standard resolution: the largest size within the camera's own 12 MP
+                // grid, see CameraController.STANDARD_PICTURE_WIDTH (Falk, 2026-09-21)
                 CameraController.Size current_size = null;
                 for(int i=0;i<photo_sizes.size();i++) {
                     CameraController.Size size = photo_sizes.get(i);
+                    if( size.width > CameraController.STANDARD_PICTURE_WIDTH )
+                        continue;
                     if( current_size == null || size.width*size.height > current_size.width*current_size.height ) {
                         current_size_index = i;
                         current_size = size;
+                    }
+                }
+                if( current_size == null ) {
+                    // no size within the grid: set to largest
+                    for(int i=0;i<photo_sizes.size();i++) {
+                        CameraController.Size size = photo_sizes.get(i);
+                        if( current_size == null || size.width*size.height > current_size.width*current_size.height ) {
+                            current_size_index = i;
+                            current_size = size;
+                        }
                     }
                 }
             }

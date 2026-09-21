@@ -978,7 +978,6 @@
     <string name="settings_sheet_timer">Timer</string>
     <string name="settings_sheet_off">Aus</string>
     <string name="settings_sheet_on">An</string>
-    <string name="settings_sheet_macro">Makrofokus</string>
     <string name="settings_sheet_aspect">Verhältnis</string>
     <string name="settings_sheet_aspect_wide">Breitbild (16:9)</string>
     <string name="settings_sheet_aspect_full">Vollbild (4:3)</string>

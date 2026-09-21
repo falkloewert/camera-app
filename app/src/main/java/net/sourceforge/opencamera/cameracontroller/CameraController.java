@@ -194,6 +194,14 @@ public abstract class CameraController {
         }
     }
 
+    /** The app's standard photo resolution is a format's largest size within this width. 4032 is
+     *  the camera's own 12 MP grid: Google's app calls 4032x3024 and 4032x2268 "12 MP", while the
+     *  sensor's full readout is a little wider (4080x3072 on the test device, which the app used
+     *  to pick as its default). Falk wants the 12 MP grid as the standard (2026-09-21), so 16:9
+     *  starts at 4032x2268 and 4:3 at 4032x3024. A camera whose sizes are all wider keeps its
+     *  largest size. */
+    public static final int STANDARD_PICTURE_WIDTH = 4032;
+
     public static class Size {
         public final int width;
         public final int height;

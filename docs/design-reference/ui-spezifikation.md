@@ -213,10 +213,13 @@ Die Regler-Beschreibung der Detail-Spec (Kamera-Infozeile, Regler mit Teilstrich
 **rechten** Dock-Button und ist hier **nicht** gebaut – Konflikt **K13** in Abschnitt 9.
 Gebaut sind drei Zeilen, in dieser Reihenfolge:
 
-1. **Auflösung** – zwei Knöpfe `12MP` / `<n>MP` (größte Auflösung ≤ 13 MP bzw. die größte
-   überhaupt, jeweils im aktuellen Verhältnis); `n` = gerundete Megapixel. Zeile entfällt,
-   wenn die Kamera nichts über 13 MP meldet. Schreibt in dieselbe Auflösungs-Preference wie
-   das Verhältnis, das Verhältnis bleibt erhalten.
+1. **Auflösung** – zwei Knöpfe `<m>MP` / `<n>MP` (Standardgröße des Verhältnisses, also die
+   größte Größe im nativen 12-MP-Raster `CameraController.STANDARD_PICTURE_WIDTH` = 4032 –
+   4032x2268 in 16:9, 4032x3024 in 4:3 – sowie die platzsparende ≤ 1920 breite); `m`/`n` =
+   gerundete Megapixel. Zeile entfällt, wenn die Kamera keine Wahl lässt. Die 4080er
+   Vollauslesung ist über die vollen Einstellungen erreichbar, nicht über das Blatt
+   (Falk, 2026-09-21). Schreibt in dieselbe Auflösungs-Preference wie das Verhältnis, das
+   Verhältnis bleibt erhalten.
 2. **RAW/JPEG** – **Nur JPEG · RAW** (`RawPreferenceKey` `preference_raw_no`/`preference_raw_yes`),
    nur wenn `preview.supportsRaw()`; löst `updateForSettings` aus.
 3. **Objektivauswahl** – **Automatisch · Manuell** (Wert-Text genau so), nur bei Kameras mit
@@ -266,6 +269,9 @@ entschieden** – nicht erneut zur Diskussion stellen, sondern so bauen:
   Camera ihn auf der physischen Kamera anbietet. Zustand "Manuell" = `getCameraIdSPhysicalPref()
   != null`; "Automatisch" = zurück auf die logische Kamera. Panorama behält sein eigenes
   Linsenpaar.
+- **Nur im Foto (Falk, 2026-09-21):** im Video liefert `getCameraIdSPhysicalPref()` `null` –
+  dort wählt die Kamera die Linse selbst, die Pille zeigt wieder die Zoomstufen `,5 1× 2 5`.
+  Die gemerkte Linse bleibt gespeichert und gilt beim Zurückwechseln ins Foto wieder.
 
 ## 5. Moduswahl-Leiste — Entscheidung Falk 2026-09-15
 

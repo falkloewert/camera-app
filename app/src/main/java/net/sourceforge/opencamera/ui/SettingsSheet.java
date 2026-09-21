@@ -801,7 +801,7 @@ public class SettingsSheet {
                                 public void run() {
                                     // the snapshot of this build, so a tap doesn't query the
                                     // camera characteristics again (Kickoff Runde 2, 1.5)
-                                    CameraController.Size size = largestSize(sizes, ratio, aspectLimit(sizes));
+                                    CameraController.Size size = standardSize(sizes, ratio, aspectLimit(sizes));
                                     if( size != null )
                                         setPictureSize(size);
                                 }
@@ -841,7 +841,7 @@ public class SettingsSheet {
                 float ratio = current != null ? ratio(current) : currentRatio(current_text);
                 if( frontCamera() )
                     ratio = aspectClass(ratio);
-                CameraController.Size max_size = largestSize(sizes, ratio, Float.MAX_VALUE);
+                CameraController.Size max_size = standardSize(sizes, ratio, Float.MAX_VALUE);
                 CameraController.Size save_size = savingSize(sizes, ratio);
                 if( frontCamera() ) {
                     CameraController.Size only = max_size != null ? max_size : current;
@@ -1348,6 +1348,22 @@ public class SettingsSheet {
         return size.width * (float)size.height / 1000000.0f;
     }
 
+    /** The standard size of the given ratio: its largest size within the camera's own 12 MP grid
+     *  (CameraController.STANDARD_PICTURE_WIDTH) and the megapixel limit - 4032x2268 in 16:9,
+     *  4032x3024 in 4:3 on the test device. The sensor's full readout (4080x3072) stays reachable
+     *  through the full settings, it is just no longer what the app starts with (Falk, 2026-09-21).
+     *  Falls back to largestSize() when the camera has nothing that narrow. */
+    private static CameraController.Size standardSize(List<CameraController.Size> sizes, float ratio, float mp_limit) {
+        CameraController.Size best = null;
+        for(CameraController.Size size : sizes) {
+            if( Math.abs(ratio(size) - ratio) > RATIO_TOLERANCE || size.width > CameraController.STANDARD_PICTURE_WIDTH || mp(size) > mp_limit )
+                continue;
+            if( best == null || mp(size) > mp(best) )
+                best = size;
+        }
+        return best != null ? best : largestSize(sizes, ratio, mp_limit);
+    }
+
     /** The largest size of the given ratio that stays within the megapixel limit. */
     private static CameraController.Size largestSize(List<CameraController.Size> sizes, float ratio, float mp_limit) {
         CameraController.Size best = null;
@@ -1368,7 +1384,7 @@ public class SettingsSheet {
         CameraController.Size current = main_activity.getPreview().getCurrentPictureSize();
         if( current == null || sizes == null || sizes.isEmpty() )
             return Float.MAX_VALUE;
-        CameraController.Size max_size = largestSize(sizes, ratio(current), Float.MAX_VALUE);
+        CameraController.Size max_size = standardSize(sizes, ratio(current), Float.MAX_VALUE);
         if( max_size == null || mp(max_size) <= SMALL_MP_CLASS )
             return Float.MAX_VALUE;  // no Pro choice for this camera
         return mp(current) <= SMALL_MP_CLASS ? SMALL_MP_CLASS : Float.MAX_VALUE;
