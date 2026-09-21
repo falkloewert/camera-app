@@ -16,7 +16,8 @@ Historie: `docs/changelog.md`. Remotes: `origin` Codeberg (privat), `upstream` S
   (`git commit -m "…" -- <Dateien>`), nie pfadlos (Vorfall 2026-09-17: fremde Änderungen
   einer Parallel-Session mitcommittet).
 - Vor Codeänderungen `git status` + `git fetch origin`; fremde unfertige Dateien nicht
-  anfassen. Nur eine Sitzung gleichzeitig im Repo.
+  anfassen. Parallele Sitzungen nur in getrennten Worktrees (eigener Ordner, eigener
+  Branch) – nie zwei Sitzungen im selben Arbeitsverzeichnis (Vorfall 2026-09-17).
 
 ## Rollen
 - PM-Chat: plant, pflegt SPEC/Kickoffs, kein App-Code. Feature-Chat: baut genau den
