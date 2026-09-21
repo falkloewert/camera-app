@@ -424,6 +424,17 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   und auf `origin` gelöscht. Nächstes offenes Bauteil: rechter Dock-Button (Pro-Panel, K13),
   danach Schritt C.
 
+- **2026-09-21 (Feature-Chat, Pro-Panel):** Rechter Dock-Button (drei Reglerstifte,
+  `ms_tune`) gebaut; er öffnet `ui/ProPanel` als **Overlay über dem Sucher** (Falk), nicht
+  als zweites Blatt. Enthält Info-Zeile, Regler mit eigenem Maßband (`ui/RulerSlider`) für
+  Belichtung, Weißabgleich, Fokus, ISO und Verschlusszeit, je Reiter „Automatik"/
+  Zurücksetzen, dazu Fokus-Peaking; schließt per Knopf, Wisch nach unten und Automatik-Knopf.
+  Referenz vorher per Gemini aus dem Screenrecord ausgewertet
+  (`docs/design-reference/pixel-pro-panel-beschreibung.md`: Regler 288 × 48 dp, Radius 24,
+  Tab-Kachel 56 × 56 dp, aktiver Kreis ⌀ 55 dp). Gerätefunde behoben: „Unendlich" als Zeichen
+  am Maßband, Belichtungsnull, Blase mittig, Zahlen gerundet. Commits `5789cc82`…`bbb5ad27`,
+  von Falk am Gerät abgenommen. Offen: Schritt C (Kopfzeile, dann Icon-Leiste + Popup weg).
+
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 
 **Recherche-Ergebnis (2026-09-14, Researcher-Agent):**

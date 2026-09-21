@@ -258,7 +258,7 @@ entschieden** – nicht erneut zur Diskussion stellen, sondern so bauen:
 - Der **"…"-Button** oben rechts im Blatt öffnet die volle Einstellungsliste
   (`MainActivity.openSettings()`), das Blatt schließt vorher.
 - Der **Regler-Button unten rechts** in der Fußzeile gehört zum Pro-Panel des rechten
-  Dock-Buttons (K13, Abschnitt 9) und bleibt offen.
+  Dock-Buttons (K13, Abschnitt 9); gebaut am 2026-09-21 in `ui/ProPanel` (Overlay).
 - **Objektivauswahl "Manuell"** (Zeile 3 des Pro-Reiters): die Zoom-Pille zeigt statt
   `,5 1× 2 5` die Beschriftungen **`UW` · `W` · `T`** – je ein Knopf pro physischer Linse der
   Rückkamera, zugeordnet nach Sichtwinkel absteigend (Ultraweit, Weit = Hauptlinse, Tele);
@@ -285,7 +285,8 @@ Porträt/Nachtsicht/zufügen, solange die App diese Modi nicht wirklich beherrsc
   `ui/SettingsSheet` (eigene View im `FrameLayout`, kein Material-Dialog), Dock-Knopf
   ⌀ 48 dp `#333333` mit `settings_photo_camera` und Zahnrad-Kreis, Wisch nach unten auf dem
   Sucher (`Preview.gestureDetector.onFling` → `ApplicationInterface.settingsSheetSwipe()`),
-  Maß- und Farbwerte in Abschnitt 4/4a. Offen: der rechte Dock-Button (7.1 Punkt 3).
+  Maß- und Farbwerte in Abschnitt 4/4a. Rechter Dock-Button + Pro-Panel gebaut (2026-09-21,
+  7.1 Punkt 3).
 - Material-3-Fundament, fest dunkles Theme (Phase 1)
 - `activity_main.xml` von RelativeLayout auf ConstraintLayout migriert (Phase 1)
 - Auslöser und Video-Umschalter monochrom (weiß/dunkel) statt blau
@@ -435,7 +436,11 @@ Soll-Werte aus der Detail-Spec, außer wo die Screenshot-Spec etwas anderes sagt
    nicht 96 × 40 / 34 dp), `switch_video` ist weg. **Linker Kreis erledigt (2026-09-20):**
    48 dp statt 40, Füllung `#333333` statt `rgba(255,255,255,0.10)`, Icon
    `settings_photo_camera` statt Zahnrad – gemessene Werte schlagen die Detail-Spec, er
-   öffnet das Blatt. Offen: der rechte Kreis (Pro-Panel, K13).
+   öffnet das Blatt. **Rechter Kreis erledigt (2026-09-21):** Icon „drei Reglerstifte"
+   (`ms_tune`), öffnet `ui/ProPanel` als Overlay über dem Sucher (Falk-Entscheidung, kein
+   zweites Blatt); Maße aus dem Screenrecord: Regler 288 × 48 dp, Radius 24 dp, Tab-Kachel
+   56 × 56 dp, Abstand 20 dp, aktiver Kreis ⌀ 55 dp
+   (`docs/design-reference/pixel-pro-panel-beschreibung.md`).
 4. **Kopfzeile (Abschnitt 1, Punkt 1).** Fehlt. Stattdessen läuft die alte Icon-Leiste
    (`settings`, `popup`, `exposure`, `exposure_lock` …, je `onscreen_button_size` = 60 dp,
    `MainUI.layoutUI()` L537–650) samt `PopupView` (Drei-Punkte-Menü). Soll: 56–64 dp hoch,

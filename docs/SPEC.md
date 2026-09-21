@@ -290,9 +290,12 @@ mit Kürzel nennt die genaue Auflösung in Klammern (`settings_sheet_with_resolu
 Qualität `3K` (3264x1836) statt `6MP`. Video-Blitz „Autom." hängt am gemessenen ISO
 (an ab 800, aus unter 200, Hysterese) statt am Lichtsensor. Startauflösung aller Modi ist
 16:9, solange nichts gespeichert ist; eine gespeicherte Wahl gewinnt immer.
-**Offen:** rechter Dock-Button (Pro-Regler-Panel), danach Schritt C (Kopfzeile, dann
-Icon-Leiste + Popup weg); Rest `ui-spezifikation.md` Abschnitt 7 (Karussell →
-Sucher-Overlays → Farben/Blur/Schrift).
+**Erledigt (2026-09-21):** rechter Dock-Button + Pro-Panel als Overlay über dem Sucher
+(`ui/ProPanel`, `ui/RulerSlider`) – Regler für Belichtung, Weißabgleich, Fokus, ISO und
+Verschlusszeit, je Reiter Automatik/Zurücksetzen, Fokus-Peaking; Maße aus dem Screenrecord
+in `docs/design-reference/pixel-pro-panel-beschreibung.md`.
+**Offen:** Schritt C (Kopfzeile, dann Icon-Leiste + Popup weg); Rest `ui-spezifikation.md`
+Abschnitt 7 (Karussell → Sucher-Overlays → Farben/Blur/Schrift).
 **Feste Entscheidungen:** Screenshot-Spec schlägt Detail-Spec, gemessene Werte (2,25 px/dp)
 schlagen beide; keine Animationen außer Auslöser, Glyph-Drehung, Rad-Morph, Blatt-Gleiten;
 Roboto Flex; Konflikte K1–K13 in `ui-spezifikation.md` 9; was die App nicht kann: 4b dort.
@@ -324,7 +327,8 @@ Verlauf und Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
     **Blatt-Anteil gebaut (2026-09-20) und am 2026-09-21 am Pixel 9 Pro abgenommen**
     (Falk: ausgiebig getestet, Thema abgeschlossen); Branch `bench/blatt-deepseek-flash-2`
     per Fast-Forward nach `master` gemergt (`ca3a8f3d`), Verlierer-Branch
-    `bench/blatt-deepseek-flash` gelöscht. Rechter Dock-Button und C bleiben offen.
+    `bench/blatt-deepseek-flash` gelöscht. **Rechter Dock-Button gebaut und am 2026-09-21
+    abgenommen** (`ui/ProPanel`); offen bleibt nur noch C.
 11. **Selbstauslöser-Countdown dreht noch mit** (`DrawPreview`); Videozeit ist fest.
     Konsistenz offen, vermutlich auch fest.
 12. **Rad-Optik gewählt, nicht gemessen** (kein Screenshot mit offenem Rad); bei Bedarf
