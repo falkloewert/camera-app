@@ -435,6 +435,15 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   am Maßband, Belichtungsnull, Blase mittig, Zahlen gerundet. Commits `5789cc82`…`bbb5ad27`,
   von Falk am Gerät abgenommen. Offen: Schritt C (Kopfzeile, dann Icon-Leiste + Popup weg).
 
+- **2026-09-21 (PM-Chat, Benchmark-Reste aufgeräumt):** Nach dem entschiedenen Benchmark die
+  übrigen Läufe entfernt – Worktrees `camera-app-ab-a`, `camera-app-review-alpha`,
+  `camera-app-review-beta` samt Branches `ab/a` (`3176b4d3`), `review/alpha` (`caf148b7`),
+  `review/beta` (`d79b8488`), `ab/b` (`30049b20`) und `bench/blatt-deepseek-flash-2`; `ab/a`
+  zusätzlich auf `origin`. Nur `ab/a` und `review/alpha` hatten Commits, die nicht in `master`
+  stehen – die SHAs stehen hier, damit sie auffindbar bleiben (der Inhalt ist durch das
+  abgenommene Blatt überholt). Einziger verbleibender Baum: `~/Projects/camera-app` auf
+  `master` (die abgenommene App ist auf dem Pixel installiert).
+
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 
 **Recherche-Ergebnis (2026-09-14, Researcher-Agent):**
