@@ -740,13 +740,6 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
             return true;
         }
 
-        // video macro focus: a touch must not start an autofocus, and must not move the focus
-        // areas either - the AF trigger would run the camera's normal range instead of the macro
-        // lens (device 2026-09-21: the focus mode itself stayed on macro, but the camera
-        // refocused). Only the lens is left in charge then (Kickoff Video-Blatt Runde 2, item 1).
-        // With macro off, a touch behaves as before.
-        final boolean video_macro = this.is_video && "focus_mode_macro".equals(getCurrentFocusValue());
-
         // note, we always try to force start the preview (in case is_preview_paused has become false)
         // except if recording video (firstly, the preview should be running; secondly, we don't want to reset the phase!)
         if( !this.is_video ) {
@@ -765,7 +758,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         // don't set focus areas on touch if the user is touching to unpause!
         // similarly if doing single touch to capture (we go straight to taking a photo)
         // and not supported for camera extensions
-        if( camera_controller != null && !this.using_face_detection && !was_paused && !touch_capture && !camera_controller.isCameraExtension() && !video_macro ) {
+        if( camera_controller != null && !this.using_face_detection && !was_paused && !touch_capture && !camera_controller.isCameraExtension() ) {
             if( clear_focus_areas ) {
                 // double tap to clear focus areas
                 // also if we were in autofocus_in_continuous_mode mode, reset back to continuous mode
@@ -817,7 +810,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         }
 
         // don't auto focus on touch if the user is touching to unpause!
-        if( !was_paused && !video_macro ) {
+        if( !was_paused ) {
             // if clear_focus_areas==true, don't want to reenter autofocus_in_continuous_mode mode
             tryAutoFocus(false, !clear_focus_areas);
         }
@@ -1836,6 +1829,17 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
                 Log.d(TAG, "physical camera not supported for old camera API: " + cameraIdSPhysical);
             cameraIdSPhysical = null;
             applicationInterface.setCameraIdPref(cameraId, cameraIdSPhysical);
+        }
+        // video macro: the near lens is part of the camera session, so it is pinned here instead
+        // of leaving the choice to the camera - which would switch to another lens as soon as the
+        // autofocus follows the distance (Kickoff Video-Blatt Runde 2, Nachtrag). Only the near
+        // lens is left in charge, focusing stays continuous (see setFocusValue()).
+        if( using_android_l && this.is_video && isVideoMacroPref() ) {
+            String near_lens = camera_controller_manager.getNearLensId(cameraId);
+            if( MyDebug.LOG )
+                Log.d(TAG, "video macro: near lens is " + near_lens);
+            if( near_lens != null )
+                cameraIdSPhysical = near_lens;
         }
 
         //final boolean use_background_thread = false;
@@ -5539,6 +5543,25 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         updateFocus(focus_value, quiet, true, auto_focus);
     }
 
+    /** Whether the video focus mode the user picked is the macro mode (the stored preference, so
+     *  this also answers while no camera is open - openCameraCore() needs it before opening). */
+    private boolean isVideoMacroPref() {
+        return "focus_mode_macro".equals(applicationInterface.getFocusPref(true));
+    }
+
+    /** Video macro mode: pins the near lens (see openCameraCore) and keeps the autofocus running
+     *  on it. The lens is part of the camera session, so the camera has to be reopened for a
+     *  change to take effect - not while recording, that would end the video
+     *  (Kickoff Video-Blatt Runde 2, Nachtrag). */
+    public void setVideoMacro(boolean on) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "setVideoMacro(): " + on);
+        updateFocus(on ? "focus_mode_macro" : "focus_mode_continuous_video", false, true);
+        if( !isVideoRecording() ) {
+            reopenCamera();
+        }
+    }
+
     private boolean supportedFocusValue(String focus_value) {
         if( MyDebug.LOG )
             Log.d(TAG, "supportedFocusValue(): " + focus_value);
@@ -5638,6 +5661,11 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         cancelAutoFocus();
         removePendingContinuousFocusReset(); // this isn't strictly needed as the reset_continuous_focus_runnable will check the ui focus mode when it runs, but good to remove it anyway
         autofocus_in_continuous_mode = false;
+        // video macro: the near lens is pinned (see openCameraCore), so the camera stays on
+        // continuous autofocus - the camera's own macro mode would only focus on a tap and then
+        // stay where it is (device 2026-09-21, Kickoff Video-Blatt Runde 2, Nachtrag)
+        if( this.is_video && "focus_mode_macro".equals(focus_value) )
+            focus_value = "focus_mode_continuous_video";
         camera_controller.setFocusValue(focus_value);
         setupContinuousFocusMove();
         clearFocusAreas();

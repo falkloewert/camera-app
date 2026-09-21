@@ -1056,8 +1056,9 @@ public class SettingsSheet {
                 rows.add(new Row(getString(R.string.settings_sheet_fps), value_text, options));
         }
 
-        // macro focus, as in photo mode but with the video focus mode. No macro lens in the front
-        // camera, so the row is dropped there (Kickoff Video-Blatt Runde 1, item 5)
+        // macro focus: keeps the near lens pinned while the autofocus stays continuous
+        // (Kickoff Video-Blatt Runde 2, Nachtrag). No macro lens in the front camera, so the row
+        // is dropped there (Kickoff Video-Blatt Runde 1, item 5)
         if( !front ) {
             List<String> focus_values = preview.getSupportedFocusValues();
             if( focus_values != null && focus_values.contains("focus_mode_macro") ) {
@@ -1069,7 +1070,7 @@ public class SettingsSheet {
                         new Runnable() {
                             @Override
                             public void run() {
-                                main_activity.getPreview().updateFocus("focus_mode_continuous_video", false, true);
+                                main_activity.getPreview().setVideoMacro(false);
                                 main_activity.getMainUI().destroyPopup();
                                 refresh();
                             }
@@ -1078,7 +1079,7 @@ public class SettingsSheet {
                         new Runnable() {
                             @Override
                             public void run() {
-                                main_activity.getPreview().updateFocus("focus_mode_macro", false, true);
+                                main_activity.getPreview().setVideoMacro(true);
                                 main_activity.getMainUI().destroyPopup();
                                 refresh();
                             }

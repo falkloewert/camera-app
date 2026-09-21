@@ -343,6 +343,23 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   Selfiebeleuchtung „An" → nur die zwei Streifen weiß. Blitz-Pref bleibt zwischen Foto und
   Video geteilt (Videokorrekturen daher `save=false`). Offen: Falk testet am Gerät.
 
+- **2026-09-21 (Feature-Chat, Video-Blatt Runde 2, Nachtrag):** Korrektur zu Punkt 1 nach
+  Falks Rückmeldung: das Ziel war nie „Makro bleibt über Foto↔Video an", sondern im
+  Makromodus **nur die nahe Linse** zu benutzen und trotzdem automatisch scharfzustellen
+  (vorher war das Bild unscharf und blieb es). Die Tap-Blockade aus Runde 2 ist wieder
+  raus. Stattdessen pinnt `Preview.openCameraCore()` bei Videomakro die physische
+  Nahlinse (`CameraControllerManager.getNearLensId()` = höchste
+  `LENS_INFO_MINIMUM_FOCUS_DISTANCE`) in die Session, und `setFocusValue()` bildet
+  `focus_mode_macro` im Video auf `continuous_video` ab (Makro ist am Pixel nur
+  trigger-fähig, kein Dauer-AF). Blattzeile ruft `Preview.setVideoMacro()`; die Kamera
+  wird nur geöffnet neu gestartet, wenn nicht aufgenommen wird.
+  Gerätetest (Pixel 9 Pro): Makro „An" → aktive physische Linse 3 (Nahlinse, 2,02 mm),
+  `af_mode_req=3`, AF läuft von allein; Makro „Aus" → wieder Linse 2 (Hauptlinse).
+  Bekannte Grenzen: im Makromodus verschwindet die Zoom-Pille (keine Zoomstufen bei
+  gepinnter Linse); Umschalten startet die Kamera neu (~1 s); läuft eine Aufnahme schon,
+  greift der Pin erst beim nächsten Kamera-Öffnen. Die Nahlinse ist das Ultraweitwinkel,
+  also weiter im Bildwinkel und detailärmer als die Hauptlinse.
+
 
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 

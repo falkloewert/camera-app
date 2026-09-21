@@ -5,11 +5,14 @@ import net.sourceforge.opencamera.R;
 
 import android.content.Context;
 import android.graphics.Rect;
+import android.os.Build;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.util.Log;
 import android.util.SizeF;
+
+import java.util.Set;
 
 /** Provides support using Android 5's Camera 2 API
  *  android.hardware.camera2.*.
@@ -242,5 +245,46 @@ public class CameraControllerManager2 extends CameraControllerManager {
             MyDebug.logStackTrace(TAG, "exception trying to get camera characteristics", e);
         }
         return false;
+    }
+
+    /* The physical camera that can focus the closest (highest minimum focus distance in dioptres,
+     * so the largest value) - the near lens that macro mode should use. Null if the camera has no
+     * physical cameras or none of them reports autofocus.
+     */
+    @Override
+    public String getNearLensId(int cameraId) {
+        if( Build.VERSION.SDK_INT < Build.VERSION_CODES.P ) {
+            return null; // physical camera IDs need API 28
+        }
+        CameraManager manager = (CameraManager)context.getSystemService(Context.CAMERA_SERVICE);
+        try {
+            String cameraIdS = manager.getCameraIdList()[cameraId];
+            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraIdS);
+            Set<String> physical_ids = characteristics.getPhysicalCameraIds();
+            if( physical_ids == null || physical_ids.size() <= 1 ) {
+                return null;
+            }
+            String near_lens = null;
+            float near_distance = 0.0f;
+            for(String physical_id : physical_ids) {
+                Float min_distance = manager.getCameraCharacteristics(physical_id).get(
+                        CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE);
+                if( min_distance == null ) {
+                    continue; // fixed focus lens: cannot be the near lens we are looking for
+                }
+                if( MyDebug.LOG )
+                    Log.d(TAG, "physical camera " + physical_id + ": minimum focus distance " + min_distance);
+                if( min_distance > near_distance ) {
+                    near_distance = min_distance;
+                    near_lens = physical_id;
+                }
+            }
+            return near_lens;
+        }
+        catch(Throwable e) {
+            // as in allowCamera2Support(): devices can throw a variety of exceptions here
+            MyDebug.logStackTrace(TAG, "exception trying to get the near lens", e);
+        }
+        return null;
     }
 }
