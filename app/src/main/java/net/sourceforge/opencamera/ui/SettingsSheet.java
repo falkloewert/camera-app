@@ -66,9 +66,6 @@ public class SettingsSheet {
     /** The content block: 394.7 dp in both directions, inset 36/40 (depth) and 16/16 (along). */
     private static final float LANDSCAPE_STRIP_IN = 36.0f;
     private static final float LANDSCAPE_STRIP_WIDTH = 394.7f;
-    /** In landscape the tabs and the "…" end here (44 dp from the outer edge, like the last
-     *  option button); the button cells end at the strip's outer edge (40 dp). */
-    private static final float LANDSCAPE_CONTENT_OUT = 4.0f;
     private static final float CORNER_RADIUS = 24.0f;
 
     private static final float HANDLE_LONG = 36.0f, HANDLE_THICK = 4.0f, HANDLE_INSET = 16.0f;
@@ -95,8 +92,11 @@ public class SettingsSheet {
     /** Option labels of the timer row and the values they write (as the old popup does). */
     private static final String [] TIMER_VALUES = {"0", "3", "5", "10"};
     private static final float RATIO_TOLERANCE = 0.02f;
-    /** Largest picture size that still counts as the "12 MP" class of the resolution row. */
-    private static final float SMALL_MP_CLASS = 13.0f;
+    /** The border between the two classes of the resolution row: everything this narrow is the
+     *  space-saving class, everything above it the standard class (whose own limit is
+     *  CameraController.STANDARD_PICTURE_WIDTH). A width, not a megapixel number - with the old
+     *  13 MP border a 12 MP camera fell out of its own class (Runde 3). */
+    private static final int SAVING_PICTURE_WIDTH = 1920;
 
     private final MainActivity main_activity;
     private final FrameLayout container;
@@ -361,10 +361,16 @@ public class SettingsSheet {
             // of the panel at 270 (see mirrored()); the rows inside it are not mirrored - their
             // axis is the same local x, and a mirrored row would put its buttons left of its label
             m.strip_x = mirrored ? m.panel_w - dp(LANDSCAPE_STRIP_IN) - m.strip_width : dp(LANDSCAPE_STRIP_IN);
-            m.label_x = m.strip_x + dp(TITLE_INSET);
+            // the strip already is the content block, so the title, the row labels and the left
+            // tab edge start at its edge - that is the 36 dp inset from the viewfinder-side edge
+            // Kickoff 2.3 asks for (a further TITLE_INSET made it 52 dp, Runde 3)
+            m.label_x = m.strip_x;
             m.cells_right = m.strip_x + m.strip_width;
+            // tabs, "…" and the button cells all span the content block, so the tab strip is the
+            // same 394,7 dp wide as in portrait (Kickoff 2.3); the last option button ends 44 dp
+            // from the outer edge by its own 4 dp cell padding, not by a narrower strip
             m.tabs_left = m.label_x;
-            m.tabs_right = m.cells_right - dp(LANDSCAPE_CONTENT_OUT);
+            m.tabs_right = m.cells_right;
             m.title_centre = dp(TITLE_CENTRE - LANDSCAPE_SHIFT);
             m.more_centre = dp(MORE_CENTRE - LANDSCAPE_SHIFT);
             m.tabs_top = dp(TABS_TOP - LANDSCAPE_SHIFT);
@@ -516,8 +522,7 @@ public class SettingsSheet {
                 main_activity.openSettings();
             }
         });
-        int more_right = placed_landscape ? m.cells_right - dp(LANDSCAPE_CONTENT_OUT) : m.cells_right;
-        addChild(more, more_right - dp(MORE_WIDTH), m.more_centre - dp(MORE_HEIGHT) / 2, dp(MORE_WIDTH), dp(MORE_HEIGHT));
+        addChild(more, m.cells_right - dp(MORE_WIDTH), m.more_centre - dp(MORE_HEIGHT) / 2, dp(MORE_WIDTH), dp(MORE_HEIGHT));
 
         // tabs
         LinearLayout tabs = new LinearLayout(main_activity);
@@ -605,7 +610,9 @@ public class SettingsSheet {
         label.setTextColor(ContextCompat.getColor(main_activity, R.color.settings_sheet_label));
         label.setGravity(Gravity.CENTER_VERTICAL);
         FrameLayout.LayoutParams label_params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(LABEL_BOX));
-        label_params.leftMargin = dp(TITLE_INSET);
+        // the same inset the title has, measured inside the strip: 16 dp in portrait (from the
+        // screen edge), 0 in landscape where the strip itself already sits 36 dp in
+        label_params.leftMargin = m.label_x - m.strip_x;
         // the label's centre sits 10 dp above, the value's 13 dp below the row's centre
         label_params.topMargin = dp(ROW_RASTER) / 2 - dp(LABEL_UP) - dp(LABEL_BOX) / 2;
         strip.addView(label, label_params);
@@ -616,7 +623,7 @@ public class SettingsSheet {
         value.setTextColor(ContextCompat.getColor(main_activity, R.color.settings_sheet_value));
         value.setGravity(Gravity.CENTER_VERTICAL);
         FrameLayout.LayoutParams value_params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(VALUE_BOX));
-        value_params.leftMargin = dp(TITLE_INSET);
+        value_params.leftMargin = m.label_x - m.strip_x;
         value_params.topMargin = dp(ROW_RASTER) / 2 + dp(VALUE_DOWN) - dp(VALUE_BOX) / 2;
         strip.addView(value, value_params);
 
@@ -647,6 +654,10 @@ public class SettingsSheet {
                     for(int j=0;j<buttons.size();j++)
                         markOptionButton(buttons.get(j), j == index);
                     option.action.run();
+                    // the old popup caches its views, and updateForSettings() is called with
+                    // keep_popup, so without this it would still show the values from before the
+                    // sheet changed them (Kickoff: destroy the popup after every change)
+                    main_activity.getMainUI().destroyPopup();
                 }
             });
         }
@@ -854,7 +865,7 @@ public class SettingsSheet {
                                 public void run() {
                                     // the snapshot of this build, so a tap doesn't query the
                                     // camera characteristics again (Kickoff Runde 2, 1.5)
-                                    CameraController.Size size = standardSize(sizes, ratio, aspectLimit(sizes));
+                                    CameraController.Size size = aspectSize(sizes, ratio);
                                     if( size != null )
                                         setPictureSize(size);
                                 }
@@ -894,7 +905,11 @@ public class SettingsSheet {
                 float ratio = current != null ? ratio(current) : currentRatio(current_text);
                 if( frontCamera() )
                     ratio = aspectClass(ratio);
-                CameraController.Size max_size = standardSize(sizes, ratio, Float.MAX_VALUE);
+                // the front camera's largest size (3840x2736) misses 4:3 by more than the generic
+                // tolerance, so its row takes the largest size of the class instead - otherwise
+                // the one size it is supposed to use is not reachable (Runde 3)
+                CameraController.Size max_size = frontCamera() ?
+                        largestInAspectClass(sizes, ratio) : standardSize(sizes, ratio, Float.MAX_VALUE);
                 CameraController.Size save_size = savingSize(sizes, ratio);
                 if( frontCamera() ) {
                     CameraController.Size only = max_size != null ? max_size : current;
@@ -1382,7 +1397,7 @@ public class SettingsSheet {
     private static CameraController.Size savingSize(List<CameraController.Size> sizes, float ratio) {
         CameraController.Size best = null;
         for(CameraController.Size size : sizes) {
-            if( Math.abs(ratio(size) - ratio) > RATIO_TOLERANCE || size.width > 1920 )
+            if( Math.abs(ratio(size) - ratio) > RATIO_TOLERANCE || size.width > SAVING_PICTURE_WIDTH )
                 continue;
             if( best == null || mp(size) > mp(best) )
                 best = size;
@@ -1436,16 +1451,37 @@ public class SettingsSheet {
         return best;
     }
 
-    /** The megapixel class the aspect row has to stay in: the class of the current resolution
-     *  as the Pro tab defines it (Kickoff 3.3/3.4). Works on the build's size snapshot. */
-    private float aspectLimit(List<CameraController.Size> sizes) {
+    /** The size the aspect row switches to: it has to stay in the class the Pro tab has (Kickoff
+     *  3.3/3.4), and the class border is the same one standardSize()/savingSize() use - a width of
+     *  SAVING_PICTURE_WIDTH, not a megapixel number. With the old 13 MP border a camera whose
+     *  largest size is 12 MP (4032x3024) counted as "above the small class", so a tap on 16:9/4:3
+     *  put it back onto the standard class even when the space-saving one was chosen (Runde 3).
+     *  Works on the build's size snapshot. */
+    private CameraController.Size aspectSize(List<CameraController.Size> sizes, float ratio) {
         CameraController.Size current = main_activity.getPreview().getCurrentPictureSize();
-        if( current == null || sizes == null || sizes.isEmpty() )
-            return Float.MAX_VALUE;
-        CameraController.Size max_size = standardSize(sizes, ratio(current), Float.MAX_VALUE);
-        if( max_size == null || mp(max_size) <= SMALL_MP_CLASS )
-            return Float.MAX_VALUE;  // no Pro choice for this camera
-        return mp(current) <= SMALL_MP_CLASS ? SMALL_MP_CLASS : Float.MAX_VALUE;
+        if( current != null && current.width <= SAVING_PICTURE_WIDTH )
+            return savingSize(sizes, ratio);
+        // the front camera's own sizes are not exactly 4:3 (its largest is 3840x2736, 1,40:1), so
+        // it needs the class match instead of the generic tolerance - see largestInAspectClass()
+        if( frontCamera() )
+            return largestInAspectClass(sizes, ratio);
+        return standardSize(sizes, ratio, Float.MAX_VALUE);
+    }
+
+    /** The largest size belonging to the given aspect class, by {@link #aspectClass(float)}
+     *  rather than the generic RATIO_TOLERANCE of standardSize(). The front camera needs this:
+     *  its largest size (3840x2736, 1,40:1) is 0,07 away from 4:3 and so fell out of that
+     *  tolerance, which left exactly the size the front camera is supposed to use unreachable
+     *  through the sheet (Runde 3, foto-blatt-fixes-runde1.md). */
+    private static CameraController.Size largestInAspectClass(List<CameraController.Size> sizes, float class_ratio) {
+        CameraController.Size best = null;
+        for(CameraController.Size size : sizes) {
+            if( aspectClass(ratio(size)) != class_ratio )
+                continue;
+            if( best == null || mp(size) > mp(best) )
+                best = size;
+        }
+        return best;
     }
 
     /** The frame rate the current video quality really records with, or -1 if the camera cannot
