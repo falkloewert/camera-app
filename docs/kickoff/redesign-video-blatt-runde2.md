@@ -31,6 +31,10 @@ Branch: `bench/blatt-deepseek-flash-2`. Nur Video-Modus. Regeln: `CLAUDE.md`, SP
    „Autom."; das Blatt schaltet nicht selbst auf An/Aus um.
    *Fertig:* Blitz „Autom." → im Dunkeln leuchtet die Torch-LED (Vorschau und Aufnahme),
    im Hellen nicht, die Zeile steht weiter auf „Autom.".
+   **Korrektur 2026-09-21:** Dieser „Fertig"-Vermerk war nie am Gerät belegt. Der
+   Lichtsensor sitzt auf der Displayseite und maß 152/230 lx im dunklen Zimmer gegen die
+   Schwelle 10 lx, die Lampe ging nie an. Umgesetzt ist jetzt das gemessene ISO je Frame
+   (`Preview.torchAutoOn()`), siehe `docs/changelog.md`, Eintrag „Blatt-Feinschliff".
 
 3. **Selfiebeleuchtung statt Blitz (Frontkamera, Video).** Die Blitz-Zeile der Frontkamera
    wird zur Zeile „Selfiebeleuchtung" mit Glühbirnen-Symbol und den Knöpfen An/Aus. An =

@@ -277,6 +277,16 @@ einmal scharf und hält dann, womit beide Linsen am Gerät unscharf standen (Fal
 `Preview.updateFocus()` korrigiert einen noch gespeicherten Makro-Wert auf den kontinuierlichen
 Fokus (Foto: `continuous_picture`, Video: `continuous_video`). `ZoomStepper.setLensSelection()`
 markiert nur noch über die physische ID, `macroSelected()` und `Lens.macro` entfallen.
+**Blatt-Feinschliff (2026-09-21):** Kürzel-Badges (MP, Videoauflösung) tragen den inversen
+Kürzel-Chip der Referenz – Kürzel in Knopf-Füllfarbe auf einem Chip in Glyph-Farbe, beides
+aus den vier vorhandenen Farben (am Screenshot nachgemessen); alle Knöpfe sind 40 dp,
+ausgewählt weißer Kreis, nicht ausgewählt dunkles abgerundetes Quadrat. Die fps-Knöpfe
+zeigen die Zahl groß über der Referenz-Skala (drei Striche, ein breiter). Jede Wertzeile
+mit Kürzel nennt die genaue Auflösung in Klammern (`settings_sheet_with_resolution`,
+`9MP (4032x2268)`, `FHD (1920x1080)`); Selfie-Video behält FHD und nennt seine größte
+Qualität `3K` (3264x1836) statt `6MP`. Video-Blitz „Autom." hängt am gemessenen ISO
+(an ab 800, aus unter 200, Hysterese) statt am Lichtsensor. Startauflösung aller Modi ist
+16:9, solange nichts gespeichert ist; eine gespeicherte Wahl gewinnt immer.
 **Offen:** rechter Dock-Button (Pro-Regler-Panel), danach Schritt C (Kopfzeile, dann
 Icon-Leiste + Popup weg); Rest `ui-spezifikation.md` Abschnitt 7 (Karussell →
 Sucher-Overlays → Farben/Blur/Schrift).

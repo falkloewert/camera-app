@@ -403,6 +403,18 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   `Preview.light_sensor` als Feld entfernt; der `backgroundTint`-Umbau der fünf Shape-Dateien
   wurde am Gerät verworfen (Tint kam nicht an) und in `866115cd` zurückgerollt.
 
+- **2026-09-21 (Feature-Chat, Blatt-Feinschliff):** (1) Video-Blitz „Autom." hing am
+  `TYPE_LIGHT`-Sensor der Displayseite – am Gerät gemessen 152/230 lx gegen die Schwelle
+  10 lx, die Lampe ging nie an. Jetzt liefert `SENSOR_SENSITIVITY` je Frame die
+  Szenenhelligkeit (`CameraController.ISOChangeCallback`, `Preview.torchAutoOn()`): an ab
+  ISO 800, aus unter 200, Hysterese; Startauflösung aller Modi ist 16:9, wenn nichts
+  gespeichert ist; `88409de0`. (2) Kürzel-Badges (MP, FHD/4K/8K) tragen den inversen Chip
+  der Referenz (Screenshots nachgemessen; die 44-dp-Breite eines Agenten-Laufs war falsch
+  und ist zurückgebaut), fps zeigt die Zahl groß über der Referenz-Skala. (3) Jede Wertzeile
+  mit Kürzel nennt die Auflösung in Klammern (`9MP (4032x2268)`, `FHD (1920x1080)`);
+  Selfie-Video behält FHD, 3264x1836 heißt `3K` statt `6MP` (Falk-Entscheidung).
+  Offen: Falk testet am Gerät.
+
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 
 **Recherche-Ergebnis (2026-09-14, Researcher-Agent):**
