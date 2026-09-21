@@ -88,11 +88,27 @@ public class ProPanel {
     private static final int MAX_LABEL_STEPS = 12;
     /** Der Belichtungsregler teilt in Sechstel-EV; eine volle Zahl sind sechs Schritte. */
     private static final int EV_SIXTHS = 6;
+    /** Das Massband der Belichtung teilt groeber: einen halben EV je Strich (drei Sechstel des
+     *  App-Reglers). Damit liegt die Null genau in der Mitte, die Striche stehen gleich weit
+     *  links und rechts davon, und ein Zug am Band landet auf Zahlen wie "+2" oder "+2,5" statt
+     *  auf "+2,83" (Falk 2026-09-21). */
+    private static final int EXPOSURE_STEP_SIXTHS = EV_SIXTHS / 2;
+    /** Belichtung: eine Zahl alle zwei EV (vier Schritte des Massbands). Von der Null aus nach
+     *  beiden Seiten gezaehlt, damit unter dem Balken die "0" steht und links und rechts davon
+     *  dieselben Zahlen - vorher hing die Beschriftung am linken Rand des Bereichs, dadurch
+     *  standen dort "-4, -1, +2" und unter dem Balken gar nichts (Falk 2026-09-21). */
+    private static final int EXPOSURE_LABEL_STEPS = 2 * EV_SIXTHS / EXPOSURE_STEP_SIXTHS;
     /** Der Weissabgleich geht in Schritten von 500 K - eine runde Zahl, die man ansagen kann. */
     private static final int WB_STEP = 500;
     /** Auf dem Massband stehen nur die vollen Tausend: fuenfstellige Zahlen liegen bei 500 K
      *  Abstand so dicht, dass sie aneinanderkleben (am Geraet gesehen, 2026-09-21). */
     private static final int WB_LABEL_STEP = 1000;
+    /** Was die App als Farbtemperatur mitbringt ({@code MyApplicationInterface}, 5000 K) - der
+     *  Wert, auf den der Automatik-Knopf den Weissabgleich zurueckstellt, wenn er nicht auf
+     *  Auto geht (siehe {@link #clickedAuto()}). */
+    private static final int WB_DEFAULT_TEMPERATURE = 5000;
+    /** Der Fokuswert der App fuer "von Hand gestellt" - nur dann wirkt der Fokus-Regler. */
+    private static final String FOCUS_MANUAL = "focus_mode_manual2";
 
     /** Die ISO-Stufen einer Kamera: die Zahl, die ein Fotograf erwartet (und die einzigen, die
      *  eine Zahl auf dem Massband bekommen). */
@@ -184,6 +200,10 @@ public class ProPanel {
         public void run() {
             if( !open )
                 return;
+            if( selected_tab == TAB_FOCUS )
+                // sucht die Kamera selbst, wandert die Entfernung mit dem Motiv - der Regler
+                // laeuft dann mit (von Hand gestellt bleibt er stehen)
+                setFocusSeekbarProgress();
             updateBadge();
             updateRuler();
             handler.postDelayed(this, BADGE_POLL_MS);
@@ -211,6 +231,12 @@ public class ProPanel {
         ruler.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
         ruler.setVisibility(View.GONE);
+        ruler.setOnScrollListener(new RulerSlider.OnScrollListener() {
+            @Override
+            public void onScroll(int step) {
+                onRulerScroll(step);
+            }
+        });
         slider_holder.addView(ruler);
 
         // Griffstueck wie am Einstellungen-Blatt: abgerundeter Balken, Wischen nach unten
@@ -366,10 +392,11 @@ public class ProPanel {
             markTabs();
             return;
         }
-        if( tab != selected_tab ) {
-            selected_tab = tab;
-            ensureModeForTab(tab);
-        }
+        // Der Reiterwechsel allein stellt die Kamera noch nicht um: sonst legte schon ein Blick
+        // auf den Weissabgleich die Automatik still (11200 K statt Auto, Falk 2026-09-21). Erst
+        // ein Zug am Band oder ein Druck auf + / - schaltet den Reiter auf manuell
+        // (onRulerScroll, stepActiveSlider).
+        selected_tab = tab;
         showSlider();
         markTabs();
         updateAutoButton();
@@ -460,23 +487,15 @@ public class ProPanel {
             parent.removeView(slider);
         }
         hosted_view = slider;
-        // der SeekBar ist nur noch die Bedienung: sichtbar ist das Massband darunter. Alpha 0
-        // statt INVISIBLE/GONE - sonst nimmt er keine Beruehrungen mehr an.
+        // der SeekBar ist nur noch der Wert: sichtbar und bedient wird das Massband. Alpha 0
+        // statt INVISIBLE/GONE - die App stellt ihre Regler selbst auf sichtbar, und ein
+        // unsichtbarer Regler liesse sich nicht mehr stellen.
         slider.setAlpha(0.0f);
-        // der Regler der App teilt die Belichtung in Sechsteln; nach dem Loslassen auf das
-        // Raster des Panels runden, damit keine Zahl wie "+3,17" stehen bleibt (Falk 2026-09-21).
-        // Das Ziehen selbst laeuft weiter fein - nur das Ergebnis ist eine glatte Zahl.
-        slider.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent event) {
-                int action = event.getActionMasked();
-                if( action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL )
-                    snapExposureToGrid();
-                return false; // der Regler bedient sich weiter selbst
-            }
-        });
         slider_holder.addView(slider, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
+        // das Massband nimmt die Beruehrungen an, nicht der Regler darunter (Falk 2026-09-21:
+        // das Band soll dem Finger folgen, nicht der Werteliste des Reglers)
+        ruler.bringToFront();
     }
 
     private void restoreSlider() {
@@ -497,10 +516,24 @@ public class ProPanel {
         Preview preview = main_activity.getPreview();
         if( preview == null || preview.getCameraController() == null )
             return;
+        CameraController camera_controller = preview.getCameraController();
+        float distance = camera_controller.getFocusDistance();
+        if( !FOCUS_MANUAL.equals(preview.getCurrentFocusValue()) && camera_controller.captureResultHasFocusDistance() ) {
+            // sucht die Kamera selbst, ist die von ihr gemessene Entfernung der Wert, den der
+            // Regler zeigen muss - sonst bliebe er auf der zuletzt von Hand gestellten stehen
+            // und der Automatik-Knopf saehe wirkungslos aus (Falk 2026-09-21)
+            distance = camera_controller.captureResultFocusDistance();
+        }
         focus_seekbar.setOnSeekBarChangeListener(null);
-        ManualSeekbars.setProgressSeekbarScaled(focus_seekbar, 0.0, preview.getMinimumFocusDistance(),
-                preview.getCameraController().getFocusDistance());
+        ManualSeekbars.setProgressSeekbarScaled(focus_seekbar, 0.0, preview.getMinimumFocusDistance(), distance);
         focus_seekbar.setOnSeekBarChangeListener(focus_listener);
+    }
+
+    /** Ob der Fokus von Hand gestellt ist - dann gehoert das Band dem Finger und die Kamera misst
+     *  nicht selbst. */
+    private boolean focusIsManual() {
+        Preview preview = main_activity.getPreview();
+        return preview != null && FOCUS_MANUAL.equals(preview.getCurrentFocusValue());
     }
 
     /* ---- Feinjustierung und Massband ------------------------------------------------------- */
@@ -519,6 +552,9 @@ public class ProPanel {
     private void stepActiveSlider(int direction) {
         if( !open || direction == 0 )
             return;
+        // steht der Reiter auf Auto (Automatik-Knopf, "Alle zuruecksetzen"), wirkt ein Schritt nur
+        // im manuellen Modus - erst den einschalten, wie es das ISO-Fenster der App auch macht
+        ensureModeForTab(selected_tab);
         switch( selected_tab ) {
             case TAB_EXPOSURE:
                 stepExposure(direction);
@@ -649,14 +685,10 @@ public class ProPanel {
         SeekBar seekbar = activeSeekbar();
         if( seekbar == null )
             return;
-        if( tab == TAB_EXPOSURE && target == 0 ) {
-            // der Belichtungsregler hat in der Mitte mehrere Nullen - die mittlere nehmen
-            seekbar.setProgress(main_activity.getExposureSeekbarProgressZero());
-            return;
-        }
+        int max = rulerMax(tab);
         int best = 0;
         long best_distance = Long.MAX_VALUE;
-        for(int step = 0; step <= seekbar.getMax(); step++) {
+        for(int step = 0; step <= max; step++) {
             long distance = Math.abs(sliderValueAt(tab, step) - target);
             if( distance < best_distance ) {
                 best_distance = distance;
@@ -665,15 +697,60 @@ public class ProPanel {
                     break;
             }
         }
-        seekbar.setProgress(best);
+        seekbar.setProgress(seekbarProgress(tab, best));
     }
 
-    /** Der Wert hinter einem Schritt eines Reglers. */
+    /* ---- Schritt des Massbands und Schritt des App-Reglers --------------------------------- */
+
+    /** Der hoechste Schritt des Massbands. Beim Belichtungsregler ist das Band groeber geteilt
+     *  als der Regler (halbe EV statt Sechstel) und die drei Nullen in der Mitte fallen auf einen
+     *  Schritt zusammen (MainActivity baut sie fuer das Einrasten ein). */
+    private int rulerMax(int tab) {
+        SeekBar seekbar = activeSeekbar();
+        if( seekbar == null )
+            return 0;
+        if( tab == TAB_EXPOSURE && main_activity.hasExposureSeekbarValues() )
+            return exposureHalfSteps(seekbar.getMax()) - exposureHalfSteps(0);
+        return seekbar.getMax();
+    }
+
+    /** Der Schritt des Massbands zu einem Schritt des App-Reglers. */
+    private int rulerStep(int tab, int progress) {
+        if( tab == TAB_EXPOSURE && main_activity.hasExposureSeekbarValues() )
+            return exposureHalfSteps(progress) - exposureHalfSteps(0);
+        return progress;
+    }
+
+    /** Die Umkehrung: der Schritt des App-Reglers zu einem Schritt des Massbands. */
+    private int seekbarProgress(int tab, int step) {
+        if( tab == TAB_EXPOSURE && main_activity.hasExposureSeekbarValues() ) {
+            SeekBar seekbar = main_activity.findViewById(R.id.exposure_seekbar);
+            int value = (step + exposureHalfSteps(0)) * EXPOSURE_STEP_SIXTHS;
+            if( value == 0 ) {
+                // von den drei Nullen des Reglers die mittlere nehmen (wie changeExposure())
+                return main_activity.getExposureSeekbarProgressZero();
+            }
+            for(int p = 0; p <= seekbar.getMax(); p++) {
+                if( main_activity.getExposureSeekbarValue(p) == value )
+                    return p;
+            }
+        }
+        return step;
+    }
+
+    /** Ein Schritt des Belichtungsreglers in halben EV (die Teilung des Massbands). */
+    private int exposureHalfSteps(int progress) {
+        return Math.round(main_activity.getExposureSeekbarValue(progress) / (float) EXPOSURE_STEP_SIXTHS);
+    }
+
+    /** Der Wert hinter einem Schritt des Massbands. */
     private long sliderValueAt(int tab, int step) {
         ManualSeekbars manualSeekbars = main_activity.getManualSeekbars();
         switch( tab ) {
             case TAB_EXPOSURE:
-                return main_activity.getExposureSeekbarValue(step);
+                if( main_activity.hasExposureSeekbarValues() )
+                    return (long) (step + exposureHalfSteps(0)) * EXPOSURE_STEP_SIXTHS;
+                return 0;
             case TAB_WB:
                 return manualSeekbars.getWhiteBalanceTemperature(step);
             case TAB_ISO:
@@ -708,7 +785,7 @@ public class ProPanel {
             ruler.setVisibility(View.GONE);
             return;
         }
-        int max = seekbar.getMax();
+        int max = rulerMax(selected_tab);
         boolean rescaled = ruler.getMax() != max || ruler_labels_tab != selected_tab;
         if( rescaled ) {
             ruler.setMax(max);
@@ -716,9 +793,30 @@ public class ProPanel {
             ruler_labels_tab = selected_tab;
         }
         // beim Reiterwechsel springt das Massband (die Skala ist eine andere), sonst faehrt es
-        // den neuen Wert an wie ein Drehrad
-        ruler.setProgress(seekbar.getProgress(), !rescaled);
+        // den neuen Wert an wie ein Drehrad. Beim Fokus nicht: dort ist das Band eine Anzeige der
+        // messenden Kamera und wandert bei jedem Poll - eine Fahrt dazwischen waere nur Unruhe
+        ruler.setProgress(rulerStep(selected_tab, seekbar.getProgress()),
+                !rescaled && !(selected_tab == TAB_FOCUS && !focusIsManual()));
         ruler.setVisibility(View.VISIBLE);
+    }
+
+    /** Das Massband zieht der Finger: der Schritt unter dem Balken kommt sofort in den Regler der
+     *  App. Das Band selbst laeuft dabei stufenlos weiter (RulerSlider), der Wert springt von
+     *  Stufe zu Stufe - genau wie beim Zoomrad (Falk 2026-09-21). */
+    private void onRulerScroll(int step) {
+        if( !open )
+            return;
+        SeekBar seekbar = activeSeekbar();
+        if( seekbar == null )
+            return;
+        int progress = seekbarProgress(selected_tab, step);
+        if( progress == seekbar.getProgress() )
+            return;
+        // von Hand gestellte Werte wirken nur im manuellen Modus des Reiters - nach "Auto"
+        // (Automatik-Knopf oder "Alle zuruecksetzen") schaltet der erste Zug ihn wieder ein
+        ensureModeForTab(selected_tab);
+        seekbar.setProgress(progress);
+        updateBadge();
     }
 
     /** Die Beschriftung des Massbands. Beschriftet werden nur runde Werte - die Referenz schreibt
@@ -729,6 +827,16 @@ public class ProPanel {
         String [] labels = new String [max + 1];
         if( max <= 0 )
             return labels;
+        if( tab == TAB_EXPOSURE && main_activity.hasExposureSeekbarValues() ) {
+            // die Beschriftung haengt an der Null, nicht am Rand: so steht die "0" genau unter
+            // dem Balken und beiderseits dieselben Zahlen
+            int zero = rulerStep(TAB_EXPOSURE, main_activity.getExposureSeekbarProgressZero());
+            for(int step = zero; step <= max; step += EXPOSURE_LABEL_STEPS)
+                labels[step] = roundLabel(tab, step);
+            for(int step = zero - EXPOSURE_LABEL_STEPS; step >= 0; step -= EXPOSURE_LABEL_STEPS)
+                labels[step] = roundLabel(tab, step);
+            return labels;
+        }
         // erst die runden Werte: sie stehen fest, egal was die Zwischenzahlen machen
         List<Integer> rounds = new ArrayList<>();
         int last = -MIN_LABEL_STEPS;
@@ -765,9 +873,9 @@ public class ProPanel {
             case TAB_EXPOSURE: {
                 if( !main_activity.hasExposureSeekbarValues() )
                     return null;
-                int value = main_activity.getExposureSeekbarValue(step);
+                long value = sliderValueAt(TAB_EXPOSURE, step);   // Sechstel-EV
                 // nur ganze EV anschreiben: "+2,83" ist keine Zahl, die man ansagen kann
-                return value % EV_SIXTHS == 0 ? exposureLabel(value) : null;
+                return value % EV_SIXTHS == 0 ? exposureLabel((int) value) : null;
             }
             case TAB_WB: {
                 int temperature = main_activity.getManualSeekbars().getWhiteBalanceTemperature(step);
@@ -833,6 +941,11 @@ public class ProPanel {
         String number = (abs == Math.floor(abs)) ? String.valueOf((int) abs)
                 : String.format(java.util.Locale.getDefault(), "%.1f", abs);
         return sign + number;
+    }
+
+    /** Der Text fuer einen Wert, den die Kamera selbst stellt. */
+    private String autoText() {
+        return main_activity.getResources().getString(R.string.pro_panel_auto_value);
     }
 
     /** Die ISO-Werte, die eine Zahl bekommen (die Stufen der Kamera, nicht jeder Schritt). */
@@ -954,7 +1067,13 @@ public class ProPanel {
 
     /* ---- Automatik-Knopf ------------------------------------------------------------------ */
 
-    /** Der runde Knopf in der Pille: den aktiven Reiter auf Automatik zurueck. */
+    /** Der runde Knopf neben der Pille: den aktiven Reiter auf den Standard zurueck.
+     *
+     *  <p>Weissabgleich und Fokus gehen dabei <b>nicht</b> auf Automatik: die App hat fuer die
+     *  Farbtemperatur einen eigenen Standardwert (5000 K), und ein automatischer Weissabgleich
+     *  liesse sich am Massband nicht anzeigen - dort stuende dann eine Temperatur, die die Kamera
+     *  gar nicht benutzt (Falk 2026-09-21). ISO, Verschlusszeit und Belichtung haben dagegen
+     *  einen echten Auto-Zustand, den die Blase auch anzeigt.</p> */
     public void clickedAuto() {
         if( MyDebug.LOG )
             Log.d(TAG, "clickedAuto: " + selected_tab);
@@ -969,7 +1088,8 @@ public class ProPanel {
                 applicationInterface.setExposureCompensationPref(0);
                 break;
             case TAB_WB:
-                applicationInterface.clearWhiteBalancePref();
+                applicationInterface.setWhiteBalancePref("manual");
+                applicationInterface.setWhiteBalanceTemperaturePref(WB_DEFAULT_TEMPERATURE);
                 break;
             case TAB_FOCUS:
                 applicationInterface.setFocusPref("focus_mode_continuous_picture", preview.isVideo());
@@ -982,7 +1102,26 @@ public class ProPanel {
                 break;
         }
         main_activity.updateForSettings(true, "");
+        // den Regler des Panels selbst auf den Standardwert stellen: die App stellt ihre SeekBars
+        // beim Aktualisieren nicht in jedem Fall mit, und dann saehe der Knopf wirkungslos aus
+        // (Falk 2026-09-21: "bei Weissabgleich funktioniert Reset nicht")
+        switch( selected_tab ) {
+            case TAB_EXPOSURE:
+                setSliderValue(TAB_EXPOSURE, 0);
+                break;
+            case TAB_WB:
+                setSliderValue(TAB_WB, WB_DEFAULT_TEMPERATURE);
+                break;
+            case TAB_FOCUS:
+                setFocusSeekbarProgress();
+                break;
+            default:
+                // ISO und Verschlusszeit: die App stellt ihre Regler auf die gemessenen Auto-Werte
+                break;
+        }
         updateAutoButton();
+        updateRuler();
+        updateBadge();
     }
 
     /** „Alle zuruecksetzen": alles, was das Panel verstellen kann, auf den Standard. */
@@ -999,8 +1138,16 @@ public class ProPanel {
         applicationInterface.setISOPref(CameraController.ISO_DEFAULT);
         applicationInterface.setExposureTimePref(CameraController.EXPOSURE_TIME_DEFAULT);
         main_activity.updateForSettings(true, "");
+        // den Regler des offenen Reiters mitstellen - die App tut es nicht in jedem Fall (wie
+        // clickedAuto). setSliderValue() arbeitet immer auf dem offenen Reiter.
+        if( selected_tab == TAB_EXPOSURE )
+            setSliderValue(TAB_EXPOSURE, 0);
+        else if( selected_tab == TAB_FOCUS )
+            setFocusSeekbarProgress();
         preview.showToast(null, main_activity.getResources().getString(R.string.pro_panel_reset_done), 0, true);
         updateAutoButton();
+        updateRuler();
+        updateBadge();
     }
 
     /* ---- Wert und Automatik-Knopf ---------------------------------------------------------- */
@@ -1021,6 +1168,7 @@ public class ProPanel {
             return;
         }
         ManualSeekbars manualSeekbars = main_activity.getManualSeekbars();
+        ApplicationInterface applicationInterface = main_activity.getApplicationInterface();
         String text = null;
         switch( selected_tab ) {
             case TAB_EXPOSURE: {
@@ -1034,6 +1182,12 @@ public class ProPanel {
                 break;
             }
             case TAB_WB: {
+                if( !applicationInterface.getWhiteBalancePref().equals("manual") ) {
+                    // die Kamera sucht die Temperatur selbst: am Massband stuende sonst eine Zahl,
+                    // die nichts bedeutet (Falk 2026-09-21)
+                    text = autoText();
+                    break;
+                }
                 int temperature = manualSeekbars.getWhiteBalanceTemperature(((SeekBar) main_activity.findViewById(R.id.white_balance_seekbar)).getProgress());
                 text = temperature + " K";
                 break;
@@ -1050,9 +1204,19 @@ public class ProPanel {
                 break;
             }
             case TAB_SHUTTER:
+                // ISO und Verschlusszeit sind eine gemeinsame Einstellung: "Auto" ist der
+                // ISO-Standard der App (getExposureTimePref() kennt keinen Auto-Zustand)
+                if( applicationInterface.getISOPref().equals(CameraController.ISO_DEFAULT) ) {
+                    text = autoText();
+                    break;
+                }
                 text = preview.getExposureTimeString(manualSeekbars.getExposureTime(((SeekBar) main_activity.findViewById(R.id.exposure_time_seekbar)).getProgress()));
                 break;
             case TAB_ISO:
+                if( applicationInterface.getISOPref().equals(CameraController.ISO_DEFAULT) ) {
+                    text = autoText();
+                    break;
+                }
                 text = preview.getISOString(manualSeekbars.getISO(((SeekBar) main_activity.findViewById(R.id.iso_seekbar)).getProgress()));
                 break;
         }
@@ -1095,7 +1259,9 @@ public class ProPanel {
         selected_tab = OPEN_TAB;
         ruler_labels_tab = -1;
         hideWhileOpen();
-        ensureModeForTab(selected_tab);
+        // kein ensureModeForTab() hier: das Oeffnen des Panels darf die Kamera nicht umstellen
+        // (der Belichtungs-Reiter haette sonst bei jedem Oeffnen ISO und Verschlusszeit auf
+        // Automatik gezogen - Falk 2026-09-21)
         showSlider();
         markTabs();
         updateAutoButton();

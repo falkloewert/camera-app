@@ -1134,6 +1134,7 @@
     <string name="pro_panel_reset">Reset all</string>
     <string name="pro_panel_focus">Focus</string>
     <string name="pro_panel_auto">Automatic</string>
+    <string name="pro_panel_auto_value">Auto</string>
     <string name="pro_panel_reset_done">Exposure, white balance, focus, ISO and shutter speed reset.</string>
     <string name="pro_panel_peaking_active">Focus peaking on</string>
     <string name="settings_sheet_more_options">All settings</string>

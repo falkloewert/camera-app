@@ -9,6 +9,7 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Shader;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
 
@@ -25,10 +26,12 @@ import net.sourceforge.opencamera.R;
  * = Bildmitte, die Zahlen wandern). Der Abstand zweier Teilstriche ist 18 px = 8 dp, die kurzen
  * Striche sind 7 dp, die hohen 13 dp hoch, die Zahlen stehen unter den hohen Strichen.</p>
  *
- * <p>Dieses View zeichnet nur. Bedient wird der Regler von dem SeekBar der App, der unsichtbar
- * darueber liegt ({@link ProPanel}) - nur so kommen echte Nutzer-Ereignisse
- * ({@code fromUser}) bei den Zuhoerern in MainActivity an, und nur die loesen die
- * Kameraeinstellung aus.</p>
+ * <p>Das Band gehoert dem Finger: ein Zug daran zieht es genau so weit mit wie der Finger
+ * (wie das Zoomrad, {@code ZoomWheel.drag()}: nach links kommen die hoeheren Werte unter den
+ * Balken). Waere der SeekBar der App der Bediente, haenge die Empfindlichkeit an dessen
+ * Werteliste - ein Zug quer durch die Pille machte bei ISO Hunderte Schritte (Falk
+ * 2026-09-21). Der SeekBar wird stattdessen von hier aus gestellt ({@link ProPanel}), seine
+ * Zuhoerer in MainActivity wirkten bisher auch ohne Nutzer-Ereignis ({@code fromUser}).</p>
  */
 public class RulerSlider extends View {
     private static final float PX_PER_STEP_DP = 8.0f;   // Teilstrich-Abstand (Referenz: 18 px / 2,25)
@@ -52,11 +55,20 @@ public class RulerSlider extends View {
     private final Paint pointer_paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fade_paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
+    /** Meldet dem Panel, welcher Schritt unter dem Balken steht (das Panel stellt den SeekBar
+     *  der App darauf). */
+    public interface OnScrollListener {
+        void onScroll(int step);
+    }
+
     private int max = 0;            // hoechster Wert, den der SeekBar kennt
     private int progress = 0;       // aktueller Wert (derselbe wie im SeekBar)
     private float shown = 0.0f;     // der gezeichnete Wert - zwischen zwei Schritten unterwegs
     private ValueAnimator roll;     // die Fahrt zum neuen Wert
     private String [] labels = new String [0]; // labels[schritt] = Text, sonst null
+    private OnScrollListener scroll_listener;
+    private boolean dragging;       // der Finger fuehrt gerade
+    private float last_x;
 
     public RulerSlider(Context context) {
         this(context, null);
@@ -102,6 +114,12 @@ public class RulerSlider extends View {
     /** {@code animate=false} springt ohne Fahrt - beim Reiterwechsel, wo die Skala ohnehin
      *  eine andere ist und ein Nachrollen nur verwirren wuerde. */
     public void setProgress(int progress, boolean animate) {
+        if( dragging ) {
+            // waehrend des Ziehens fuehrt der Finger: was der Regler meldet, ist genau der Wert,
+            // den dieses View gerade selbst gestellt hat - nicht nachfahren
+            this.progress = progress;
+            return;
+        }
         if( this.progress == progress ) {
             // derselbe Schritt kann in der neuen Skala ein anderer Wert sein: dann trotzdem
             // neu zeichnen
@@ -163,6 +181,58 @@ public class RulerSlider extends View {
     protected void onDetachedFromWindow() {
         cancelRoll();
         super.onDetachedFromWindow();
+    }
+
+    public void setOnScrollListener(OnScrollListener listener) {
+        this.scroll_listener = listener;
+    }
+
+    /** Das Band ziehen - dasselbe Gefuehl wie am Zoomrad ({@code ZoomWheel}): es folgt dem Finger
+     *  Strich fuer Strich, ohne Fahrt dazwischen. Nach links zieht die hoeheren Werte unter den
+     *  Balken, wie beim Rad. */
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if( max <= 0 )
+            return false;
+        switch( event.getActionMasked() ) {
+            case MotionEvent.ACTION_DOWN:
+                dragging = true;
+                last_x = event.getX();
+                cancelRoll();
+                if( getParent() != null )
+                    getParent().requestDisallowInterceptTouchEvent(true);
+                return true;
+            case MotionEvent.ACTION_MOVE: {
+                if( !dragging )
+                    return false;
+                float dx = event.getX() - last_x;
+                last_x = event.getX();
+                float value = shown - dx / dp(PX_PER_STEP_DP);
+                if( value < 0.0f )
+                    value = 0.0f;
+                else if( value > max )
+                    value = max;
+                shown = value;
+                invalidate();
+                int step = Math.round(shown);
+                if( step != progress ) {
+                    progress = step;
+                    if( scroll_listener != null )
+                        scroll_listener.onScroll(step);
+                }
+                return true;
+            }
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                if( dragging ) {
+                    dragging = false;
+                    // den halben Schritt, auf dem der Finger stehen geblieben ist, einschnappen
+                    rollTo(Math.round(shown));
+                }
+                return true;
+            default:
+                return super.onTouchEvent(event);
+        }
     }
 
     /** Der Text, der zu einem Schritt gehoert (null, wenn der Schritt keinen hat). */

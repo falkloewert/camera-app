@@ -609,11 +609,12 @@ public class MainUI {
             view = main_activity.findViewById(R.id.pro_panel_auto);
             view_id = view.getId();
             resetView(cs, view);
-            // right next to the badge, centred on it - so it stays clear of the pill
-            cs.connect(view_id, ConstraintSet.LEFT, R.id.pro_panel_badge, ConstraintSet.RIGHT,
-                    (int) (10 * scale + 0.5f));
-            cs.connect(view_id, ConstraintSet.TOP, R.id.pro_panel_badge, ConstraintSet.TOP, 0);
-            cs.connect(view_id, ConstraintSet.BOTTOM, R.id.pro_panel_badge, ConstraintSet.BOTTOM, 0);
+            // right beside the pill, centred on it (reference, measured: 8 dp right of the pill's
+            // right edge, 48 dp circle - not above it next to the badge, Falk 2026-09-21)
+            cs.connect(view_id, ConstraintSet.LEFT, R.id.pro_panel_pill, ConstraintSet.RIGHT,
+                    (int) (8 * scale + 0.5f));
+            cs.connect(view_id, ConstraintSet.TOP, R.id.pro_panel_pill, ConstraintSet.TOP, 0);
+            cs.connect(view_id, ConstraintSet.BOTTOM, R.id.pro_panel_pill, ConstraintSet.BOTTOM, 0);
 
             view = main_activity.findViewById(R.id.pro_panel_tabs_scroll);
             view_id = view.getId();

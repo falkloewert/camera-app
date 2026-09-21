@@ -974,6 +974,7 @@
     <string name="pro_panel_reset">Alle zurücksetzen</string>
     <string name="pro_panel_focus">Fokus</string>
     <string name="pro_panel_auto">Automatik</string>
+    <string name="pro_panel_auto_value">Auto</string>
     <string name="pro_panel_reset_done">Belichtung, Weißabgleich, Fokus, ISO und Verschlusszeit zurückgesetzt.</string>
     <string name="pro_panel_peaking_active">Fokus-Anzeige aktiv</string>
     <string name="settings_sheet_more_options">Vollständige Einstellungen</string>
