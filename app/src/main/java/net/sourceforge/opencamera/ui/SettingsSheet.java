@@ -539,9 +539,7 @@ public class SettingsSheet {
             tab.setTextSize(TAB_SP);
             tab.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             tab.setGravity(Gravity.CENTER);
-            tab.setBackgroundResource(R.drawable.settings_sheet_tab);
-            tab.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(main_activity, selected_tab == i ?
-                    R.color.settings_sheet_tab_active : R.color.settings_sheet_tab_inactive)));
+            tab.setBackgroundResource(selected_tab == i ? R.drawable.settings_sheet_tab_active : R.drawable.settings_sheet_tab_inactive);
             tab.setTextColor(ContextCompat.getColor(main_activity, selected_tab == i ?
                     R.color.settings_sheet_tab_active_text : R.color.settings_sheet_tab_inactive_text));
             LinearLayout.LayoutParams tab_params = new LinearLayout.LayoutParams(tab_width, dp(TABS_HEIGHT));
@@ -687,9 +685,7 @@ public class SettingsSheet {
     /** Draws one option button as selected or not - also used when a tap marks its option
      *  immediately (Kickoff Runde 2, 1.5). */
     private void markOptionButton(View button, boolean selected) {
-        button.setBackgroundResource(selected ? R.drawable.circle_background : R.drawable.squircle_background);
-        button.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(main_activity, selected ?
-                R.color.settings_sheet_button_selected : R.color.settings_sheet_button)));
+        button.setBackgroundResource(selected ? R.drawable.settings_sheet_button_selected : R.drawable.settings_sheet_button);
         int glyph_color = ContextCompat.getColor(main_activity, selected ?
                 R.color.settings_sheet_button_glyph_selected : R.color.settings_sheet_button_glyph);
         View glyph = ((ViewGroup)button).getChildAt(0);

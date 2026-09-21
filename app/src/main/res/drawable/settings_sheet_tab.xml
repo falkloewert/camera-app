@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Reiter des Einstellungen-Blattes: Pille 44 dp hoch, Radius 22 dp = Stadion (Kickoff
-     redesign-einstellungen-blatt-benchmark.md 2.2, gemessen). Eine Form fuer beide Zustaende,
-     die Farbe kommt per backgroundTint - weiss wenn gewaehlt (#FFFFFF), sonst #2A2A2A. -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <solid android:color="#FFFFFF" />
-    <corners android:radius="22dp" />
-</shape>
