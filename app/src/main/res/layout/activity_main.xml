@@ -861,6 +861,200 @@
         app:layout_constraintBottom_toTopOf="@id/zoom_stepper"
         />
 
+    <!-- Pro-Panel (Kickoff redesign-pro-panel.md 3). Kein Blatt, sondern ein Overlay ueber dem
+         Sucher: die Kamera bleibt sichtbar, der Sucher bekommt die Tipps daneben weiter. Die
+         Pille traegt genau einen Regler - den des aktiven Reiters; der Regler selbst ist einer
+         der vorhandenen SeekBars (R.id.exposure_seekbar usw.), der beim Oeffnen hier
+         hineinwandert (ui/ProPanel.java). Position bestimmt MainUI.layoutUI() genauso wie bei
+         der Zoom-Pille, damit beide an derselben Stelle sitzen. -->
+    <FrameLayout
+        android:id="@+id/pro_panel_pill"
+        android:layout_width="288dp"
+        android:layout_height="48dp"
+        android:background="@drawable/pill_background"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        >
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:importantForAccessibility="no"
+            >
+
+            <!-- Feinjustierung links: das Symbol des Reiters mit kleinem Minus (Referenz).
+                 Bedient wird der Knopf in ui/ProPanel.java, nicht ueber android:onClick -
+                 dort haengt auch das Symbol des jeweiligen Reiters dran. -->
+            <FrameLayout
+                android:id="@+id/pro_panel_minus"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@string/pro_panel_minus"
+                >
+
+                <ImageView
+                    android:id="@+id/pro_panel_minus_icon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:scaleType="fitCenter"
+                    android:importantForAccessibility="no"
+                    />
+
+                <TextView
+                    android:id="@+id/pro_panel_minus_sign"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_marginEnd="6dp"
+                    android:layout_marginBottom="6dp"
+                    android:text="−"
+                    android:textColor="@color/settings_sheet_button_glyph"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:importantForAccessibility="no"
+                    />
+            </FrameLayout>
+
+            <!-- Der Regler des aktiven Reiters wird zur Laufzeit hier hineingehaengt; darunter
+                 liegt das Massband (ui/RulerSlider.java), das nur zeichnet. -->
+            <FrameLayout
+                android:id="@+id/pro_panel_slider_holder"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                />
+
+            <!-- Feinjustierung rechts: dasselbe Symbol mit kleinem Plus -->
+            <FrameLayout
+                android:id="@+id/pro_panel_plus"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@string/pro_panel_plus"
+                >
+
+                <ImageView
+                    android:id="@+id/pro_panel_plus_icon"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:scaleType="fitCenter"
+                    android:importantForAccessibility="no"
+                    />
+
+                <TextView
+                    android:id="@+id/pro_panel_plus_sign"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_marginEnd="6dp"
+                    android:layout_marginBottom="6dp"
+                    android:text="+"
+                    android:textColor="@color/settings_sheet_button_glyph"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:importantForAccessibility="no"
+                    />
+            </FrameLayout>
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Zurueck auf Automatik fuer den aktiven Reiter (Referenz: runder Knopf rechts NEBEN der
+         Pille). Immer sichtbar (Falk 2026-09-21) - ein Druck holt den Standardwert zurueck. -->
+    <ImageButton
+        android:id="@+id/pro_panel_auto"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="12dp"
+        android:scaleType="fitCenter"
+        android:background="@drawable/settings_sheet_dock_button"
+        android:src="@drawable/ms_restart_alt"
+        android:contentDescription="@string/pro_panel_auto"
+        android:onClick="clickedProPanelAuto"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        />
+
+    <!-- Hintergrundband der Reiter-Reihe (Referenz: die unterste Zone der Pro-Ansicht liegt auf
+         einer eigenen dunklen Flaeche, Farbe wie das Einstellungen-Blatt - keine neue Farbe). -->
+    <View
+        android:id="@+id/pro_panel_sheet"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/settings_sheet_panel"
+        android:visibility="gone"
+        android:importantForAccessibility="no"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        />
+
+    <!-- Zieh-Balken ueber der Reiter-Reihe: dasselbe Griffstueck wie am Einstellungen-Blatt.
+         Ein Wischen nach unten schliesst das Panel (Geste des Blattes). -->
+    <View
+        android:id="@+id/pro_panel_handle"
+        android:layout_width="36dp"
+        android:layout_height="3dp"
+        android:background="@color/settings_sheet_handle"
+        android:visibility="gone"
+        android:importantForAccessibility="no"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        />
+
+    <!-- Wert des aktiven Reglers, nur waehrend des Verstellens (wie das Zoom-Badge). -->
+    <TextView
+        android:id="@+id/pro_panel_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="28dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:gravity="center"
+        android:background="@drawable/pill_selected_background"
+        android:textColor="@color/md_dark_surface"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:importantForAccessibility="no"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        />
+
+    <!-- Reiter-Reihe am unteren Rand, an der Stelle der Modus-Leiste (die waehrend des offenen
+         Panels ausgeblendet ist). Die Reiter baut ui/ProPanel.java. -->
+    <HorizontalScrollView
+        android:id="@+id/pro_panel_tabs_scroll"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        >
+
+        <LinearLayout
+            android:id="@+id/pro_panel_tabs"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            />
+    </HorizontalScrollView>
+
     <!-- Eine LinearLayout-Leiste (keine ScrollView). Das Fenster ist auf Hochformat gesperrt,
          die Leiste liegt also immer waagerecht; haelt man das Geraet quer, stehen ihre
          Beschriftungen quer - genau wie in der Referenz (ui-spezifikation.md Abschnitt 2),
@@ -880,6 +1074,24 @@
         android:src="@drawable/ms_settings_photo_camera"
         android:contentDescription="@string/settings_sheet_open"
         android:onClick="clickedSettingsSheet"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        />
+
+    <!-- Rechter Dock-Button (K13, ui-spezifikation.md 7.1 Punkt 3): Spiegel des linken - Kreis
+         48 dp, Fuellung #333333, Symbol "drei Reglerstifte". Die Detail-Spec nennt 40 dp; wie
+         beim linken Knopf gilt der am Screenrecord gemessene Wert (Kickoff 3). Position setzt
+         MainUI.layoutUI(). -->
+    <ImageButton
+        android:id="@+id/pro_panel_button"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="12dp"
+        android:scaleType="centerInside"
+        android:background="@drawable/settings_sheet_dock_button"
+        android:src="@drawable/ms_tune"
+        android:contentDescription="@string/pro_panel_open"
+        android:onClick="clickedProPanel"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         />

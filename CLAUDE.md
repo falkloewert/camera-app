@@ -25,6 +25,12 @@ Historie: `docs/changelog.md`. Remotes: `origin` Codeberg (privat), `upstream` S
   `docs/council/2026-09-14-subagent-workflow.md`).
 - Neuer PM-Chat: SPEC.md + diese Datei lesen, `git status`/`git fetch`, dann weiter.
 
+## Gerät (adb)
+- App immer über die eigene Package-ID starten/prüfen: `de.falkloewert.cameraapp`
+  (Activity `net.sourceforge.opencamera.MainActivity`). Die Upstream-App
+  `net.sourceforge.opencamera` ist parallel installiert – **nie** die starten
+  (Fehler 2026-09-21).
+
 ## Graphify
 - `graphify-out/` (git-ignoriert). Vor Codebase-Fragen `graphify query "<Frage>"`.
   Nach Codeänderungen `graphify update .` (AST-only; `--force` nach Löschungen).

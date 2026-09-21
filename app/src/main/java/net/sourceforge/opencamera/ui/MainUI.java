@@ -271,6 +271,8 @@ public class MainUI {
         // the left dock button: only its glyph turns, the circle it sits in is rotationally
         // symmetric (Kickoff 3.1)
         views.add(main_activity.findViewById(R.id.settings_sheet_button));
+        // the right dock button (the pro panel) - same treatment
+        views.add(main_activity.findViewById(R.id.pro_panel_button));
         return views;
     }
 
@@ -333,6 +335,19 @@ public class MainUI {
     /** Pins a view's bottom edge to the bottom of the screen, margin above the gesture inset. */
     private void pinToBottom(ConstraintSet cs, int view_id, int navigation_gap, int margin) {
         cs.connect(view_id, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, navigation_gap + margin);
+    }
+
+    /** Die Zoom-Stufen samt ihrer Blase. Solange das Pro-Panel offen ist, bleiben sie in jedem
+     *  Fall weg - die Pille des Panels sitzt an ihrer Stelle, und die Stufen haben dort nichts
+     *  zu suchen (Falk 2026-09-21). Alle Stellen, die die Stufen ein- oder ausblenden, gehen
+     *  hier durch, damit keine sie zurueckholt. */
+    public void setZoomStepperVisibility(int visibility) {
+        View view = main_activity.findViewById(R.id.zoom_stepper);
+        if( view == null )
+            return;
+        if( main_activity.proPanelIsOpen() )
+            visibility = View.INVISIBLE;
+        view.setVisibility(visibility);
     }
 
     private void layoutUI(boolean popup_container_only) {
@@ -562,6 +577,71 @@ public class MainUI {
             centerHorizontally(cs, view_id);
             pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f)); // 85 dp centre - 24 dp half view - 24 dp inset
 
+            // The right dock button (the pro panel, Kickoff 3): the mirror image of the left one,
+            // same row and same size.
+            view = main_activity.findViewById(R.id.pro_panel_button);
+            view_id = view.getId();
+            resetView(cs, view);
+            cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, (int) (16 * scale + 0.5f));
+            pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f));
+
+            // The pro panel's pill sits exactly where the zoom pill sits (the two are never shown
+            // at the same time), its value badge above it, and its tab row in the dock row's slot
+            // at the very bottom - in the reference the Pro row is the lowest line of the screen
+            // and the dock row (with the zoom pill and the mode bar) is gone while it is up
+            // (measured: tab row bottom edge 59 dp above the screen edge, Falk 2026-09-21).
+            view = main_activity.findViewById(R.id.pro_panel_pill);
+            view_id = view.getId();
+            resetView(cs, view);
+            // the pill is not centred on the screen: the round auto/reset button sits to its
+            // right (reference, measured: its right edge 13 dp from the screen edge, 21 dp gap),
+            // so the pill is centred in the space that is left of it
+            cs.connect(view_id, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT, 0);
+            cs.connect(view_id, ConstraintSet.RIGHT, R.id.pro_panel_auto, ConstraintSet.LEFT,
+                    -(int) (21 * scale + 0.5f));
+            cs.setHorizontalBias(view_id, 0.5f);
+            placeAbove(cs, view_id, R.id.take_photo, (int) (29 * scale + 0.5f));
+
+            view = main_activity.findViewById(R.id.pro_panel_auto);
+            view_id = view.getId();
+            resetView(cs, view);
+            cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT,
+                    (int) (13 * scale + 0.5f));
+            cs.connect(view_id, ConstraintSet.TOP, R.id.pro_panel_pill, ConstraintSet.TOP, 0);
+
+            view = main_activity.findViewById(R.id.pro_panel_badge);
+            view_id = view.getId();
+            resetView(cs, view);
+            // centred over the pill (the badge belongs to the slider in it, not to the screen)
+            cs.connect(view_id, ConstraintSet.LEFT, R.id.pro_panel_pill, ConstraintSet.LEFT, 0);
+            cs.connect(view_id, ConstraintSet.RIGHT, R.id.pro_panel_pill, ConstraintSet.RIGHT, 0);
+            placeAbove(cs, view_id, R.id.pro_panel_pill, (int) (12 * scale + 0.5f));
+
+            view = main_activity.findViewById(R.id.pro_panel_tabs_scroll);
+            view_id = view.getId();
+            resetView(cs, view);
+            centerHorizontally(cs, view_id);
+            pinToBottom(cs, view_id, navigation_gap, (int) (35 * scale + 0.5f));
+
+            // the dark band behind the Pro row (reference: the lowest zone of the Pro view lies
+            // on its own surface, its top edge ~16 dp above the tab row's top - measured)
+            view = main_activity.findViewById(R.id.pro_panel_sheet);
+            view_id = view.getId();
+            resetView(cs, view);
+            cs.connect(view_id, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT, 0);
+            cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, 0);
+            cs.connect(view_id, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, 0);
+            cs.connect(view_id, ConstraintSet.TOP, R.id.pro_panel_tabs_scroll, ConstraintSet.TOP,
+                    -(int) (36 * scale + 0.5f));
+
+            // the drag handle above the tab row - the same piece as on the settings sheet, a
+            // swipe down on it closes the panel (measured: 20 dp above the row)
+            view = main_activity.findViewById(R.id.pro_panel_handle);
+            view_id = view.getId();
+            resetView(cs, view);
+            centerHorizontally(cs, view_id);
+            placeAbove(cs, view_id, R.id.pro_panel_tabs_scroll, (int) (20 * scale + 0.5f));
+
             // the zoom steps pill, centred above the shutter: measured in the reference, its
             // bottom edge is 36 dp above the shutter ring, and the 86 dp ring sits 7 dp inside
             // the 100 dp take_photo view
@@ -611,7 +691,10 @@ public class MainUI {
             applyFocusSeekbarsRotation(cs);
         }
 
-        if( !popup_container_only )
+        // While the pro panel is open, four of these seekbars live in the panel's pill, where the
+        // panel owns their geometry: they are no longer children of sliders_container, so the
+        // RelativeLayout.LayoutParams cast below would throw (2026-09-21).
+        if( !popup_container_only && !main_activity.proPanelIsOpen() )
         {
             // the exposure/ISO/... sliders: limit the width so they fit on screen (the limit only
             // ever bites on small devices, e.g. Galaxy Nexus or smaller)
@@ -697,6 +780,13 @@ public class MainUI {
             rotateGlyphs(false);
             setTakePhotoIcon();
             // no need to call setSwitchCameraContentDescription()
+            // An open pro panel keeps the zoom pill, the mode bar, the photo/video switch and the
+            // app's own focus seekbar hidden (Kickoff 3) - after the visibility logic above, which
+            // sets them again on every pass. The panel only exists once it has been opened, hence
+            // the null-safe accessor (getProPanel() would build views during a layout pass).
+            ProPanel proPanel = main_activity.getProPanelOrNull();
+            if( proPanel != null )
+                proPanel.applyHiddenWhileOpen();
         }
 
         if( MyDebug.LOG ) {
@@ -1129,11 +1219,15 @@ public class MainUI {
                 popupButton.setVisibility(visibility);
                 galleryButton.setVisibility(visibility);
                 settingsButton.setVisibility(visibility);
-                main_activity.findViewById(R.id.zoom_stepper).setVisibility(zoomStepper.hasSteps() ? visibility : View.GONE);
+                setZoomStepperVisibility(zoomStepper.hasSteps() ? visibility : View.GONE);
                 int mode_visibility = immersive_mode ? View.INVISIBLE : View.VISIBLE;
                 main_activity.findViewById(R.id.mode_bar).setVisibility(mode_visibility);
                 main_activity.findViewById(R.id.photo_video_switch).setVisibility(mode_visibility);
                 main_activity.findViewById(R.id.settings_sheet_button).setVisibility(mode_visibility);
+                // the pro panel is photo-only (Kickoff 3/4), so this path must not resurrect its
+                // button in video mode
+                main_activity.findViewById(R.id.pro_panel_button).setVisibility(
+                        main_activity.getPreview().isVideo() ? View.GONE : mode_visibility);
                 if( main_activity.showManualFocusSeekbar(false) )
                     focusSeekBar.setVisibility(visibility);
                 if( main_activity.showManualFocusSeekbar(true) )
@@ -1240,7 +1334,7 @@ public class MainUI {
                 // zoom steps only make sense where zoom is allowed at all (e.g. not in panorama
                 // mode, see MyApplicationInterface.allowZoom()); they stay while recording
                 // video, so a lens can still be picked mid-recording (Falk, 2026-09-18)
-                main_activity.findViewById(R.id.zoom_stepper).setVisibility(zoomStepper.hasSteps() ? visibility_video : View.GONE);
+                setZoomStepperVisibility(zoomStepper.hasSteps() ? visibility_video : View.GONE);
                 // Taking a photo leaves the mode bar and the photo/video switch alone (as the
                 // reference does); while recording a video or a panorama they're INVISIBLE -
                 // out of sight and untouchable, without anything moving.
@@ -1254,6 +1348,19 @@ public class MainUI {
                     SettingsSheet settingsSheet = main_activity.getSettingsSheet();
                     if( settingsSheet != null && settingsSheet.isOpen() )
                         settingsSheet.close();
+                }
+                // The pro panel is a photo-mode panel: manual ISO and exposure time are what the
+                // video auto-torch hangs off (Kickoff 4), so the right dock button disappears in
+                // video mode and an open panel closes with it. This runnable serves both modes, so
+                // the mode has to be tested here - otherwise the button would never come back.
+                if( main_activity.getPreview().isVideo() ) {
+                    main_activity.findViewById(R.id.pro_panel_button).setVisibility(View.GONE);
+                    ProPanel proPanelVideo = main_activity.getProPanelOrNull();
+                    if( proPanelVideo != null && proPanelVideo.isOpen() )
+                        proPanelVideo.close();
+                }
+                else {
+                    main_activity.findViewById(R.id.pro_panel_button).setVisibility(mode_visibility);
                 }
                 updateModeBar();
                 if( !(show_gui_photo && show_gui_video) ) {

@@ -964,6 +964,18 @@
     <!-- Einstellungen-Blatt (ui/SettingsSheet). Deutsch ist die Referenz (Wortlaut wie die
          Pixel-Kamera), die englischen Texte in values/strings.xml sind die Übersetzung. -->
     <string name="settings_sheet_open">Einstellungen öffnen</string>
+
+    <!-- Pro-Panel am rechten Dock-Button (ui/ProPanel, docs/kickoff/redesign-pro-panel.md). Die
+         Regler-Beschriftungen nutzen die vorhandenen Strings (exposure, white_balance, focus,
+         iso, exposure_shutter_speed, preference_focus_peaking). -->
+    <string name="pro_panel_minus">Wert einen Schritt verkleinern</string>
+    <string name="pro_panel_plus">Wert einen Schritt vergrößern</string>
+    <string name="pro_panel_open">Pro-Panel öffnen</string>
+    <string name="pro_panel_reset">Alle zurücksetzen</string>
+    <string name="pro_panel_focus">Fokus</string>
+    <string name="pro_panel_auto">Automatik</string>
+    <string name="pro_panel_reset_done">Belichtung, Weißabgleich, Fokus, ISO und Verschlusszeit zurückgesetzt.</string>
+    <string name="pro_panel_peaking_active">Fokus-Anzeige aktiv</string>
     <string name="settings_sheet_more_options">Vollständige Einstellungen</string>
     <string name="settings_sheet_photo">Fotoeinstellungen</string>
     <string name="settings_sheet_video">Videoeinstellungen</string>

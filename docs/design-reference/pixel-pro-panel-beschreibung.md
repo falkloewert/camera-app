@@ -83,8 +83,13 @@ waagerecht mittig, dort wo sonst die Zoom-Pille sitzt.
   Abstand **18 px (8 dp)**, jeder vierte hoch (**32 dp**); unten auf y 1373 bündig; nach außen
   hin schwächer (Alpha-Verlauf). Farbe weiß, teils gedimmt.
 - **Mittelbalken** (Wertanzeiger): x 475–484 (**4,4 dp** breit), y 1339–1374 (**16 dp** hoch),
-  weiß, abgerundet, sitzt in der Bildmitte (x 480) – er wandert mit dem Wert, die Teilstriche
-  bleiben stehen.
+  weiß, abgerundet. Er **steht fest** in der Bildmitte (x 480) – die Skala wandert darunter
+  durch. Nachgemessen in Sekunde 45 und 60 (Belichtungszeit bzw. ISO): der Balken liegt in
+  beiden Bildern auf 480, die Zahlen wandern. (Der erste Eintrag hier behauptete das Gegenteil;
+  korrigiert am 2026-09-21 am Einzelbild.)
+- **Die Zahlen stehen unter den hohen Teilstrichen**, und ihre Abstände sind **ungleich** – sie
+  sitzen auf den runden Werten der Pixel-Skala (ISO: 100 → 200 sind 6 Striche, 200 → 400 zehn,
+  400 → 800 dreizehn). Die Skala selbst ist also gleichmäßig geteilt, die Beschriftung nicht.
 - **Wert-Blase** darüber: hell (gemessen `#C5C5C5` über dunklem Sucher), **36 dp hoch**, Radius
   = halbe Höhe, Breite nach Text („1/10000s" → 190 px = 84 dp); dunkler, fetter Text mit
   Versalhöhe ~33 px (**15 dp**); Unterkante ~20 px (**9 dp**) über der Pille; erscheint **nur
@@ -112,8 +117,13 @@ waagerecht mittig, dort wo sonst die Zoom-Pille sitzt.
   Belichtungszeit · ISO`.
 - **Trennstrich** zwischen „Alle zurücksetzen" und dem ersten Regler-Reiter: x 204–208
   (**2 dp**), y 1865–1927 (**28 dp**), `#575757`.
-- Über der Reihe ein kleiner grauer Scroll-Balken (36 × 3 dp, mittig) – die Reihe scrollt, weil
-  sieben Reiter nicht auf den Schirm passen.
+- Über der Reihe ein kleiner grauer Balken (36 × 3 dp, mittig, y ~1783): **der Griff zum
+  Schließen**, dasselbe Stück wie am Einstellungen-Blatt – nicht der Scrollbalken der Reihe.
+  Im Record ist kein Wisch nach unten zu sehen (Abschnitt 6), Falk kennt die Geste aber von der
+  Foto-Ansicht.
+- Hinter der ganzen unteren Zone liegt eine **eigene dunkle Fläche** (Abfrage der laufenden
+  Google-Kamera am 2026-09-21: `manual_panel_container` = `[0,1750][960,2142]`, also **174 dp**
+  hoch und bis zur Bildunterkante); die Kante liegt ~15 dp über dem Griff.
 - Ein Reiter mit **manuell verstelltem** Wert zeigt seine Kachel **grau** (aufgehellt, dunkles
   Symbol) statt dunkel; im Record ab Sekunde 29,5 beim Weißabgleich zu sehen (Gemini-Beschreibung).
 
@@ -140,13 +150,18 @@ beim Bauen gilt das Drehmodell der App (Fenster fest Hochformat, nur Glyphen dre
 
 - **„Schatten"** entfällt (kein Gegenstück, `ui-spezifikation.md` 4b) – nicht neu aufmachen.
 - **„Helligkeit"** der Vorlage ist unsere **Belichtung** (`R.id.exposure_seekbar`).
-- Der **Auto-Rundknopf rechts der Pille** je Reiter (Abschnitt 3) wird nicht gebaut; bei uns
-  setzt „Alle zurücksetzen" auf den Standard zurück.
-- **Zahlen unter den Teilstrichen** werden nicht gebaut: unsere SeekBars haben andere,
-  logarithmische Skalen (`ManualSeekbars.seekbarScaling`) – falsche Zahlen wären schlechter als
-  keine. Der Wert steht in der Blase über dem Regler.
-- Nur **ein Endsymbol** je Reiter (links, das vorhandene Drawable des Reglers), nicht zwei.
+- **Zahlen unter den Teilstrichen** werden gebaut, aber aus **unseren** Skalen
+  (`ManualSeekbars`) – runde Werte bekommen ihre Zahl, wo sie weit auseinanderliegen, füllt ein
+  Zwischenwert die Lücke (sonst stünde auf einem Schirm voller Skala keine einzige Zahl). Der
+  Wert steht zusätzlich in der Blase über dem Regler.
+- Der **Auto-Rundknopf rechts der Pille** wird gebaut und ist **immer sichtbar** (Falk
+  2026-09-21): ein Druck holt den Standardwert des aktiven Reiters zurück.
+- **Beide Endsymbole** je Reiter: links das Symbol mit kleinem Minus, rechts mit kleinem Plus
+  (ein Schritt des Reglers, wie die Lautstärketasten).
 - Die **graue Kachel** für manuell verstellte Werte wird nicht gebaut (Kickoff nennt nur
   „weißer Kreis = aktiv").
 - Reiter-Beschriftungen sind unsere Strings (`Belichtung`, `Weißabgleich`, `Fokus`, `ISO`,
-  `Verschlusszeit`) statt der Pixel-Wörter.
+  `Verschlusszeit`) statt der Pixel-Wörter; die Beschriftung darf dafür **breiter als die
+  Kachel** sein (in der Vorlage steht „Weißabgleich" einzeilig unter einer schmaleren Kachel).
+- **Schließen per Wisch nach unten** am Griff und am Band wird gebaut (Falk 2026-09-21) –
+  im Record ist die Geste nicht zu sehen (Abschnitt 6).

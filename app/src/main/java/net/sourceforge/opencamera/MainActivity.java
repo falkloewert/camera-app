@@ -11,6 +11,7 @@ import net.sourceforge.opencamera.ui.FolderChooserDialog;
 import net.sourceforge.opencamera.ui.MainUI;
 import net.sourceforge.opencamera.ui.SettingsSheet;
 import net.sourceforge.opencamera.ui.ManualSeekbars;
+import net.sourceforge.opencamera.ui.ProPanel;
 
 import java.io.File;
 import java.io.IOException;
@@ -657,6 +658,8 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         this.getOnBackPressedDispatcher().addCallback(this, screenLockOnBackPressedCallback);
         settingsSheetOnBackPressedCallback = new SettingsSheetOnBackPressedCallback(false);
         this.getOnBackPressedDispatcher().addCallback(this, settingsSheetOnBackPressedCallback);
+        proPanelOnBackPressedCallback = new ProPanelOnBackPressedCallback(false);
+        this.getOnBackPressedDispatcher().addCallback(this, proPanelOnBackPressedCallback);
 
         // create notification channel - only needed on Android 8+
         // update: notifications now removed due to needing permissions on Android 13+
@@ -1263,6 +1266,12 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
 
     public int getExposureSeekbarProgressZero() {
         return exposure_seekbar_values_zero;
+    }
+
+    /** Ob die Werte des Belichtungsreglers schon aufgebaut sind - getExposureSeekbarValue()
+     *  wirft sonst (das Pro-Panel beschriftet damit sein Massband). */
+    public boolean hasExposureSeekbarValues() {
+        return exposure_seekbar_values != null;
     }
 
     /** Returns the exposure compensation corresponding to a progress on the seekbar.
@@ -2576,6 +2585,80 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         return settingsSheet != null && settingsSheet.isOpen();
     }
 
+    /* ---- pro panel (Kickoff redesign-pro-panel.md 3) --------------------------------------- */
+
+    private ProPanel proPanel;
+
+    /** The pro panel at the right dock button, created on first use. */
+    public ProPanel getProPanel() {
+        if( proPanel == null )
+            proPanel = new ProPanel(this);
+        return proPanel;
+    }
+
+    /** The same, but without creating it - for the layout pass, which must not add views. */
+    public ProPanel getProPanelOrNull() {
+        return proPanel;
+    }
+
+    public boolean proPanelIsOpen() {
+        return proPanel != null && proPanel.isOpen();
+    }
+
+    /** The right dock button: opens the pro panel, or closes it again. */
+    public void clickedProPanel(View view) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "clickedProPanel");
+        ProPanel panel = getProPanel();
+        if( panel.isOpen() ) {
+            panel.close();
+        }
+        else if( canOpenSettingsSheet() ) {
+            // the sheet and the panel both sit on the bottom edge - only one of them at a time
+            if( settingsSheetIsOpen() )
+                getSettingsSheet().close();
+            panel.open();
+        }
+    }
+
+    /** The round button inside the pro panel's pill: back to automatic for the active tab. */
+    public void clickedProPanelAuto(View view) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "clickedProPanelAuto");
+        if( proPanelIsOpen() )
+            proPanel.clickedAuto();
+    }
+
+    private ProPanelOnBackPressedCallback proPanelOnBackPressedCallback;
+
+    private class ProPanelOnBackPressedCallback extends OnBackPressedCallback {
+        public ProPanelOnBackPressedCallback(boolean enabled) {
+            super(enabled);
+        }
+
+        @Override
+        public void handleOnBackPressed() {
+            if( MyDebug.LOG )
+                Log.d(TAG, "ProPanelOnBackPressedCallback.handleOnBackPressed");
+            if( proPanelIsOpen() ) {
+                // close() disables this callback, so no need to do it here
+                proPanel.close();
+            }
+            else {
+                if( MyDebug.LOG )
+                    Log.e(TAG, "ProPanelOnBackPressedCallback was enabled but panel not open?!");
+                this.setEnabled(false);
+            }
+        }
+    }
+
+    public void enableProPanelOnBackPressedCallback(boolean enabled) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "enableProPanelOnBackPressedCallback: " + enabled);
+        if( proPanelOnBackPressedCallback != null )
+            proPanelOnBackPressedCallback.setEnabled(enabled);
+    }
+
     /** Whether the sheet may be opened right now: not while the camera is being opened, a photo
      *  or video is being taken or the screen is locked (Kickoff 3.2). Both the dock button and the
      *  swipe ask this. */
@@ -2599,6 +2682,9 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     public void clickedSettingsSheet(View view) {
         if( MyDebug.LOG )
             Log.d(TAG, "clickedSettingsSheet");
+        // tapping the settings button while the pro panel is open: the panel gives way
+        if( proPanelIsOpen() )
+            proPanel.close();
         SettingsSheet sheet = getSettingsSheet();
         if( sheet.isOpen() )
             sheet.close();
@@ -2611,6 +2697,12 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     public void settingsSheetSwipe() {
         if( MyDebug.LOG )
             Log.d(TAG, "settingsSheetSwipe");
+        // the same swipe down also closes the pro panel (Kickoff 3) - the gesture is the one the
+        // settings sheet already has (Preview.gestureDetector), MyGestureDetector stays untouched
+        if( proPanelIsOpen() ) {
+            proPanel.close();
+            return;
+        }
         if( !canOpenSettingsSheet() )
             return;
         getSettingsSheet().open();
@@ -5413,13 +5505,9 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             // reports, so rebuild them whenever a camera is opened or switched
             mainUI.getZoomStepper().update();
 
-            View zoomStepper = findViewById(R.id.zoom_stepper);
-            if( mainUI.getZoomStepper().hasSteps() && !mainUI.inImmersiveMode() ) {
-                zoomStepper.setVisibility(View.VISIBLE);
-            }
-            else {
-                zoomStepper.setVisibility(View.GONE);
-            }
+            // waehrend das Pro-Panel offen ist, bleiben die Stufen weg (MainUI)
+            mainUI.setZoomStepperVisibility(mainUI.getZoomStepper().hasSteps() && !mainUI.inImmersiveMode()
+                    ? View.VISIBLE : View.GONE);
             mainUI.updateModeBar();
 
             if( MyDebug.LOG )
@@ -5739,7 +5827,9 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     }
 
     void setManualFocusSeekBarVisibility(final boolean is_target_distance) {
-        boolean is_visible = showManualFocusSeekbar(is_target_distance);
+        // while the pro panel is open it owns the focus slider (it brings one of its own into its
+        // pill), so the app's own focus seekbar stays out of the way (Kickoff 3)
+        boolean is_visible = showManualFocusSeekbar(is_target_distance) && !(proPanelIsOpen() && !is_target_distance);
         SeekBar focusSeekBar = findViewById(is_target_distance ? R.id.focus_bracketing_target_seekbar : R.id.focus_seekbar);
         final int visibility = is_visible ? View.VISIBLE : View.GONE;
         focusSeekBar.setVisibility(visibility);
