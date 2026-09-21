@@ -593,29 +593,27 @@ public class MainUI {
             view = main_activity.findViewById(R.id.pro_panel_pill);
             view_id = view.getId();
             resetView(cs, view);
-            // the pill is not centred on the screen: the round auto/reset button sits to its
-            // right (reference, measured: its right edge 13 dp from the screen edge, 21 dp gap),
-            // so the pill is centred in the space that is left of it
-            cs.connect(view_id, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT, 0);
-            cs.connect(view_id, ConstraintSet.RIGHT, R.id.pro_panel_auto, ConstraintSet.LEFT,
-                    -(int) (21 * scale + 0.5f));
-            cs.setHorizontalBias(view_id, 0.5f);
+            // the pill is centred on the screen (reference, measured: 69 dp from each edge);
+            // the round auto button no longer sits beside it but next to the badge above it
+            // (Falk 2026-09-21)
+            centerHorizontally(cs, view_id);
             placeAbove(cs, view_id, R.id.take_photo, (int) (29 * scale + 0.5f));
-
-            view = main_activity.findViewById(R.id.pro_panel_auto);
-            view_id = view.getId();
-            resetView(cs, view);
-            cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT,
-                    (int) (13 * scale + 0.5f));
-            cs.connect(view_id, ConstraintSet.TOP, R.id.pro_panel_pill, ConstraintSet.TOP, 0);
 
             view = main_activity.findViewById(R.id.pro_panel_badge);
             view_id = view.getId();
             resetView(cs, view);
-            // centred over the pill (the badge belongs to the slider in it, not to the screen)
-            cs.connect(view_id, ConstraintSet.LEFT, R.id.pro_panel_pill, ConstraintSet.LEFT, 0);
-            cs.connect(view_id, ConstraintSet.RIGHT, R.id.pro_panel_pill, ConstraintSet.RIGHT, 0);
+            // the badge is centred on the screen, not over the pill (Falk 2026-09-21)
+            centerHorizontally(cs, view_id);
             placeAbove(cs, view_id, R.id.pro_panel_pill, (int) (12 * scale + 0.5f));
+
+            view = main_activity.findViewById(R.id.pro_panel_auto);
+            view_id = view.getId();
+            resetView(cs, view);
+            // right next to the badge, centred on it - so it stays clear of the pill
+            cs.connect(view_id, ConstraintSet.LEFT, R.id.pro_panel_badge, ConstraintSet.RIGHT,
+                    (int) (10 * scale + 0.5f));
+            cs.connect(view_id, ConstraintSet.TOP, R.id.pro_panel_badge, ConstraintSet.TOP, 0);
+            cs.connect(view_id, ConstraintSet.BOTTOM, R.id.pro_panel_badge, ConstraintSet.BOTTOM, 0);
 
             view = main_activity.findViewById(R.id.pro_panel_tabs_scroll);
             view_id = view.getId();

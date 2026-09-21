@@ -1037,7 +1037,7 @@
          Panels ausgeblendet ist). Die Reiter baut ui/ProPanel.java. -->
     <HorizontalScrollView
         android:id="@+id/pro_panel_tabs_scroll"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:scrollbars="none"
         android:visibility="gone"

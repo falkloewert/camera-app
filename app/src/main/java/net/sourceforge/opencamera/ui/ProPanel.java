@@ -81,8 +81,38 @@ public class ProPanel {
     private static final int BADGE_POLL_MS = 150;
     /** Zwischen zwei Zahlen des Massbands liegen mindestens so viele Striche (8 dp je Strich). */
     private static final int MIN_LABEL_STEPS = 5;
-    /** Und hoechstens so viele - sonst stuende auf einer Bildschirmbreite keine Zahl. */
+    /** Und hoechstens so viele, wo eine Zwischenzahl erlaubt ist. Die gibt es nur beim Fokus
+     *  (Meter) und bei der Verschlusszeit (Nenner) - dort ist auch der Zwischenwert eine runde
+     *  Zahl. Bei Belichtung, ISO und Weissabgleich stehen ausschliesslich die runden Werte:
+     *  eine Zahl wie "+2,83" will Falk dort nicht sehen (2026-09-21). */
     private static final int MAX_LABEL_STEPS = 12;
+    /** Der Belichtungsregler teilt in Sechstel-EV; eine volle Zahl sind sechs Schritte. */
+    private static final int EV_SIXTHS = 6;
+    /** Der Weissabgleich geht in Schritten von 500 K - eine runde Zahl, die man ansagen kann. */
+    private static final int WB_STEP = 500;
+    /** Auf dem Massband stehen nur die vollen Tausend: fuenfstellige Zahlen liegen bei 500 K
+     *  Abstand so dicht, dass sie aneinanderkleben (am Geraet gesehen, 2026-09-21). */
+    private static final int WB_LABEL_STEP = 1000;
+
+    /** Die ISO-Stufen einer Kamera: die Zahl, die ein Fotograf erwartet (und die einzigen, die
+     *  eine Zahl auf dem Massband bekommen). */
+    private static final int [] NICE_ISO = {50, 60, 70, 80, 90, 100, 125, 160, 200, 250, 320, 400,
+            500, 640, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000, 5000, 6400, 8000, 10000, 12800};
+
+    /** Die Nenner der Verschlusszeit, die eine Zahl bekommen (1/60 s usw.). */
+    private static final long [] NICE_DENOMINATORS = {1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 25, 30, 40,
+            50, 60, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600, 2000,
+            2500, 3200, 4000, 5000, 6400, 8000, 10000};
+
+    /** Dasselbe in Sekunden. */
+    private static final long [] NICE_SECONDS = {1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30, 60, 90, 120,
+            180, 240, 300, 420, 600, 900, 1200};
+
+    /** Die Entfernungen des Fokus-Reglers, die eine Zahl bekommen (aufsteigend) - die Meter-Skala
+     *  eines Objektivs. */
+    private static final double [] NICE_METRES = {0.1, 0.12, 0.15, 0.2, 0.25, 0.3, 0.5, 0.7, 1.0,
+            1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0, 15.0, 20.0, 30.0, 50.0, 70.0, 100.0,
+            150.0, 200.0, 250.0, 300.0, 400.0, 500.0};
     private static final float HANDLE_HEIGHT = 3.0f;  // wie das Griffstueck des Einstellungen-Blatts
     private static final float CLOSE_SWIPE = 16.0f;   // so weit nach unten wischen schliesst
 
@@ -226,7 +256,12 @@ public class ProPanel {
     private void buildTabs() {
         int size = dp(TAB_SIZE);
         int label_width = dp(TAB_LABEL_WIDTH);
-        int padding = dp(TAB_ROW_PADDING);
+        // So weit laesst sich die Reihe scrollen, dass der erste bzw. letzte Eintrag etwa in der
+        // Mitte steht. Vorher lag die Reihe breiter als der Schirm mittig im Fenster, dadurch war
+        // "Alle zuruecksetzen" am linken Rand abgeschnitten und nicht erreichbar (Falk 2026-09-21).
+        int screen_width = main_activity.getResources().getDisplayMetrics().widthPixels;
+        int entry_width = label_width + dp(TAB_GAP);
+        int padding = Math.max(dp(TAB_ROW_PADDING), (screen_width - entry_width) / 2);
         tabs_row.setPadding(padding, 0, padding, 0);
         tabs_row.removeAllViews();
         for(int tab = 0; tab < N_TABS; tab++) {
@@ -402,6 +437,9 @@ public class ProPanel {
             setFocusSeekbarProgress();
         SeekBar slider = activeSeekbar();
         hostSlider(slider);
+        // ein stehengebliebener Sechstel-Wert (etwa aus einer frueheren Sitzung) wird beim
+        // Oeffnen auf das Raster gezogen - sonst stuende in der Blase gleich "+3,17"
+        snapExposureToGrid();
         // links und rechts der Pille steht das Symbol des Reiters mit Minus bzw. Plus (Referenz)
         end_minus_icon.setImageResource(tabIcon(selected_tab));
         end_plus_icon.setImageResource(tabIcon(selected_tab));
@@ -425,6 +463,18 @@ public class ProPanel {
         // der SeekBar ist nur noch die Bedienung: sichtbar ist das Massband darunter. Alpha 0
         // statt INVISIBLE/GONE - sonst nimmt er keine Beruehrungen mehr an.
         slider.setAlpha(0.0f);
+        // der Regler der App teilt die Belichtung in Sechsteln; nach dem Loslassen auf das
+        // Raster des Panels runden, damit keine Zahl wie "+3,17" stehen bleibt (Falk 2026-09-21).
+        // Das Ziehen selbst laeuft weiter fein - nur das Ergebnis ist eine glatte Zahl.
+        slider.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent event) {
+                int action = event.getActionMasked();
+                if( action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL )
+                    snapExposureToGrid();
+                return false; // der Regler bedient sich weiter selbst
+            }
+        });
         slider_holder.addView(slider, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
     }
@@ -456,41 +506,199 @@ public class ProPanel {
     /* ---- Feinjustierung und Massband ------------------------------------------------------- */
 
     /** Ein Schritt des aktiven Reglers weiter oder zurueck: die Knoepfe links und rechts der
-     *  Pille (Referenz: das Symbol des Reiters mit Minus bzw. Plus). Der Weg ist derselbe wie
-     *  bei den Lautstaerketasten - die Zuhoerer der App in MainActivity.cameraSetup() wirken
-     *  auch ohne Nutzer-Ereignis (fromUser), das Umhaengen in die Pille aendert daran nichts. */
+     *  Pille (Referenz: das Symbol des Reiters mit Minus bzw. Plus).
+     *
+     *  <p>Die Schrittweite ist je Einstellung die, die man auch ansagen wuerde - kein Sprung auf
+     *  einen krummen Wert: Belichtung in halben EV (der erste Druck rundet auf die naechste volle
+     *  Zahl), Weissabgleich in 500 K, ISO und Fokus auf der naechsten Stufe der Kamera- bzw.
+     *  Meter-Skala, Verschlusszeit eine Stufe ihrer eigenen Reihe (Falk 2026-09-21).</p>
+     *
+     *  <p>Der Weg ist derselbe wie bei den Lautstaerketasten - die Zuhoerer der App in
+     *  MainActivity.cameraSetup() wirken auch ohne Nutzer-Ereignis (fromUser), das Umhaengen in
+     *  die Pille aendert daran nichts.</p> */
     private void stepActiveSlider(int direction) {
         if( !open || direction == 0 )
             return;
         switch( selected_tab ) {
             case TAB_EXPOSURE:
-                // ueberspringt die wiederholten Nullen in der Mitte des Reglers
-                main_activity.changeExposure(direction);
+                stepExposure(direction);
                 break;
             case TAB_WB:
-                main_activity.getMainUI().changeSeekbar(R.id.white_balance_seekbar, direction);
+                stepWhiteBalance(direction);
                 break;
-            case TAB_FOCUS: {
-                // der eigene Regler haengt nicht im Baum der Activity, also direkt stellen -
-                // sein Zuhoerer wendet den Wert auch ohne fromUser an
-                int progress = focus_seekbar.getProgress() + direction;
-                if( progress < 0 )
-                    progress = 0;
-                else if( progress > focus_seekbar.getMax() )
-                    progress = focus_seekbar.getMax();
-                focus_seekbar.setProgress(progress);
+            case TAB_FOCUS:
+                stepFocus(direction);
                 break;
-            }
             case TAB_SHUTTER:
+                // die Reihe des Reglers ist schon die der Kamera (1/50, 1/45, ... 1/15) - eine
+                // Stufe weiter ist genau der naechste sinnvolle Wert
                 main_activity.getMainUI().changeSeekbar(R.id.exposure_time_seekbar, direction);
                 break;
             case TAB_ISO:
-                main_activity.changeISO(direction);
+                stepISO(direction);
                 break;
         }
         // sofort nachziehen, damit Wert und Massband nicht bis zum naechsten Poll stehen bleiben
         updateRuler();
         updateBadge();
+    }
+
+    /** Den Belichtungswert auf das Raster des Panels (halbe EV) runden. Der Regler der App teilt
+     *  feiner, und eine Zahl wie "+3,17" ist keine, die man ansagen kann. */
+    private void snapExposureToGrid() {
+        if( !open || selected_tab != TAB_EXPOSURE || !main_activity.hasExposureSeekbarValues() )
+            return;
+        SeekBar seekbar = main_activity.findViewById(R.id.exposure_seekbar);
+        int value = main_activity.getExposureSeekbarValue(seekbar.getProgress());
+        int target = Math.round(value / (float) (EV_SIXTHS / 2)) * (EV_SIXTHS / 2);
+        if( target != value )
+            setSliderValue(TAB_EXPOSURE, target);
+    }
+
+    /** Belichtung: der Regler teilt in Sechstel-EV. Der erste Druck rundet auf die naechste volle
+     *  Zahl (auf bzw. ab), danach geht es in halben EV weiter. */
+    private void stepExposure(int direction) {
+        if( !main_activity.hasExposureSeekbarValues() )
+            return;
+        SeekBar seekbar = main_activity.findViewById(R.id.exposure_seekbar);
+        int value = main_activity.getExposureSeekbarValue(seekbar.getProgress());
+        int target;
+        if( value % EV_SIXTHS == 0 )        // steht schon glatt: halber Schritt weiter
+            target = value + direction * (EV_SIXTHS / 2);
+        else if( direction > 0 )            // sonst auf die naechste volle Zahl aufrunden
+            target = (Math.floorDiv(value, EV_SIXTHS) + 1) * EV_SIXTHS;
+        else                                // bzw. abrunden
+            target = Math.floorDiv(value, EV_SIXTHS) * EV_SIXTHS;
+        setSliderValue(TAB_EXPOSURE, target);
+    }
+
+    /** Weissabgleich: 500 K je Druck (die Zahlen des Massbands liegen im selben Raster). */
+    private void stepWhiteBalance(int direction) {
+        SeekBar seekbar = main_activity.findViewById(R.id.white_balance_seekbar);
+        int temperature = main_activity.getManualSeekbars().getWhiteBalanceTemperature(seekbar.getProgress());
+        long target;
+        if( temperature % WB_STEP == 0 )
+            target = temperature + direction * WB_STEP;
+        else if( direction > 0 )
+            target = (temperature / WB_STEP + 1) * WB_STEP;
+        else
+            target = (temperature / WB_STEP) * WB_STEP;
+        setSliderValue(TAB_WB, target);
+    }
+
+    /** ISO: die naechste Stufe der Kamera-Reihe (100, 125, 160, 200, ...), nicht der naechste
+     *  Schritt des Reglers - der waere nur 5 oder 10 ISO weit. */
+    private void stepISO(int direction) {
+        SeekBar seekbar = main_activity.findViewById(R.id.iso_seekbar);
+        int iso = main_activity.getManualSeekbars().getISO(seekbar.getProgress());
+        long target = 0;
+        if( direction > 0 ) {
+            for(int value : NICE_ISO) {
+                if( value > iso ) {
+                    target = value;
+                    break;
+                }
+            }
+        }
+        else {
+            for(int i = NICE_ISO.length - 1; i >= 0; i--) {
+                if( NICE_ISO[i] < iso ) {
+                    target = NICE_ISO[i];
+                    break;
+                }
+            }
+        }
+        if( target > 0 )
+            setSliderValue(TAB_ISO, target);
+    }
+
+    /** Fokus: die naechste runde Entfernung - wie die Meter-Skala eines Objektivs. Plus geht
+     *  naeher heran (die Skala laeuft nach rechts zu den kleinen Entfernungen), Minus weiter weg. */
+    private void stepFocus(int direction) {
+        double metres = focusMetres(focus_seekbar.getProgress(), focus_seekbar.getMax());
+        double target = 0.0;
+        if( metres <= 0.0 ) {
+            // steht auf unendlich: der erste runde Wert ist der weiteste
+            if( direction > 0 )
+                target = NICE_METRES[NICE_METRES.length - 1];
+        }
+        else if( direction > 0 ) {
+            for(double value : NICE_METRES) {
+                if( value < metres * 0.98 )
+                    target = value;
+                else
+                    break;
+            }
+        }
+        else {
+            for(int i = NICE_METRES.length - 1; i >= 0; i--) {
+                if( NICE_METRES[i] > metres * 1.02 ) {
+                    target = NICE_METRES[i];
+                    break;
+                }
+            }
+        }
+        if( target > 0.0 )
+            focus_seekbar.setProgress(focusProgress(target));
+    }
+
+    /** Den Regler auf einen Wert stellen: den Schritt suchen, dessen Wert am naechsten liegt. Die
+     *  Wertelisten sind aufsteigend und hoechstens ein paar hundert Eintraege lang, deshalb genuegt
+     *  das Suchen. */
+    private void setSliderValue(int tab, long target) {
+        SeekBar seekbar = activeSeekbar();
+        if( seekbar == null )
+            return;
+        if( tab == TAB_EXPOSURE && target == 0 ) {
+            // der Belichtungsregler hat in der Mitte mehrere Nullen - die mittlere nehmen
+            seekbar.setProgress(main_activity.getExposureSeekbarProgressZero());
+            return;
+        }
+        int best = 0;
+        long best_distance = Long.MAX_VALUE;
+        for(int step = 0; step <= seekbar.getMax(); step++) {
+            long distance = Math.abs(sliderValueAt(tab, step) - target);
+            if( distance < best_distance ) {
+                best_distance = distance;
+                best = step;
+                if( distance == 0 )
+                    break;
+            }
+        }
+        seekbar.setProgress(best);
+    }
+
+    /** Der Wert hinter einem Schritt eines Reglers. */
+    private long sliderValueAt(int tab, int step) {
+        ManualSeekbars manualSeekbars = main_activity.getManualSeekbars();
+        switch( tab ) {
+            case TAB_EXPOSURE:
+                return main_activity.getExposureSeekbarValue(step);
+            case TAB_WB:
+                return manualSeekbars.getWhiteBalanceTemperature(step);
+            case TAB_ISO:
+                return manualSeekbars.getISO(step);
+            case TAB_SHUTTER:
+                return manualSeekbars.getExposureTime(step);
+            default:
+                return 0;
+        }
+    }
+
+    /** Der Schritt des Fokus-Reglers zu einer Entfernung (die Umkehrung von
+     *  {@link #focusMetres(int, int)}, dieselbe Rechnung wie ManualSeekbars). */
+    private int focusProgress(double metres) {
+        Preview preview = main_activity.getPreview();
+        if( preview == null || metres <= 0.0 )
+            return 0;
+        double scaling = (1.0 / metres) / preview.getMinimumFocusDistance();
+        double frac = Math.log(99.0 * scaling + 1.0) / Math.log(100.0);
+        int progress = (int) (frac * focus_seekbar.getMax() + 0.5);
+        if( progress < 0 )
+            progress = 0;
+        else if( progress > focus_seekbar.getMax() )
+            progress = focus_seekbar.getMax();
+        return progress;
     }
 
     /** Das Massband auf den aktiven Regler stellen (Wert, Skala, Beschriftung). */
@@ -501,85 +709,98 @@ public class ProPanel {
             return;
         }
         int max = seekbar.getMax();
-        if( ruler.getMax() != max || ruler_labels_tab != selected_tab ) {
+        boolean rescaled = ruler.getMax() != max || ruler_labels_tab != selected_tab;
+        if( rescaled ) {
             ruler.setMax(max);
             ruler.setLabels(buildLabels(selected_tab, max));
             ruler_labels_tab = selected_tab;
         }
-        ruler.setProgress(seekbar.getProgress());
+        // beim Reiterwechsel springt das Massband (die Skala ist eine andere), sonst faehrt es
+        // den neuen Wert an wie ein Drehrad
+        ruler.setProgress(seekbar.getProgress(), !rescaled);
         ruler.setVisibility(View.VISIBLE);
     }
 
-    /** Die Beschriftung des Massbands. Runde Werte bekommen ihre Zahl (die Referenz beschriftet
-     *  100/200/400/800 ISO, nicht jeden fuenften Strich), und wo die runden Werte weit
-     *  auseinanderliegen, fuellt ein Zwischenwert die Luecke - sonst stuende auf einem Bildschirm
-     *  voller Skala keine einzige Zahl. Zwischen zwei Zahlen liegen immer mindestens
-     *  {@link #MIN_LABEL_STEPS} Striche, hoechstens {@link #MAX_LABEL_STEPS}. */
+    /** Die Beschriftung des Massbands. Beschriftet werden nur runde Werte - die Referenz schreibt
+     *  auch nicht jeden Strichen an, sondern die Stufen (100/200/400/800 ISO). Zwischen zwei
+     *  Zahlen liegen mindestens {@link #MIN_LABEL_STEPS} Striche; wo eine Zwischenzahl erlaubt ist
+     *  (Fokus, Verschlusszeit), hoechstens {@link #MAX_LABEL_STEPS}. */
     private String [] buildLabels(int tab, int max) {
         String [] labels = new String [max + 1];
         if( max <= 0 )
             return labels;
+        // erst die runden Werte: sie stehen fest, egal was die Zwischenzahlen machen
+        List<Integer> rounds = new ArrayList<>();
         int last = -MIN_LABEL_STEPS;
         for(int step = 0; step <= max; step++) {
             if( step - last < MIN_LABEL_STEPS )
                 continue;
-            String text = niceLabel(tab, step);
-            if( text == null && (step - last >= MAX_LABEL_STEPS || step == max) )
-                text = plainLabel(tab, step);
+            String text = roundLabel(tab, step);
             if( text == null )
                 continue;
             labels[step] = text;
+            rounds.add(step);
             last = step;
+        }
+        // dann die Luecken, wo eine Zwischenzahl erlaubt ist (Fokus, Verschlusszeit): gleichmaessig
+        // verteilt und mit Abstand zu beiden Nachbarn - sonst verdraengt eine Zwischenzahl die
+        // naechste runde Zahl
+        if( tab == TAB_FOCUS || tab == TAB_SHUTTER ) {
+            for(int i = 0; i < rounds.size(); i++) {
+                int from = rounds.get(i);
+                int to = (i + 1 < rounds.size()) ? rounds.get(i + 1) : max;
+                for(int step = from + MAX_LABEL_STEPS; to - step >= MIN_LABEL_STEPS; step += MAX_LABEL_STEPS) {
+                    String text = valueLabel(tab, step);
+                    if( text != null )
+                        labels[step] = text;
+                }
+            }
         }
         return labels;
     }
 
     /** Die Zahl an einem runden Wert - oder null, wenn dieser Schritt keinen runden Wert hat. */
-    private String niceLabel(int tab, int step) {
+    private String roundLabel(int tab, int step) {
         switch( tab ) {
-            case TAB_FOCUS: {
-                double metres = focusMetres(step, focus_seekbar.getMax());
-                if( metres <= 0.0 )
-                    return main_activity.getResources().getString(R.string.infinite);
-                if( metres >= 10.0 )
-                    return null; // jenseits von 10 m steht nur noch "unendlich"
-                double [] nice = {0.1, 0.15, 0.2, 0.3, 0.5, 0.7, 1.0, 1.5, 2.0, 3.0, 5.0, 7.0};
-                for(double value : nice) {
-                    if( Math.abs(metres - value) < value * 0.02 )
-                        return formatMetres(metres);
-                }
-                return null;
+            case TAB_EXPOSURE: {
+                if( !main_activity.hasExposureSeekbarValues() )
+                    return null;
+                int value = main_activity.getExposureSeekbarValue(step);
+                // nur ganze EV anschreiben: "+2,83" ist keine Zahl, die man ansagen kann
+                return value % EV_SIXTHS == 0 ? exposureLabel(value) : null;
+            }
+            case TAB_WB: {
+                int temperature = main_activity.getManualSeekbars().getWhiteBalanceTemperature(step);
+                return temperature % WB_LABEL_STEP == 0 ? String.valueOf(temperature) : null;
             }
             case TAB_ISO: {
                 int iso = main_activity.getManualSeekbars().getISO(step);
                 return isNiceISO(iso) ? String.valueOf(iso) : null;
             }
             case TAB_SHUTTER:
-                return niceExposure(main_activity.getManualSeekbars().getExposureTime(step));
+                return niceExposureLabel(main_activity.getManualSeekbars().getExposureTime(step));
+            case TAB_FOCUS: {
+                double metres = focusMetres(step, focus_seekbar.getMax());
+                if( metres <= 0.0 )
+                    return main_activity.getResources().getString(R.string.infinite);
+                for(double value : NICE_METRES) {
+                    if( Math.abs(metres - value) < value * 0.02 )
+                        return formatMetres(metres);
+                }
+                return null;
+            }
             default:
                 return null;
         }
     }
 
-    /** Der Wert an einem beliebigen Schritt (die Zwischenzahl, wenn kein runder Wert in der Naehe
-     *  liegt). */
-    private String plainLabel(int tab, int step) {
-        ManualSeekbars manualSeekbars = main_activity.getManualSeekbars();
+    /** Der Wert an einem beliebigen Schritt (die Zwischenzahl zwischen zwei runden Werten). */
+    private String valueLabel(int tab, int step) {
         switch( tab ) {
-            case TAB_EXPOSURE:
-                // die Werte des Belichtungsreglers (1/3-EV-Schritte, in der Mitte dreimal die
-                // Null); vor cameraSetup gibt es sie noch nicht
-                if( !main_activity.hasExposureSeekbarValues() )
-                    return null;
-                return exposureText(main_activity.getExposureSeekbarValue(step));
-            case TAB_WB:
-                return String.valueOf(manualSeekbars.getWhiteBalanceTemperature(step));
+            case TAB_SHUTTER:
+                return exposureTimeText(main_activity.getManualSeekbars().getExposureTime(step));
             case TAB_FOCUS:
                 return formatMetres(focusMetres(step, focus_seekbar.getMax()));
-            case TAB_ISO:
-                return String.valueOf(manualSeekbars.getISO(step));
-            case TAB_SHUTTER:
-                return exposureTimeText(manualSeekbars.getExposureTime(step));
             default:
                 return null;
         }
@@ -595,52 +816,48 @@ public class ProPanel {
         return dioptres > 0.0 ? 1.0 / dioptres : 0.0;
     }
 
+    /** Eine Entfernung als kurze Zahl: bis 10 m mit Nachkommastelle, darueber in ganzen Metern
+     *  (niemand sagt "302,2 Meter"). */
     private static String formatMetres(double metres) {
-        return String.format(java.util.Locale.US, metres < 1.0 ? "%.2f" : "%.1f", metres);
+        if( metres >= 10.0 )
+            return String.format(java.util.Locale.getDefault(), "%.0f", metres);
+        return String.format(java.util.Locale.getDefault(), metres < 1.0 ? "%.2f" : "%.1f", metres);
     }
 
-    /** „Belichtungskorrektur -1,00 EV" der App auf die Zahl kuerzen - die Blase und das Massband
-     *  haben keinen Platz fuer den langen Text (er sprengte die Blase auf 228 dp). */
-    private String exposureText(int value) {
-        String text = main_activity.getPreview().getExposureCompensationString(value);
-        String prefix = main_activity.getResources().getString(R.string.exposure_compensation) + " ";
-        if( text.startsWith(prefix) )
-            text = text.substring(prefix.length());
-        if( text.endsWith(" EV") )
-            text = text.substring(0, text.length() - 3);
-        return text;
+    /** Die Belichtungskorrektur als glatte Zahl: ganze EV ohne Nachkommastelle ("+1"), halbe mit
+     *  einer ("+0,5") - statt "+2,83" aus der Sechstel-Teilung des Reglers (Falk 2026-09-21). */
+    private static String exposureLabel(int value) {
+        double ev = value / (double) EV_SIXTHS;
+        String sign = ev > 0.0 ? "+" : (ev < 0.0 ? "-" : "");
+        double abs = Math.abs(ev);
+        String number = (abs == Math.floor(abs)) ? String.valueOf((int) abs)
+                : String.format(java.util.Locale.getDefault(), "%.1f", abs);
+        return sign + number;
     }
 
     /** Die ISO-Werte, die eine Zahl bekommen (die Stufen der Kamera, nicht jeder Schritt). */
     private static boolean isNiceISO(int iso) {
-        if( iso < 100 )
-            return iso % 10 == 0;
-        int value = 100;
-        while( value < iso )
-            value *= 2;
-        return value == iso || iso % 1000 == 0;
+        for(int value : NICE_ISO) {
+            if( value == iso )
+                return true;
+        }
+        return false;
     }
 
-    /** Die Verschlusszeiten, die eine Zahl bekommen: die Stufen der Kamera. */
-    private static String niceExposure(long exposure_ns) {
+    /** Die Verschlusszeiten, die eine Zahl bekommen: die Nenner bzw. Sekunden der Kamera-Skala. */
+    private static String niceExposureLabel(long exposure_ns) {
         if( exposure_ns <= 0 )
             return null;
         if( exposure_ns < 1000000000L ) {
-            long denominator = Math.round(1000000000.0 / exposure_ns);
-            return isNiceDenominator(denominator) ? String.valueOf(denominator) : null;
+            if( 1000000000L % exposure_ns != 0 )
+                return null; // krumme Nenner wie 1/45 s bleiben ohne Zahl
+            long denominator = 1000000000L / exposure_ns;
+            return contains(NICE_DENOMINATORS, denominator) ? String.valueOf(denominator) : null;
         }
-        long seconds = Math.round(exposure_ns / 1000000000.0);
-        return (seconds * 1000000000L == exposure_ns) ? String.valueOf(seconds) : null;
-    }
-
-    private static boolean isNiceDenominator(long denominator) {
-        long value = 1;
-        while( value < denominator )
-            value *= 2;
-        if( value == denominator )
-            return true;
-        return denominator == 15 || denominator == 30 || denominator == 60 || denominator == 125
-                || denominator == 250 || denominator == 500;
+        if( exposure_ns % 1000000000L != 0 )
+            return null;
+        long seconds = exposure_ns / 1000000000L;
+        return contains(NICE_SECONDS, seconds) ? String.valueOf(seconds) : null;
     }
 
     /** Eine Verschlusszeit als kurze Zahl: der Nenner bei kurzen Zeiten (250 = 1/250 s),
@@ -650,7 +867,17 @@ public class ProPanel {
             return null;
         if( exposure_ns < 1000000000L )
             return String.valueOf(Math.round(1000000000.0 / exposure_ns));
-        return String.format(java.util.Locale.US, "%.1f", exposure_ns / 1000000000.0);
+        if( exposure_ns % 1000000000L == 0 )
+            return String.valueOf(exposure_ns / 1000000000L);
+        return String.format(java.util.Locale.getDefault(), "%.1f", exposure_ns / 1000000000.0);
+    }
+
+    private static boolean contains(long [] values, long value) {
+        for(long entry : values) {
+            if( entry == value )
+                return true;
+        }
+        return false;
     }
 
     /** Wischen nach unten am Griffstueck schliesst das Panel - dieselbe Geste wie am
@@ -800,10 +1027,10 @@ public class ProPanel {
                 // der Wert des Reglers im Panel, nicht der der Kamera: der Regler ist die
                 // Anzeige, die Falk im Blick hat
                 SeekBar seekbar = main_activity.findViewById(R.id.exposure_seekbar);
-                if( main_activity.hasExposureSeekbarValues() )
-                    text = exposureText(main_activity.getExposureSeekbarValue(seekbar.getProgress()));
-                else
-                    text = preview.getExposureCompensationString(preview.getCurrentExposure());
+                int value = main_activity.hasExposureSeekbarValues()
+                        ? main_activity.getExposureSeekbarValue(seekbar.getProgress())
+                        : preview.getCurrentExposure();
+                text = exposureLabel(value);
                 break;
             }
             case TAB_WB: {
@@ -815,7 +1042,7 @@ public class ProPanel {
                 float distance = (float) (ManualSeekbars.seekbarScaling(focus_seekbar.getProgress() / (double) focus_seekbar.getMax()) * preview.getMinimumFocusDistance());
                 // Dioptrien -> Meter, wie Preview.setFocusDistance() es fuer den Toast macht
                 if( distance > 0.0f ) {
-                    text = String.format(java.util.Locale.US, "%.2f %s", 1.0f / distance, main_activity.getResources().getString(R.string.metres_abbreviation));
+                    text = String.format(java.util.Locale.getDefault(), "%.2f %s", 1.0f / distance, main_activity.getResources().getString(R.string.metres_abbreviation));
                 }
                 else {
                     text = main_activity.getResources().getString(R.string.infinite);
@@ -833,6 +1060,7 @@ public class ProPanel {
             badge.setVisibility(View.GONE);
         }
         else {
+            text = text.trim();  // die App-Strings der Belichtungszeit beginnen mit einem Leerzeichen
             if( !text.equals(badge_text) ) {
                 badge_text = text;
                 badge.setText(text);

@@ -1,5 +1,6 @@
 package net.sourceforge.opencamera.ui;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
@@ -9,6 +10,7 @@ import android.graphics.PorterDuffXfermode;
 import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.animation.DecelerateInterpolator;
 
 import androidx.core.content.ContextCompat;
 
@@ -40,6 +42,10 @@ public class RulerSlider extends View {
     private static final float LABEL_BASELINE_DP = 40.0f;
     private static final float LABEL_SP_DP = 12.0f;
     private static final float FADE_DP = 24.0f;         // Ausblenden zu den Raendern hin
+    /** Das Rad laeuft nicht in Spruengen, sondern faehrt den neuen Wert an: je weiter, desto
+     *  laenger, aber immer kurz - so fuehlt sich das Schieben wie ein Drehrad an (Falk
+     *  2026-09-21). */
+    private static final long ROLL_MIN_MS = 70L, ROLL_MAX_MS = 220L, ROLL_PER_STEP_MS = 35L;
 
     private final Paint tick_paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint label_paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -48,6 +54,8 @@ public class RulerSlider extends View {
 
     private int max = 0;            // hoechster Wert, den der SeekBar kennt
     private int progress = 0;       // aktueller Wert (derselbe wie im SeekBar)
+    private float shown = 0.0f;     // der gezeichnete Wert - zwischen zwei Schritten unterwegs
+    private ValueAnimator roll;     // die Fahrt zum neuen Wert
     private String [] labels = new String [0]; // labels[schritt] = Text, sonst null
 
     public RulerSlider(Context context) {
@@ -86,16 +94,75 @@ public class RulerSlider extends View {
         invalidate();
     }
 
-    /** Der Wert des zugehoerigen SeekBars. */
+    /** Der Wert des zugehoerigen SeekBars: das Massband faehrt ihn an (wie ein Drehrad). */
     public void setProgress(int progress) {
-        if( this.progress != progress ) {
-            this.progress = progress;
-            invalidate();
+        setProgress(progress, true);
+    }
+
+    /** {@code animate=false} springt ohne Fahrt - beim Reiterwechsel, wo die Skala ohnehin
+     *  eine andere ist und ein Nachrollen nur verwirren wuerde. */
+    public void setProgress(int progress, boolean animate) {
+        if( this.progress == progress ) {
+            // derselbe Schritt kann in der neuen Skala ein anderer Wert sein: dann trotzdem
+            // neu zeichnen
+            if( !animate )
+                snapTo(progress);
+            return;
         }
+        this.progress = progress;
+        if( animate )
+            rollTo(progress);
+        else
+            snapTo(progress);
     }
 
     public int getProgress() {
         return progress;
+    }
+
+    private void snapTo(int progress) {
+        cancelRoll();
+        shown = progress;
+        invalidate();
+    }
+
+    private void rollTo(float target) {
+        cancelRoll();
+        if( getWindowToken() == null ) {
+            // noch nicht im Fenster: ohne Fahrt stellen
+            shown = target;
+            invalidate();
+            return;
+        }
+        final float from = shown;
+        long duration = ROLL_MIN_MS + (long) (Math.abs(target - from) * ROLL_PER_STEP_MS);
+        if( duration > ROLL_MAX_MS )
+            duration = ROLL_MAX_MS;
+        roll = ValueAnimator.ofFloat(from, target);
+        roll.setDuration(duration);
+        // schnell los, sanft anhalten - das Anhalten ist das, was das Rad ausmacht
+        roll.setInterpolator(new DecelerateInterpolator(1.6f));
+        roll.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                shown = (Float) animation.getAnimatedValue();
+                invalidate();
+            }
+        });
+        roll.start();
+    }
+
+    private void cancelRoll() {
+        if( roll != null ) {
+            roll.cancel();
+            roll = null;
+        }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        cancelRoll();
+        super.onDetachedFromWindow();
     }
 
     /** Der Text, der zu einem Schritt gehoert (null, wenn der Schritt keinen hat). */
@@ -129,14 +196,16 @@ public class RulerSlider extends View {
         float tick_bottom = dp(TICK_BOTTOM_DP);
         float baseline = dp(LABEL_BASELINE_DP);
 
-        // der sichtbare Bereich in Schritten: der Mittelbalken steht auf dem aktuellen Wert
+        // der sichtbare Bereich in Schritten: der Mittelbalken steht auf dem aktuellen Wert.
+        // Gezeichnet wird die unterwegs befindliche Stelle (shown), nicht der Zielwert - die
+        // Skala laeuft dadurch stetig und nicht in Achter-dp-Spruengen.
         int half = (int) Math.ceil(centre_x / px_per_step) + 1;
-        int from = Math.max(0, progress - half);
-        int to = Math.min(max, progress + half);
+        int from = Math.max(0, (int) Math.floor(shown) - half);
+        int to = Math.min(max, (int) Math.ceil(shown) + half);
 
         int saved = canvas.saveLayer(0, 0, w, h, null);
         for(int step = from; step <= to; step++) {
-            float x = centre_x + (step - progress) * px_per_step;
+            float x = centre_x + (step - shown) * px_per_step;
             String label = labelAt(step);
             boolean main = label != null;
             tick_paint.setStrokeWidth(dp(main ? TICK_WIDTH_DP * 1.5f : TICK_WIDTH_DP));
