@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Auflösungs-Chip der Kopfzeile (Schritt C, SPEC 4.5): weißer Block mit schwarzer Schrift,
+     wie der Chip der Referenz. Der Radius ist gemessen, nicht geschätzt - aus dem
+     Breitenverlauf der obersten Chip-Zeilen der Referenz-PNGs ergibt sich 1,8 dp, die
+     Textreferenz hatte 6 dp angenommen (pixel-kopfzeile-beschreibung.md 2). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle" >
+    <solid android:color="#FFFFFF" />
+    <corners android:radius="2dp" />
+</shape>

@@ -36,6 +36,51 @@
         app:layout_constraintBottom_toBottomOf="parent"
         />
 
+    <!-- Kopfzeile (Schritt C, SPEC 4.5): ein 70,7 dp hohes, rein schwarzes Band über dem Sucher,
+         darin links der Auflösungs-Chip, rechts daneben das Makro-Symbol. Alle Maße sind aus dem
+         Screenrecord der Pixel-App gemessen (2,25 px/dp) und stehen in
+         docs/design-reference/pixel-kopfzeile-beschreibung.md; die Maße setzt MainUI.layoutHeader()
+         zur Laufzeit, hier stehen nur die Rückfallwerte. Kein Verlauf und kein Scrim - das Band
+         ist #000000, die Chips sind invertiert. Das "?" der Referenz entfällt (Falk 2026-09-21):
+         es ist Googles Hilfe-Symbol, der Record zeigt keine Aktion darauf. -->
+    <View
+        android:id="@+id/header_bar"
+        android:layout_width="match_parent"
+        android:layout_height="71dp"
+        android:background="@android:color/black"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        />
+
+    <!-- Der Chip trägt unsere Auflösung (Foto: "12" / "MP" zweizeilig, Video: "4K" / "FHD"),
+         weißer Block mit schwarzer Schrift. Größe und Text setzt MainUI.layoutHeader(), weil
+         die Beschriftung mit dem Modus wechselt. -->
+    <TextView
+        android:id="@+id/header_chip"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:background="@drawable/header_chip_background"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:textColor="@android:color/black"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        />
+
+    <!-- Makro-Symbol: Googles Blüte mit dem "A", weiß auf dem schwarzen Band, ohne Pille und
+         ohne Füllung. Die Grafik ist aus den Referenz-PNGs ausgeschnitten (dort 43 × 48 px =
+         19,1 × 21,3 dp) - dieselbe Blüte, nicht nachgezeichnet. -->
+    <ImageView
+        android:id="@+id/header_macro"
+        android:layout_width="19dp"
+        android:layout_height="21dp"
+        android:src="@drawable/ic_macro_focus"
+        android:importantForAccessibility="no"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        />
+
     <!-- Everything below this point is positioned at runtime by MainUI.layoutUI() (using
          ConstraintSet) - one fixed portrait arrangement, the window never rotates (see the
          rotation model in docs/design-reference/ui-spezifikation.md section 2). The

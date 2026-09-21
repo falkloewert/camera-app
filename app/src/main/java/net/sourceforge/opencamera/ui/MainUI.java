@@ -19,10 +19,12 @@ import android.graphics.Typeface;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.media.AudioManager;
+import android.media.CamcorderProfile;
 import android.os.Build;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
 import android.view.OrientationEventListener;
@@ -343,6 +345,115 @@ public class MainUI {
         cs.connect(view_id, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, navigation_gap + margin);
     }
 
+    /* ---- Kopfzeile (Schritt C, SPEC 4.5) --------------------------------------------------- */
+
+    /** Maße der Kopfzeile, alle aus dem Screenrecord der Pixel-App gemessen (2,25 px/dp,
+     *  docs/design-reference/pixel-kopfzeile-beschreibung.md) - nicht aus der Textreferenz, die
+     *  an diesen Stellen falsch ist (sie nannte 6 dp Eckenradius und ein gestapeltes Makro-Symbol). */
+    private static final float header_height_dp = 70.7f;          // das schwarze Band über dem Sucher
+    /** Feste Achse, auf der alle drei gemessenen Chip-Varianten sitzen ("FHD", "4K", "50 MP") -
+     *  die Beschriftung wächst symmetrisch um sie herum, der Chip sitzt nicht bündig am Rand. */
+    private static final float header_chip_center_x_dp = 38.0f;
+    private static final float header_chip_center_y_dp = 42.9f;
+    private static final float header_chip_wide_w_dp = 21.3f;      // "FHD": 21,3 × 16,0 dp
+    private static final float header_chip_wide_h_dp = 16.0f;
+    private static final float header_chip_square_dp = 17.8f;     // "4K" und "50 MP": 17,8 × 17,8 dp
+    private static final float header_chip_text_size_dp = 9.0f;
+    private static final float header_macro_left_dp = 80.9f;      // linker Rand bis Symbolkante
+    private static final float header_macro_top_dp = 32.4f;
+    private static final float header_macro_w_dp = 19.1f;         // 43 × 48 px in der Referenz
+    private static final float header_macro_h_dp = 21.3f;
+
+    /** Der Text des Auflösungs-Chips. Foto: die Megapixel unserer Auflösung, zweizeilig wie das
+     *  "50 MP" der Referenz (bei uns "12 MP", weil der Standard das native 12-MP-Raster ist).
+     *  Video: die Auflösungsklasse wie im Record ("4K", "FHD", "8K") - dieselbe Schreibweise, die
+     *  das Video-Blatt für seine Knöpfe benutzt. */
+    private String headerChipLabel() {
+        Preview preview = main_activity.getPreview();
+        if( preview.isVideo() ) {
+            String quality = preview.getVideoQualityHander().getCurrentVideoQuality();
+            CamcorderProfile profile = quality == null ? null : preview.getCamcorderProfile(quality);
+            int width = profile == null ? 0 : profile.videoFrameWidth;
+            if( width <= 0 )
+                return "FHD"; // die Kamera sagt noch nichts - 16:9 startet bei uns mit FHD
+            if( width >= 7680 )
+                return "8K";
+            if( width >= 3840 )
+                return "4K";
+            if( width >= 1920 )
+                return "FHD";
+            return Math.round(width / 1000.0f) + "K"; // z.B. das 3264er der Frontkamera
+        }
+        CameraController.Size size = preview.getCurrentPictureSize();
+        if( size == null )
+            return "";
+        return Math.round(size.width * (float)size.height / 1000000.0f) + "\nMP";
+    }
+
+    /** Wann das Makro-Symbol erscheint. In der Referenz steht es nur im einfachen Foto-Modus
+     *  (Chip "12 MP"); bei "50 MP", im Video und im Querformat der Pro-Ansicht fehlt es
+     *  (pixel-kopfzeile-beschreibung.md 9 - dort ausdrücklich als Hypothese vermerkt, weil der
+     *  Record nie aus dem Video-Modus herauskommt). Bei uns ist das der Standard-Fotomodus mit
+     *  dem nativen 12-MP-Raster: Panorama, die 4080er Vollauslesung der vollen Einstellungen und
+     *  alles Video bekommen es nicht. */
+    private boolean shouldShowMacroChip() {
+        Preview preview = main_activity.getPreview();
+        if( preview.isVideo() )
+            return false;
+        if( main_activity.getApplicationInterface().getPhotoMode() != MyApplicationInterface.PhotoMode.Standard )
+            return false;
+        CameraController.Size size = preview.getCurrentPictureSize();
+        return size != null && size.width <= CameraController.STANDARD_PICTURE_WIDTH;
+    }
+
+    /** Legt die Kopfzeile: das schwarze Band, den Auflösungs-Chip auf seiner festen Achse und
+     *  das Makro-Symbol rechts daneben auf derselben Mittelachse. Band und Chip sitzen fest im
+     *  Layout und drehen nicht mit (wie die Beschriftungen der Modusleiste): sie sind auf die
+     *  feste Hochformat-Anordnung gedruckt, nur die Symbole der Bedienelemente drehen sich
+     *  (Drehmodell K3, ui-spezifikation.md Abschnitt 2). */
+    private void layoutHeader(ConstraintSet cs, float scale) {
+        View bar = main_activity.findViewById(R.id.header_bar);
+        int bar_id = bar.getId();
+        resetView(cs, bar);
+        cs.connect(bar_id, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT, 0);
+        cs.connect(bar_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, 0);
+        cs.connect(bar_id, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 0);
+        cs.constrainHeight(bar_id, (int) (header_height_dp * scale + 0.5f));
+
+        TextView chip = main_activity.findViewById(R.id.header_chip);
+        chip.setText(headerChipLabel());
+        // Die vier Zeichen von "FHD" brauchen den breiten, dafür flacheren Chip; "4K" und das
+        // zweizeilige "12 MP" sitzen im Quadrat (gemessen, pixel-kopfzeile-beschreibung.md 2).
+        String label = chip.getText().toString();
+        boolean wide = label.length() >= 4 && label.indexOf('\n') < 0;
+        // Solange die Kamera noch keine Auflösung meldet (erster Aufbau, bevor sie offen ist),
+        // bleibt der Chip weg statt als leerer weißer Block dazustehen.
+        cs.setVisibility(chip.getId(), label.isEmpty() ? View.GONE : chip.getVisibility());
+        int chip_w = (int) ((wide ? header_chip_wide_w_dp : header_chip_square_dp) * scale + 0.5f);
+        int chip_h = (int) ((wide ? header_chip_wide_h_dp : header_chip_square_dp) * scale + 0.5f);
+        int chip_id = chip.getId();
+        resetView(cs, chip);
+        cs.constrainWidth(chip_id, chip_w);
+        cs.constrainHeight(chip_id, chip_h);
+        cs.connect(chip_id, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT,
+                (int) (header_chip_center_x_dp * scale + 0.5f) - chip_w / 2);
+        cs.connect(chip_id, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP,
+                (int) (header_chip_center_y_dp * scale + 0.5f) - chip_h / 2);
+        chip.setTextSize(TypedValue.COMPLEX_UNIT_PX, header_chip_text_size_dp * scale);
+        chip.setLineSpacing(0.0f, 0.7f); // die zwei Zeilen sitzen dicht untereinander (gemessen)
+
+        ImageView macro = main_activity.findViewById(R.id.header_macro);
+        int macro_id = macro.getId();
+        resetView(cs, macro);
+        cs.constrainWidth(macro_id, (int) (header_macro_w_dp * scale + 0.5f));
+        cs.constrainHeight(macro_id, (int) (header_macro_h_dp * scale + 0.5f));
+        cs.connect(macro_id, ConstraintSet.LEFT, ConstraintSet.PARENT_ID, ConstraintSet.LEFT,
+                (int) (header_macro_left_dp * scale + 0.5f));
+        cs.connect(macro_id, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP,
+                (int) (header_macro_top_dp * scale + 0.5f));
+        cs.setVisibility(macro_id, shouldShowMacroChip() && show_gui_video ? View.VISIBLE : View.GONE);
+    }
+
     /** Die Zoom-Stufen samt ihrer Blase. Solange das Pro-Panel offen ist, bleiben sie in jedem
      *  Fall weg - die Pille des Panels sitzt an ihrer Stelle, und die Stufen haben dort nichts
      *  zu suchen (Falk 2026-09-21). Dasselbe gilt für die Stärke-Leiste: sie sitzt auf dem Platz
@@ -411,6 +522,10 @@ public class MainUI {
         {
             // reset:
             top_icon = null;
+
+            // Die Kopfzeile des Redesigns (Schritt C) - sie sitzt unabhängig von der alten
+            // Icon-Zeile darunter, die es bis zu ihrem Abriss noch gibt.
+            layoutHeader(cs, scale);
 
             // The old Open Camera icon row along the top edge (settings, popup menu, exposure,
             // plus whatever OnScreenIcons adds), running right to left from a dummy anchor in
@@ -1481,6 +1596,10 @@ public class MainUI {
                 }
                 if( main_activity.supportsExposureButton() )
                     exposureButton.setVisibility(visibility);
+                // die Kopfzeile gehört zum GUI wie die übrigen Bedienelemente (Schritt C)
+                main_activity.findViewById(R.id.header_bar).setVisibility(visibility);
+                main_activity.findViewById(R.id.header_chip).setVisibility(visibility);
+                main_activity.findViewById(R.id.header_macro).setVisibility(visibility);
                 onScreenIcons.setVisibility(visibility, visibility);
                 popupButton.setVisibility(visibility);
                 galleryButton.setVisibility(visibility);
@@ -1596,6 +1715,15 @@ public class MainUI {
                 galleryButton.setVisibility(show_gui_video ? View.VISIBLE : View.GONE);
                 if( main_activity.supportsExposureButton() )
                     exposureButton.setVisibility(visibility_video); // still allow exposure when recording video
+                // Die Kopfzeile ist während einer Aufnahme aus und kommt mit ihrem Ende zurück -
+                // im Record der Referenz ist das Band in beiden Aufnahme-Fenstern leer
+                // (pixel-kopfzeile-beschreibung.md 6). Das Makro-Symbol hängt zusätzlich am Modus
+                // (shouldShowMacroChip()), deshalb steht es hier auf GONE statt auf visibility.
+                final int header_visibility = show_gui_video ? View.VISIBLE : View.GONE;
+                main_activity.findViewById(R.id.header_bar).setVisibility(header_visibility);
+                main_activity.findViewById(R.id.header_chip).setVisibility(header_visibility);
+                main_activity.findViewById(R.id.header_macro).setVisibility(
+                        header_visibility == View.VISIBLE && shouldShowMacroChip() ? View.VISIBLE : View.GONE);
                 onScreenIcons.setVisibility(visibility, visibility_video);
                 // zoom steps only make sense where zoom is allowed at all (e.g. not in panorama
                 // mode, see MyApplicationInterface.allowZoom()); they stay while recording
