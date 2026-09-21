@@ -67,6 +67,7 @@ zu können (`git fetch upstream`).
 | 3 | Dual-Kamera (Selfie-Bubble, unabhängiger Zoom) | Idee / Konzept | Hoch (geräteabhängig) |
 | 4 | Panorama mit Weitwinkel-Option | **Fertig** | Niedrig-Mittel |
 | 5 | Kamera während Videoaufnahme umdrehen | Idee / Notiz (nice-to-have) | Niedrig |
+| 7 | Zeitraffer & Zeitlupe (Video-Modi wie in der Pixel-App, siehe 4.6) | **Begonnen** (2026-09-21) | Mittel |
 | 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile, Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen, Datei-Prüfung abgeschlossen) und **Feinjustier-Rad** (Stand 2026-09-18) gebaut; offen: siehe `ui-spezifikation.md` Abschnitt 7 (Audit 2026-09-17) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
 
 ### 3.1 Vereinbarte Reihenfolge (aktualisiert 2026-09-14: Material-3-Redesign vor Feature 5 vorgezogen)
@@ -86,6 +87,8 @@ nochmal überarbeitet werden müssen (Falks Begründung, von Claude bestätigt: 
 5. **Feature 2** – Filmchen-Modus
 6. **Feature 3** – Dual-Kamera (voller Ausbau, nach positivem Spike-Ergebnis)
 7. **Feature 1** – 360°-Foto-Stitching (inkl. Immich-Kompatibilität, siehe 4.1)
+8. **Feature 7** – Zeitraffer & Zeitlupe (siehe 4.6) — **begonnen 2026-09-21**, von Falk
+   vorgezogen; das Redesign (Feature 6) läuft daneben weiter (Schritt C noch offen).
 
 ---
 
@@ -326,6 +329,40 @@ Verlauf und Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
     Konsistenz offen, vermutlich auch fest.
 12. **Rad-Optik gewählt, nicht gemessen** (kein Screenshot mit offenem Rad); bei Bedarf
     über `ui/ZoomWheel`-Konstanten nachziehen.
+
+---
+
+### 4.6 Zeitraffer & Zeitlupe — Status: begonnen (2026-09-21)
+
+**Ziel:** Zwei Video-Modi wie in der Pixel-App: **Zeitraffer** (lange Aufnahme, gerafft
+gespeichert) und **Zeitlupe** (Aufnahme mit hoher Bildrate, verlangsamt gespeichert).
+
+**Anforderungen:**
+- Beide als eigene Einträge in der Moduswahl. Details (Stärken, Beschriftungen, Ort und
+  Ablauf der Bedienung) kommen aus Falks Referenz: Screenrecord + Screenshots in
+  `/home/falk/Downloads/` (Feature-Chat wertet sie per Gemini aus).
+- Stärken wählbar wie in der Referenz (Zeitraffer bis 120x, Zeitlupe 1/4x und 1/8x o. ä.).
+- Ergebnis ist eine normale MP4-Datei für Galerie und Immich, die dort **korrekt schnell bzw.
+  langsam abspielt** – der Effekt muss im gespeicherten Video stecken, nicht nur in der App.
+- Nur Video; Foto bleibt unberührt. Material-3-Theme, Hochformat-Sperre und die vorhandenen
+  UI-Bauteile gelten.
+
+**Was die Codebasis schon hat (nicht neu bauen):**
+- Zeitraffer: Open-Camera-Reste in `MyApplicationInterface`, `Preview`, `ApplicationInterface`,
+  `PopupView`, `DrawPreview` (Suchbegriff `TimeLapse`/`time_lapse`) – Inventar zuerst.
+- High-Speed-Video als Grundlage der Zeitlupe: `CameraController.setVideoHighSpeed()`,
+  `video_sizes_high_speed`, Preference-Keys auf `_highspeed`, `video_high_speed`.
+
+**Offene Fragen (Feature-Chat, am Gerät bzw. aus der Referenz):**
+- Erlaubt der Pixel-9-Pro-HAL High-Speed-Video für Dritt-Apps? Wenn nein: Zeitlupe ausgrauen
+  oder weglassen?
+- Wie kommt der Effekt ins MP4 (Aufnahme-Bildrate vs. Zeitstempel/Playback-Rate) und spielen
+  Immich/Systemplayer das richtig ab?
+- Moduswahl ist heute statisch `Foto · Panorama`: die zwei Einträge kommen statisch dazu, das
+  echte Karussell bleibt Schritt C/`ui-spezifikation.md` 7.2.
+
+**Komplexität/Risiko:** Mittel – UI klein; Risiko liegt in der HAL-Unterstützung für
+High-Speed und in der Datei-Semantik (Playback-Rate).
 
 ---
 
