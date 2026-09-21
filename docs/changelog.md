@@ -392,10 +392,13 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   in `CameraController2.onCaptureCompleted`.
 - **2026-09-21 (Feature-Chat, Objektivwahl):** Der zweite Ultraweit-Knopf `MA` (dasselbe
   physische Objektiv wie `WW`, nur mit Makrofokus) ist weg – die Pille zeigt `WW · NO · TE`.
-  Falk: „beide sollen Makro können" → `Lens.macro` gilt für WW und NO, TE behält den Dauer-AF;
-  im Video korrigiert `Preview.updateFocus()` das Makro wie bisher auf den kontinuierlichen
-  Fokus. `ZoomStepper.setLensSelection()` ist auf den ID-Vergleich eingekürzt (WW und MA teilten
-  sich früher eine ID), `macroSelected()` und der String `settings_sheet_lens_ma` entfallen.
+  Falk: „beide sollen Makro können" → die Knöpfe wählen nur noch die Linse; WW und NO kommen über
+  den kontinuierlichen Autofokus von selbst bis an ihre Nahtgrenze (2 cm / ca. 10 cm).
+  `CONTROL_AF_MODE_MACRO` ist wieder raus – der Test am Gerät zeigte genau den Zustand von vorher
+  (trigger-only, beide Linsen unscharf), und `Lens.macro`/`updateFocusForLens()` entfallen damit.
+  `Preview.updateFocus()` korrigiert ein gespeichertes Makro in Foto und Video auf den
+  kontinuierlichen Fokus. `ZoomStepper.setLensSelection()` ist auf den ID-Vergleich eingekürzt,
+  `macroSelected()` und der String `settings_sheet_lens_ma` entfallen.
   Davor aus dem Ponytail-Review: `Lens.view_angle`, der unbenutzte Parameter `mp_limit` und
   `Preview.light_sensor` als Feld entfernt; der `backgroundTint`-Umbau der fünf Shape-Dateien
   wurde am Gerät verworfen (Tint kam nicht an) und in `866115cd` zurückgerollt.

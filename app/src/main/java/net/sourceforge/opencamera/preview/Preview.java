@@ -5589,15 +5589,14 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
     private boolean updateFocus(String focus_value, boolean quiet, boolean save, boolean auto_focus) {
         if( MyDebug.LOG )
             Log.d(TAG, "updateFocus(): " + focus_value);
-        // there is no macro mode for video in the sheet anymore (2026-09-21) - a stored value left
-        // over from it would set the camera to the macro mode, which only focuses on a tap and
-        // then stays there, so treat it as the continuous video focus the video sheet uses. Here
-        // and not in setFocusValue(), so that current_focus_index, the saved value and the
-        // camera's focus mode all end up on the corrected value (Runde 1)
-        if( this.is_video && "focus_mode_macro".equals(focus_value) ) {
+        // The macro autofocus is gone with the macro lens button (2026-09-21): a lens button only
+        // picks a lens, and the macro mode would focus once and then hold, which leaves the picture
+        // soft on the pinned lens. A value an earlier build stored is corrected here, so that
+        // current_focus_index and the camera's focus mode end up on the continuous mode
+        if( "focus_mode_macro".equals(focus_value) ) {
             if( MyDebug.LOG )
-                Log.d(TAG, "macro focus isn't used in video mode, use the continuous video focus instead");
-            focus_value = "focus_mode_continuous_video";
+                Log.d(TAG, "macro focus isn't used, use the continuous focus instead");
+            focus_value = this.is_video ? "focus_mode_continuous_video" : "focus_mode_continuous_picture";
         }
         if( this.supported_focus_values != null ) {
             int new_focus_index = supported_focus_values.indexOf(focus_value);

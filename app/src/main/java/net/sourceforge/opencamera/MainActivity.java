@@ -2395,13 +2395,11 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         public final String physical_id;
         public final int label_res;     // "WW", "NO" or "TE" (Falk 2026-09-21)
         public final boolean main;
-        public final boolean macro;     // this button focuses as close as its lens can
 
-        Lens(String physical_id, int label_res, boolean main, boolean macro) {
+        Lens(String physical_id, int label_res, boolean main) {
             this.physical_id = physical_id;
             this.label_res = label_res;
             this.main = main;
-            this.macro = macro;
         }
     }
 
@@ -2485,23 +2483,24 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             }
         }
         // The buttons Falk asked for: WW (the widest lens), NO (the main one) and TE (the
-        // narrowest). WW and NO both carry the macro focus, so either of them focuses as close as
-        // its lens allows - the ultra wide down to 2 cm, the main one to about 10 cm. The separate
-        // macro button for the ultra wide is gone (Falk 2026-09-21). A camera without an ultra
-        // wide gets NO/TE, a camera with a single lens none.
+        // narrowest). A button only picks the lens; how close it can focus is up to the lens - the
+        // ultra wide down to 2 cm, the main one to about 10 cm - and the continuous autofocus
+        // reaches that limit on its own. The separate macro button for the ultra wide is gone
+        // (Falk 2026-09-21). A camera without an ultra wide gets NO/TE, a camera with a single
+        // lens none.
         PhysicalLens widest = lenses.get(0);
         PhysicalLens main_lens = lenses.get(main_index);
         PhysicalLens narrowest = lenses.get(lenses.size() - 1);
         List<Lens> result = new ArrayList<>();
         if( widest != main_lens )
-            result.add(new Lens(widest.physical_id, R.string.settings_sheet_lens_ww, false, true));
-        result.add(new Lens(main_lens.physical_id, R.string.settings_sheet_lens_no, true, true));
+            result.add(new Lens(widest.physical_id, R.string.settings_sheet_lens_ww, false));
+        result.add(new Lens(main_lens.physical_id, R.string.settings_sheet_lens_no, true));
         if( narrowest != main_lens ) {
             // only the narrowest lens gets a button, so a device with two teles has none for the
             // middle one
             // ponytail: three buttons max, no such device seen yet; then a lens name row would be
             // needed instead
-            result.add(new Lens(narrowest.physical_id, R.string.settings_sheet_lens_te, false, false));
+            result.add(new Lens(narrowest.physical_id, R.string.settings_sheet_lens_te, false));
         }
         manual_lenses = result;
         if( MyDebug.LOG )
@@ -2542,38 +2541,22 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         userSwitchToCamera(getActualCameraId(), cameraIdSPhysical);
     }
 
-    /** Switches to one of the manual lens buttons: its physical lens plus the autofocus mode the
-     *  button stands for - WW and NO focus close (macro), TE keeps the continuous autofocus it has
-     *  (Falk 2026-09-21).
-     *  <p>
-     *  The focus mode is stored (updateFocus saves it), so the reopen that the lens switch starts
-     *  comes back up on it instead of resetting the lens to the automatic autofocus. */
+    /** Switches to one of the manual lens buttons: only its physical lens. How close the lens can
+     *  focus is what makes it a macro lens, the continuous autofocus reaches that on its own; a
+     *  macro autofocus mode would only focus once and then hold, which leaves the picture soft
+     *  (Falk 2026-09-21). */
     public void switchToManualLens(Lens lens) {
         if( lens == null )
             return;
-        updateFocusForLens(lens);
         switchToPhysicalLens(lens.physical_id);
     }
 
-    /** Back to the automatic lens choice. The focus mode of the manual buttons goes with it: a
-     *  macro focus left behind would keep the automatic choice in macro (Falk 2026-09-21). */
+    /** Back to the automatic lens choice. */
     public void switchToAutoLens() {
         if( MyDebug.LOG )
             Log.d(TAG, "switchToAutoLens");
-        updateFocusForLens(null);
         if( getApplicationInterface().getCameraIdSPhysicalPref() != null )
             userSwitchToCamera(getActualCameraId(), null);
-    }
-
-    /** Applies the autofocus mode of a lens button to the camera, and stores it; null stands for
-     *  the automatic lens choice, which uses the continuous autofocus of the current mode. */
-    private void updateFocusForLens(Lens lens) {
-        boolean macro = lens != null && lens.macro;
-        String focus_value = macro ? "focus_mode_macro" :
-                (preview.isVideo() ? "focus_mode_continuous_video" : "focus_mode_continuous_picture");
-        // quiet: no toast for a lens tap, the pill's highlight says what happened. The call
-        // saves the value, which is what the camera reopen reads back
-        preview.updateFocus(focus_value, true, true);
     }
 
     /* ---- settings sheet (Kickoff 3.1/3.2) ------------------------------------------------- */

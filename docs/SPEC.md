@@ -270,11 +270,13 @@ Foto-Standard ist das native 12-MP-Raster (`CameraController.STANDARD_PICTURE_WI
 liefert `getCameraIdSPhysicalPref()` `null`, dort wählt die Kamera die Linse und die Zoom-Pille
 zeigt wieder `,5 1× 2 5`.
 **Objektivwahl (2026-09-21):** Der Makro-Knopf `MA` ist weg, die Pille zeigt `WW · NO · TE`.
-Falk: „beide sollen Makro können" – `Lens.macro` ist jetzt bei WW (Ultraweit, bis 2 cm) und NO
-(Haupt, bis ca. 10 cm) gesetzt; `updateFocusForLens()` schaltet damit `CONTROL_AF_MODE_MACRO`
-(im Video unverändert auf den kontinuierlichen Fokus korrigiert), TE behält den Dauer-AF.
-`ZoomStepper.setLensSelection()` markiert nur noch über die physische ID (WW und MA teilten sich
-früher eine), `macroSelected()` entfällt.
+Falk: „beide sollen Makro können" – die Knöpfe wählen jetzt nur noch die Linse: WW (Ultraweit,
+bis 2 cm) und NO (Haupt, bis ca. 10 cm) kommen von selbst so nah heran, weil der kontinuierliche
+Autofokus die ganze Fokusspanne der Linse abfährt. `CONTROL_AF_MODE_MACRO` ist raus: er stellt nur
+einmal scharf und hält dann, womit beide Linsen am Gerät unscharf standen (Falk 2026-09-21).
+`Preview.updateFocus()` korrigiert einen noch gespeicherten Makro-Wert auf den kontinuierlichen
+Fokus (Foto: `continuous_picture`, Video: `continuous_video`). `ZoomStepper.setLensSelection()`
+markiert nur noch über die physische ID, `macroSelected()` und `Lens.macro` entfallen.
 **Offen:** rechter Dock-Button (Pro-Regler-Panel), danach Schritt C (Kopfzeile, dann
 Icon-Leiste + Popup weg); Rest `ui-spezifikation.md` Abschnitt 7 (Karussell →
 Sucher-Overlays → Farben/Blur/Schrift).
