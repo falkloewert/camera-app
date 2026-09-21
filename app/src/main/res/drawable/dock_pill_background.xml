@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stadium-Pille in der Dock-Fuellung #333333 - der Stärke-Knopf im Zeitraffer/Zeitlupe
+     (SPEC 4.6): in der Referenz eine dunkle Pille mit Symbol und Wert, kein Kreis wie die
+     übrigen Dock-Knöpfe. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/photo_video_switch_pill" />
+    <corners android:radius="9999dp" />
+</shape>

@@ -2377,6 +2377,12 @@ public class DrawPreview {
             // visible while recording.
             long video_time = preview.getVideoTime(false);
             String time_s = getTimeStringFromSeconds(video_time/1000);
+            if( Math.abs(capture_rate_factor - 1.0f) > 1.0e-5 && capture_rate_factor > 0.0f ) {
+                // Zeitraffer/Zeitlupe (SPEC 4.6): die verstrichene Zeit, dahinter, wie lang das
+                // fertige Video wird - die Rate steht beim Öffnen der Datei fest, also ist das
+                // nur eine Rechnung. In der Referenz dieselbe rote Pille (… 5).
+                time_s += " → " + getTimeStringFromSeconds((long)(video_time/1000/capture_rate_factor));
+            }
             p.setTextSize(14 * scale_font + 0.5f); // convert dps to pixels
             p.setTextAlign(Paint.Align.RIGHT);
             applicationInterface.drawTextWithBackground(canvas, p, time_s, Color.rgb(244, 67, 54), Color.BLACK, canvas.getWidth() - top_x, top_y, MyApplicationInterface.Alignment.ALIGNMENT_TOP); // Red 500

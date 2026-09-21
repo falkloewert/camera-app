@@ -1030,6 +1030,15 @@
     <string name="zoom_stepper">Zoom stepper</string>
     <string name="mode_bar">Mode selector</string>
     <string name="mode_bar_photo">Photo</string> <!-- mode bar entry for the ordinary photo mode, as the Pixel Camera labels it -->
+    <!-- Mode bar entries for the video sub-modes of SPEC 4.6, worded as the Pixel Camera does -->
+    <string name="mode_bar_video">Video</string>
+    <string name="mode_bar_slow_motion">Zeitlupe</string>
+    <string name="mode_bar_timelapse">Zeitraffer</string>
+    <string name="video_speed_open">Geschwindigkeit</string> <!-- the dock button that opens the speed bar -->
+    <string name="video_speed_bar">Geschwindigkeit</string>
+    <string name="video_speed_placeholder">1×</string> <!-- shown before the first layout sets the real value -->
+    <string name="video_speed_lapse">Zeitraffer</string> <!-- content description of a speed bar chip -->
+    <string name="video_speed_slow">Zeitlupe</string>
     <string name="physical_cameras_info">&#9432; By default, a camera uses Auto Lens selection, which means the zoom level controls which lens is used. However this menu also allows you to explicitly choose which lens is being used.</string>
 
     <string name="focus_bracketing_auto_source_distance">Auto source</string>

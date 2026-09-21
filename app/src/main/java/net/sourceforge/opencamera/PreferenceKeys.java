@@ -343,6 +343,13 @@ public class PreferenceKeys {
         return "preference_capture_rate_" + getCameraIDKey(cameraId, cameraIdSPhysical);
     }
 
+    /** The video sub-mode of SPEC 4.6: "off" (ordinary video), "slow" (Zeitlupe) or "lapse"
+     *  (Zeitraffer). The rate itself stays in {@link #getVideoCaptureRatePreferenceKey}, so
+     *  leaving the mode keeps the last rate the user picked there. */
+    public static String getVideoSpeedModePreferenceKey(int cameraId, String cameraIdSPhysical) {
+        return "preference_video_speed_mode_" + getCameraIDKey(cameraId, cameraIdSPhysical);
+    }
+
     public static final String VideoLogPreferenceKey = "preference_video_log";
 
     public static final String VideoProfileGammaPreferenceKey = "preference_video_profile_gamma";

@@ -1078,6 +1078,66 @@
         app:layout_constraintBottom_toBottomOf="parent"
         />
 
+    <!-- Der Stärke-Knopf im Zeitraffer/Zeitlupe (SPEC 4.6): belegt im Video den Platz des
+         Pro-Panel-Knopfes (der dort aus ist) und zeigt Symbol und aktuellen Wert - wie in der
+         Referenz (docs/design-reference/pixel-zeitraffer-zeitlupe-beschreibung.md 4). Die Chips
+         baut MainUI, weil sie von der Kamera abhängen. -->
+    <LinearLayout
+        android:id="@+id/video_speed_button"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:background="@drawable/dock_pill_background"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        android:contentDescription="@string/video_speed_open"
+        android:onClick="clickedVideoSpeed"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" >
+
+        <ImageView
+            android:id="@+id/video_speed_icon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_timelapse_white_48dp" />
+
+        <TextView
+            android:id="@+id/video_speed_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:textColor="@color/md_dark_on_surface"
+            android:textSize="14sp"
+            android:text="@string/video_speed_placeholder" />
+
+    </LinearLayout>
+
+    <!-- Die Stärke-Leiste: dieselbe dunkle Pille wie die Zoom-Pille, an deren Platz sie steht
+         (Referenz: sie ersetzt sie, solange sie offen ist). Position setzt MainUI.layoutUI(),
+         die Chips MainUI.buildVideoSpeedBar(). -->
+    <LinearLayout
+        android:id="@+id/video_speed_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:background="@drawable/pill_background"
+        android:divider="@drawable/mode_bar_gap"
+        android:showDividers="middle"
+        android:visibility="gone"
+        android:contentDescription="@string/video_speed_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
     <!-- Rechter Dock-Button (K13, ui-spezifikation.md 7.1 Punkt 3): Spiegel des linken - Kreis
          48 dp, Fuellung #333333, Symbol "drei Reglerstifte". Die Detail-Spec nennt 40 dp; wie
          beim linken Knopf gilt der am Screenrecord gemessene Wert (Kickoff 3). Position setzt
@@ -1147,6 +1207,50 @@
             android:textColor="@color/md_dark_on_surface"
             android:textSize="14sp"
             android:text="@string/photo_mode_panorama_full"
+            />
+
+        <!-- Die Video-Untermodi (SPEC 4.6). Sichtbarkeit und Hervorhebung setzt
+             MainUI.updateModeBar(); im Fotomodus sind sie GONE. -->
+        <TextView
+            android:id="@+id/mode_bar_video"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textColor="@color/md_dark_on_surface"
+            android:textSize="14sp"
+            android:visibility="gone"
+            android:text="@string/mode_bar_video"
+            />
+
+        <TextView
+            android:id="@+id/mode_bar_slow_motion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textColor="@color/md_dark_on_surface"
+            android:textSize="14sp"
+            android:visibility="gone"
+            android:text="@string/mode_bar_slow_motion"
+            />
+
+        <TextView
+            android:id="@+id/mode_bar_timelapse"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:textColor="@color/md_dark_on_surface"
+            android:textSize="14sp"
+            android:visibility="gone"
+            android:text="@string/mode_bar_timelapse"
             />
 
     </LinearLayout>

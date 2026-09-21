@@ -39,6 +39,7 @@ import android.view.animation.ScaleAnimation;
 import android.widget.Button;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
@@ -95,6 +96,11 @@ public class MainUI {
 
     private boolean keydown_volume_up;
     private boolean keydown_volume_down;
+
+    /** Ob eine Videoaufnahme läuft, soweit die Modusleiste das angeht (SPEC 4.6). startingVideo()
+     *  meldet den Start selbst, weil Preview.isVideoRecording() in dem Moment noch falsch ist -
+     *  aus demselben Grund ruft es setShutterState() direkt; stoppedVideo() meldet das Ende. */
+    private boolean video_recording_ui;
 
     // For remote control: keep track of the currently highlighted
     // line and icon within the line
@@ -585,6 +591,21 @@ public class MainUI {
             cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, (int) (16 * scale + 0.5f));
             pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f));
 
+            // The speed button of Zeitraffer/Zeitlupe stands in the same slot (the pro panel button
+            // is out while filming, so only one of the two is ever up), and the row of rates it
+            // opens takes the zoom pill's slot - both as in the reference.
+            view = main_activity.findViewById(R.id.video_speed_button);
+            view_id = view.getId();
+            resetView(cs, view);
+            cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, (int) (16 * scale + 0.5f));
+            pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f));
+
+            view = main_activity.findViewById(R.id.video_speed_bar);
+            view_id = view.getId();
+            resetView(cs, view);
+            centerHorizontally(cs, view_id);
+            placeAbove(cs, view_id, R.id.take_photo, (int) (29 * scale + 0.5f)); // the zoom pill's slot
+
             // The pro panel's pill sits exactly where the zoom pill sits (the two are never shown
             // at the same time), its value badge above it, and its tab row in the dock row's slot
             // at the very bottom - in the reference the Pro row is the lowest line of the screen
@@ -958,19 +979,24 @@ public class MainUI {
         }
     }
 
-    /** Wires up the mode bar (Photo / Video / Panorama), the horizontal replacement for picking
-     *  the mode out of the popup menu - see docs/design-reference/pixel-camera-screenshots.md.
-     *  Only modes the app actually implements are offered here.
+    /** Wires up the mode bar (Photo / Panorama while taking photos, Video / Zeitlupe / Zeitraffer
+     *  while filming), the horizontal replacement for picking the mode out of the popup menu - see
+     *  docs/design-reference/pixel-camera-screenshots.md. Only modes the app actually implements
+     *  are offered here.
      */
     private void setupModeBar() {
         // The bar only lists the sub-modes of whatever the PhotoVideoSwitch is set to, and
         // photo <-> video isn't switched here at all. While taking photos that is "Foto" (the
         // ordinary photo) and "Panorama", as in the reference - Falk's decision (2026-09-17,
         // revising audit step 1): a "Foto" entry is needed to get back out of Panorama, and out
-        // of whatever modes come later. Video has no sub-modes yet, so the bar is empty while
-        // filming (updateModeBar()).
+        // of whatever modes come later.
         setModeBarEntry(R.id.mode_bar_photo, "preference_photo_mode_std");
         setModeBarEntry(R.id.mode_bar_panorama, "preference_photo_mode_panorama");
+        // While filming it is "Video" (the ordinary one, the way back out of the two special
+        // modes), "Zeitlupe" and "Zeitraffer" (SPEC 4.6), in the order the reference lists them.
+        setVideoSpeedModeEntry(R.id.mode_bar_video, MyApplicationInterface.VIDEO_SPEED_OFF);
+        setVideoSpeedModeEntry(R.id.mode_bar_slow_motion, MyApplicationInterface.VIDEO_SPEED_SLOW);
+        setVideoSpeedModeEntry(R.id.mode_bar_timelapse, MyApplicationInterface.VIDEO_SPEED_LAPSE);
     }
 
     private void setModeBarEntry(int view_id, final String photo_mode_preference_value) {
@@ -979,6 +1005,15 @@ public class MainUI {
             public void onClick(View view) {
                 switchPhotoMode(photo_mode_preference_value);
                 updateModeBar();
+            }
+        });
+    }
+
+    private void setVideoSpeedModeEntry(int view_id, final String speed_mode) {
+        main_activity.findViewById(view_id).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                switchVideoSpeedMode(speed_mode);
             }
         });
     }
@@ -1028,14 +1063,21 @@ public class MainUI {
 
     /** Shows the sub-modes of the current top-level mode and highlights the active one: Foto
      *  and Panorama while taking photos (Panorama only where the camera supports it - not with
-     *  the selfie camera, see MainActivity.supportsPanorama()), nothing while filming. The bar's
-     *  own place is fixed (layoutUI()), so an empty bar moves nothing.
+     *  the selfie camera, see MainActivity.supportsPanorama()), Video, Zeitlupe and Zeitraffer
+     *  while filming. A mode the camera cannot do is left out rather than offered dead (a camera
+     *  without high speed video gets no Zeitlupe). The bar's own place is fixed (layoutUI()), so
+     *  an empty bar moves nothing.
      */
     public void updateModeBar() {
         boolean is_video = main_activity.getPreview().isVideo();
         boolean offer_panorama = !is_video && main_activity.supportsPanorama();
         boolean is_panorama = !is_video &&
                 main_activity.getApplicationInterface().getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama;
+        // The video sub-modes are for choosing a mode, not for use while filming: they hide for
+        // the length of a recording, as in the reference (pixel-zeitraffer-zeitlupe-beschreibung
+        // .md 5), which also keeps the rate - fixed when the file was opened - out of reach.
+        boolean show_video_modes = is_video && !video_recording_ui
+                && !main_activity.getPreview().isVideoRecording();
 
         TextView photo_entry = main_activity.findViewById(R.id.mode_bar_photo);
         TextView panorama_entry = main_activity.findViewById(R.id.mode_bar_panorama);
@@ -1043,6 +1085,23 @@ public class MainUI {
         panorama_entry.setVisibility(offer_panorama ? View.VISIBLE : View.GONE);
         applyModeBarStyle(photo_entry, !is_video && !is_panorama);
         applyModeBarStyle(panorama_entry, is_panorama);
+
+        String speed_mode = getVideoSpeedMode();
+        boolean offer_slow = supportsVideoSpeedMode(MyApplicationInterface.VIDEO_SPEED_SLOW);
+        boolean offer_lapse = supportsVideoSpeedMode(MyApplicationInterface.VIDEO_SPEED_LAPSE);
+        TextView video_entry = main_activity.findViewById(R.id.mode_bar_video);
+        TextView slow_entry = main_activity.findViewById(R.id.mode_bar_slow_motion);
+        TextView lapse_entry = main_activity.findViewById(R.id.mode_bar_timelapse);
+        video_entry.setVisibility(show_video_modes ? View.VISIBLE : View.GONE);
+        slow_entry.setVisibility(show_video_modes && offer_slow ? View.VISIBLE : View.GONE);
+        lapse_entry.setVisibility(show_video_modes && offer_lapse ? View.VISIBLE : View.GONE);
+        applyModeBarStyle(video_entry, MyApplicationInterface.VIDEO_SPEED_OFF.equals(speed_mode));
+        applyModeBarStyle(slow_entry, MyApplicationInterface.VIDEO_SPEED_SLOW.equals(speed_mode));
+        applyModeBarStyle(lapse_entry, MyApplicationInterface.VIDEO_SPEED_LAPSE.equals(speed_mode));
+
+        updateVideoSpeedButton();
+        if( !is_video || video_recording_ui )
+            hideVideoSpeedBar(); // the bar belongs to these two modes only, and not to a running recording
     }
 
     private void applyModeBarStyle(TextView view, boolean selected) {
@@ -1058,9 +1117,196 @@ public class MainUI {
         }
     }
 
-    /** Set content description for switch camera button.
+    /* ---- Zeitraffer & Zeitlupe (SPEC 4.6) ---------------------------------------------------- */
+
+    /** The video sub-mode the camera is set to: "off" (ordinary video), "slow" (Zeitlupe) or
+     *  "lapse" (Zeitraffer). The rate itself lives in the capture rate preference, so a mode the
+     *  user leaves and comes back to hands them the rate they last used there. */
+    private String getVideoSpeedMode() {
+        return main_activity.getApplicationInterface().getVideoSpeedMode();
+    }
+
+    /** The rates a sub-mode offers on the current camera, in the reference's order. */
+    private List<Float> ratesForSpeedMode(String speed_mode) {
+        MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
+        if( MyApplicationInterface.VIDEO_SPEED_SLOW.equals(speed_mode) )
+            return applicationInterface.getSupportedSlowMotionRates();
+        if( MyApplicationInterface.VIDEO_SPEED_LAPSE.equals(speed_mode) )
+            return applicationInterface.getSupportedTimeLapseRates();
+        return new ArrayList<>();
+    }
+
+    private boolean supportsVideoSpeedMode(String speed_mode) {
+        return !ratesForSpeedMode(speed_mode).isEmpty();
+    }
+
+    /** The rate a sub-mode starts at: the one it used last if that one still fits, otherwise the
+     *  reference's default (1/4x for Zeitlupe, 5x for Zeitraffer) or the camera's nearest rate. */
+    private float rateForSpeedMode(String speed_mode, float stored) {
+        List<Float> rates = ratesForSpeedMode(speed_mode);
+        if( rates.isEmpty() )
+            return 1.0f;
+        boolean is_slow = MyApplicationInterface.VIDEO_SPEED_SLOW.equals(speed_mode);
+        if( (is_slow && stored < 1.0f) || (!is_slow && stored > 1.0f) ) {
+            for(float rate : rates) {
+                if( Math.abs(rate - stored) < 1.0e-5f )
+                    return rate;
+            }
+        }
+        float preferred = is_slow ? 0.25f : 5.0f;
+        float best = rates.get(0);
+        for(float rate : rates) {
+            if( Math.abs(rate - preferred) < Math.abs(best - preferred) )
+                best = rate;
+        }
+        return best;
+    }
+
+    /** A rate as the reference writes it: "5×" for the time lapse, "1/4×" for the slow motion. */
+    private String speedLabel(float rate) {
+        if( rate < 1.0f - 1.0e-5f )
+            return "1/" + Math.round(1.0f / rate) + "×";
+        return Math.round(rate) + "×";
+    }
+
+    private String speedModePreferenceKey() {
+        return PreferenceKeys.getVideoSpeedModePreferenceKey(main_activity.getPreview().getCameraId(),
+                main_activity.getApplicationInterface().getCameraIdSPhysicalPref());
+    }
+
+    private String captureRatePreferenceKey() {
+        return PreferenceKeys.getVideoCaptureRatePreferenceKey(main_activity.getPreview().getCameraId(),
+                main_activity.getApplicationInterface().getCameraIdSPhysicalPref());
+    }
+
+    /** Switches the video sub-mode: writes the mode and the rate it starts at, then refreshes the
+     *  camera the way a photo mode change does - the video profile, the recording fps and the high
+     *  speed video size all hang off the capture rate (Preview.setupCameraParameters()).
      */
-    public void setSwitchCameraContentDescription() {
+    private void switchVideoSpeedMode(String speed_mode) {
+        if( main_activity.getPreview().isVideoRecording() )
+            return; // the rate went into the file when it was opened, mid-recording it is too late
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(speedModePreferenceKey(), speed_mode);
+        if( !MyApplicationInterface.VIDEO_SPEED_OFF.equals(speed_mode) ) {
+            float stored = sharedPreferences.getFloat(captureRatePreferenceKey(), 1.0f);
+            editor.putFloat(captureRatePreferenceKey(), rateForSpeedMode(speed_mode, stored));
+        }
+        editor.apply();
+        hideVideoSpeedBar();
+        main_activity.getApplicationInterface().getDrawPreview().updateSettings();
+        main_activity.updateForSettings(true, null, false, true);
+        destroyPopup(); // the popup's video options depend on the rate
+        updateModeBar();
+    }
+
+    /** Picks one of the rates the row offers, without leaving the mode. */
+    private void switchVideoSpeedRate(float rate) {
+        if( main_activity.getPreview().isVideoRecording() )
+            return;
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
+        sharedPreferences.edit().putFloat(captureRatePreferenceKey(), rate).apply();
+        main_activity.getApplicationInterface().getDrawPreview().updateSettings();
+        main_activity.updateForSettings(true, null, false, true);
+        buildVideoSpeedBar(); // repaint the selection
+        updateVideoSpeedButton();
+    }
+
+    /** The dock button toggles the row of rates. */
+    public void toggleVideoSpeedBar() {
+        if( isVideoSpeedBarOpen() )
+            hideVideoSpeedBar();
+        else
+            showVideoSpeedBar();
+    }
+
+    public boolean isVideoSpeedBarOpen() {
+        return main_activity.findViewById(R.id.video_speed_bar).getVisibility() == View.VISIBLE;
+    }
+
+    /** Shows the row of rates in the zoom pill's place - the reference puts it exactly there, and
+     *  the two are never up at the same time (pixel-zeitraffer-zeitlupe-beschreibung.md 2). */
+    public void showVideoSpeedBar() {
+        String speed_mode = getVideoSpeedMode();
+        if( !main_activity.getPreview().isVideo() || main_activity.getPreview().isVideoRecording()
+                || MyApplicationInterface.VIDEO_SPEED_OFF.equals(speed_mode) )
+            return;
+        buildVideoSpeedBar();
+        main_activity.findViewById(R.id.video_speed_bar).setVisibility(View.VISIBLE);
+        setZoomStepperVisibility(View.GONE);
+    }
+
+    public void hideVideoSpeedBar() {
+        View bar = main_activity.findViewById(R.id.video_speed_bar);
+        if( bar.getVisibility() != View.VISIBLE )
+            return;
+        bar.setVisibility(View.GONE);
+        // the zoom pill comes back - unless it has no steps or it is not welcome right now
+        setZoomStepperVisibility(getZoomStepper().hasSteps() && !inImmersiveMode() ? View.VISIBLE : View.GONE);
+    }
+
+    /** One chip per rate the mode offers, styled like the mode bar's entries - the selected one is
+     *  the light pill with the dark bold label, exactly as in the reference. */
+    private void buildVideoSpeedBar() {
+        LinearLayout bar = main_activity.findViewById(R.id.video_speed_bar);
+        bar.removeAllViews();
+        String speed_mode = getVideoSpeedMode();
+        float current = main_activity.getApplicationInterface().getVideoCaptureRateFactor();
+        final float scale = main_activity.getResources().getDisplayMetrics().density;
+        int pad_h = (int) (16 * scale + 0.5f);
+        int pad_v = (int) (8 * scale + 0.5f);
+        int mode_label = MyApplicationInterface.VIDEO_SPEED_SLOW.equals(speed_mode) ?
+                R.string.video_speed_slow : R.string.video_speed_lapse;
+        for(final float rate : ratesForSpeedMode(speed_mode)) {
+            TextView chip = new TextView(main_activity);
+            String label = speedLabel(rate);
+            chip.setText(label);
+            chip.setTextSize(14);
+            chip.setPadding(pad_h, pad_v, pad_h, pad_v);
+            chip.setContentDescription(main_activity.getString(mode_label) + " " + label);
+            chip.setTag(rate); // for testing
+            applyModeBarStyle(chip, Math.abs(rate - current) < 1.0e-5f);
+            chip.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    switchVideoSpeedRate(rate);
+                }
+            });
+            bar.addView(chip);
+        }
+    }
+
+    /** Shows the current rate and its symbol on the right dock button, and keeps the button away
+     *  everywhere else - the reference has it in the two special modes only. */
+    private void updateVideoSpeedButton() {
+        LinearLayout button = main_activity.findViewById(R.id.video_speed_button);
+        String speed_mode = getVideoSpeedMode();
+        boolean show = main_activity.getPreview().isVideo()
+                && !video_recording_ui
+                && !main_activity.getPreview().isVideoRecording()
+                && !MyApplicationInterface.VIDEO_SPEED_OFF.equals(speed_mode)
+                && supportsVideoSpeedMode(speed_mode);
+        button.setVisibility(show ? View.VISIBLE : View.GONE);
+        if( !show )
+            return;
+        ImageView icon = main_activity.findViewById(R.id.video_speed_icon);
+        icon.setImageResource(MyApplicationInterface.VIDEO_SPEED_SLOW.equals(speed_mode) ?
+                R.drawable.ic_slow_motion_video_white_48dp : R.drawable.ic_fast_forward_white_48dp);
+        TextView label = main_activity.findViewById(R.id.video_speed_label);
+        label.setText(speedLabel(main_activity.getApplicationInterface().getVideoCaptureRateFactor()));
+    }
+
+    /** Meldet Anfang und Ende einer Aufnahme aus MyApplicationInterface.startingVideo() und
+     *  stoppedVideo(): die Video-Einträge der Modusleiste und der Stärke-Knopf verschwinden für
+     *  die Dauer der Aufnahme (siehe {@link #video_recording_ui}). */
+    public void setVideoRecordingForUI(boolean recording) {
+        video_recording_ui = recording;
+        updateModeBar();
+    }
+
+    /** Set content description for switch camera button.
+     */    public void setSwitchCameraContentDescription() {
         if( MyDebug.LOG )
             Log.d(TAG, "setSwitchCameraContentDescription()");
         if( main_activity.getPreview() != null && main_activity.getPreview().canSwitchCamera() ) {

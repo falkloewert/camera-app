@@ -800,8 +800,59 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         return sharedPreferences.getString(PreferenceKeys.getVideoFPSPreferenceKey(cameraId, getCameraIdSPhysicalPref()), "default");
     }
 
+    /** The values of the video speed mode preference (SPEC 4.6): the ordinary video, Zeitlupe and
+     *  Zeitraffer. The mode is kept next to the capture rate rather than derived from it, so that
+     *  a mode the user leaves and comes back to keeps the rate they last used there. */
+    public static final String VIDEO_SPEED_OFF = "off";
+    public static final String VIDEO_SPEED_SLOW = "slow";
+    public static final String VIDEO_SPEED_LAPSE = "lapse";
+
+    /** The video sub-mode of SPEC 4.6: "off" (ordinary video), "slow" (Zeitlupe) or "lapse"
+     *  (Zeitraffer). Kept apart from the rate itself, so that leaving the mode - and coming back
+     *  to it - hands the user the rate they last used there. */
+    public String getVideoSpeedMode() {
+        return sharedPreferences.getString(PreferenceKeys.getVideoSpeedModePreferenceKey(main_activity.getPreview().getCameraId(), getCameraIdSPhysicalPref()), VIDEO_SPEED_OFF);
+    }
+
+    /** The slow motion rates the camera supports, ascending (Pixel 9 Pro: 1/8 and 1/4). Only the
+     *  rates the reference offers are listed - a camera that reaches no further than 60 fps still
+     *  gets its only possible rate (1/2) instead of an empty list. */
+    public List<Float> getSupportedSlowMotionRates() {
+        List<Float> slow = new ArrayList<>();
+        for(float rate : getSupportedVideoCaptureRates()) {
+            if( rate < 1.0f - 1.0e-5f && (Math.abs(rate - 0.125f) < 1.0e-5f || Math.abs(rate - 0.25f) < 1.0e-5f) )
+                slow.add(rate);
+        }
+        if( slow.isEmpty() ) {
+            for(float rate : getSupportedVideoCaptureRates()) {
+                if( rate < 1.0f - 1.0e-5f )
+                    slow.add(rate);
+            }
+        }
+        return slow;
+    }
+
+    /** The time lapse rates we offer, in the reference's order - its "Autom." is left out (Falk,
+     *  2026-09-21): our rate is fixed when recording starts, so it cannot follow the length. */
+    public List<Float> getSupportedTimeLapseRates() {
+        List<Float> lapse = new ArrayList<>();
+        float [] wanted = {5.0f, 10.0f, 30.0f, 120.0f};
+        for(float rate : wanted) {
+            for(float supported : getSupportedVideoCaptureRates()) {
+                if( Math.abs(rate - supported) < 1.0e-5f ) {
+                    lapse.add(rate);
+                    break;
+                }
+            }
+        }
+        return lapse;
+    }
+
     @Override
     public float getVideoCaptureRateFactor() {
+        // an ordinary video records at its own speed whatever rate is remembered from the modes
+        if( VIDEO_SPEED_OFF.equals(getVideoSpeedMode()) )
+            return 1.0f;
         // the getter, not the field - see getVideoQualityPref()
         float capture_rate_factor = sharedPreferences.getFloat(PreferenceKeys.getVideoCaptureRatePreferenceKey(main_activity.getPreview().getCameraId(), getCameraIdSPhysicalPref()), 1.0f);
         if( MyDebug.LOG )
@@ -2163,6 +2214,10 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         }
         main_activity.stopAudioListeners(); // important otherwise MediaRecorder will fail to start() if we have an audiolistener! Also don't want to have the speech recognizer going off
         main_activity.getMainUI().setShutterState(ShutterButton.State.VIDEO_RECORDING, true);
+        // Zeitraffer/Zeitlupe (SPEC 4.6): die Video-Einträge und der Stärke-Knopf verschwinden
+        // für die Dauer der Aufnahme - hier gemeldet, weil Preview.isVideoRecording() jetzt noch
+        // falsch ist; stoppedVideo() meldet das Ende.
+        main_activity.getMainUI().setVideoRecordingForUI(true);
         main_activity.getMainUI().destroyPopup(); // as the available popup options change while recording video
     }
 
@@ -2494,6 +2549,7 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         View takePhotoVideoButton = main_activity.findViewById(R.id.take_photo_when_video_recording);
         takePhotoVideoButton.setVisibility(View.GONE);
         main_activity.getMainUI().setPauseVideoContentDescription(); // just to be safe
+        main_activity.getMainUI().setVideoRecordingForUI(false); // die Modusleiste hat ihre Video-Einträge zurück (SPEC 4.6)
         main_activity.getMainUI().destroyPopup(); // as the available popup options change while recording video
         if( main_activity.getMainUI().isExposureUIOpen() ) {
             if( MyDebug.LOG )
