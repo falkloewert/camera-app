@@ -111,8 +111,13 @@ public class CameraControllerManager2 extends CameraControllerManager {
             }
 
             SizeF view_angle = CameraControllerManager2.computeViewAngles(characteristics);
-            if( info != null )
+            if( info != null ) {
                 info.view_angle = view_angle;
+                float [] focal_lengths = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+                info.focal_length = focal_lengths == null || focal_lengths.length == 0 ? 0.0f : focal_lengths[0];
+                SizeF physical_size = characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
+                info.sensor_width = physical_size == null ? 0.0f : physical_size.getWidth();
+            }
             if( MyDebug.LOG )
                 Log.d(TAG, "getDescription: time after computeViewAngles: " + (System.currentTimeMillis() - debug_time));
             if( view_angle.getWidth() > 90.5f ) {

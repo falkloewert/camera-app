@@ -96,9 +96,9 @@ public class ZoomStepper implements ZoomWheel.Listener {
         selected_step = -1;
 
         Preview preview = main_activity.getPreview();
-        if( preview == null || !preview.supportsZoom() || preview.getCameraController() == null ) {
+        if( preview == null || preview.getCameraController() == null ) {
             if( MyDebug.LOG )
-                Log.d(TAG, "no zoom support, no steps");
+                Log.d(TAG, "no camera, no steps");
             return;
         }
 
@@ -106,6 +106,9 @@ public class ZoomStepper implements ZoomWheel.Listener {
         // camera instead of the zoom steps, and the wheel no longer opens on a drag - but a
         // pinch in the viewfinder still brings it up. Only in the manual mode itself: a rear
         // camera with several lenses must keep its zoom steps (Kickoff Runde 2, 1.1)
+        // This comes before the zoom check, because the lens buttons are no zoom control: a
+        // pinned physical lens reports no zoom of its own, and the whole pill used to vanish
+        // in the manual mode because of that (device 2026-09-21)
         List<MainActivity.Lens> lenses = main_activity.getManualLenses();
         boolean manual = main_activity.getApplicationInterface().getCameraIdSPhysicalPref() != null;
         if( manual && lenses != null && lenses.size() >= 2 ) {
@@ -119,9 +122,15 @@ public class ZoomStepper implements ZoomWheel.Listener {
             }
             wheel.setRange(preview.getMinZoomRatio(), preview.getMaxZoomRatio());
             wheel.setRatio(preview.getZoomRatio());
-            setLensSelection(main_activity.getApplicationInterface().getCameraIdSPhysicalPref());
+            setLensSelection(main_activity.getApplicationInterface().getCameraIdSPhysicalPref(), macroSelected());
             if( MyDebug.LOG )
                 Log.d(TAG, "manual lens buttons: " + lenses.size());
+            return;
+        }
+
+        if( !preview.supportsZoom() ) {
+            if( MyDebug.LOG )
+                Log.d(TAG, "no zoom support, no steps");
             return;
         }
 
@@ -207,8 +216,9 @@ public class ZoomStepper implements ZoomWheel.Listener {
         return button;
     }
 
-    /** One button per physical lens, labelled UW / W / T (Kickoff 3.4). Tapping it switches the
-     *  camera to that lens, which reopens it - the next update() then finds the new selection. */
+    /** One button per lens, labelled WW / NO / MA / TE (Kickoff 3.4, Falk 2026-09-21). Tapping it
+     *  switches the camera to that lens and to the autofocus mode the button stands for, which
+     *  reopens it - the next update() then finds the new selection. */
     private Button createLensButton(final MainActivity.Lens lens) {
         Button button = createButtonShell();
         button.setText(lens.label_res);
@@ -216,11 +226,11 @@ public class ZoomStepper implements ZoomWheel.Listener {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                main_activity.switchToPhysicalLens(lens.physical_id);
+                main_activity.switchToManualLens(lens);
                 tick(view);
                 // show the tapped lens as selected right away, instead of waiting for the camera
                 // to reopen (as the zoom steps do)
-                setLensSelection(lens.physical_id);
+                setLensSelection(lens.physical_id, lens.macro);
             }
         });
         return button;
@@ -296,12 +306,21 @@ public class ZoomStepper implements ZoomWheel.Listener {
     }
 
     /** Marks the button of the given physical lens as selected - the manual mode's counterpart
-     *  of updateSelection(), which has no ratios to compare. */
-    private void setLensSelection(String physical_id) {
+     *  of updateSelection(), which has no ratios to compare. WW and MA share their physical id, so
+     *  the macro flag decides between those two. */
+    private void setLensSelection(String physical_id, boolean macro) {
         if( manual_lenses == null )
             return;
-        for(int i=0;i<manual_lenses.size();i++)
-            applyStepStyle(i, physical_id != null && physical_id.equals(manual_lenses.get(i).physical_id));
+        for(int i=0;i<manual_lenses.size();i++) {
+            MainActivity.Lens lens = manual_lenses.get(i);
+            applyStepStyle(i, physical_id != null && physical_id.equals(lens.physical_id) && lens.macro == macro);
+        }
+    }
+
+    /** Whether the camera is in the macro focus of the MA button right now. */
+    private boolean macroSelected() {
+        Preview preview = main_activity.getPreview();
+        return preview != null && "focus_mode_macro".equals(preview.getCurrentFocusValue());
     }
 
     /** Highlights the step nearest to the supplied zoom (nearest in ratio, i.e. on the wheel's

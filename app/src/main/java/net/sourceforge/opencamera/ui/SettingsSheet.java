@@ -86,7 +86,10 @@ public class SettingsSheet {
     /** Height of the fixed boxes the label/value lines are centred in. */
     private static final float LABEL_BOX = 20.0f, VALUE_BOX = 26.0f, TITLE_BOX = 32.0f;
 
-    private static final int TITLE_SP = 24, TAB_SP = 16, LABEL_SP = 14, VALUE_SP = 20;
+    // the value line is smaller than the reference's 20sp since Falk's device runs a larger system
+    // font (1.15x, checked 2026-09-21): at 20sp the text outgrew its 26dp box and sat visibly off
+    // the row's line
+    private static final int TITLE_SP = 24, TAB_SP = 16, LABEL_SP = 14, VALUE_SP = 18;
     private static final int OPEN_DURATION = 250, CLOSE_DURATION = 200;
 
     /** Option labels of the timer row and the values they write (as the old popup does). */
@@ -181,6 +184,16 @@ public class SettingsSheet {
     /** The device was turned: the panel hangs off the physical bottom edge, so it has to be
      *  re-placed (Kickoff 3.2) - immediately, without an animation. */
     public void onUIRotationChanged(int ui_rotation) {
+        if( ui_rotation == this.ui_rotation ) {
+            // MainUI.layoutUI() calls this on every layout pass, and a camera restart causes one.
+            // Rebuilding there dropped the camera dependent rows for the moment the camera was
+            // closed, the rows below them moved up, and everything came back a moment later - the
+            // double jump Falk saw on the ratio button, plus two full rebuilds. Nothing was turned,
+            // so just re-read the values, which waits for the camera (found on the device
+            // 2026-09-21).
+            refresh();
+            return;
+        }
         this.ui_rotation = ui_rotation;
         if( open ) {
             place();
@@ -202,6 +215,12 @@ public class SettingsSheet {
                     refresh();
                 }
             });
+            return;
+        }
+        if( restart_pending ) {
+            // One of our own options started a camera restart: re-read the values once it is
+            // through, not in between (see onCameraSetUp). The timeout is the net for a restart
+            // that never reports back.
             return;
         }
         if( !cameraReady() ) {
@@ -249,6 +268,29 @@ public class SettingsSheet {
             refresh();
         }
     };
+
+    /** Set while a camera restart started by one of our own options is on its way. Rebuilding the
+     *  sheet in that window shows a half torn down camera: the same double jump as in
+     *  {@link #onUIRotationChanged} (found on the device 2026-09-21). */
+    private boolean restart_pending;
+    private static final long RESTART_PENDING_TIMEOUT = 3000;
+
+    private final Runnable restart_pending_timeout = new Runnable() {
+        @Override
+        public void run() {
+            // the restart never reported back - re-read the values anyway
+            restart_pending = false;
+            refresh();
+        }
+    };
+
+    /** The camera has been set up again after a restart: the rows can be re-read now. Called from
+     *  MainActivity.cameraSetup(), the same place that used to call refresh() directly. */
+    public void onCameraSetUp() {
+        restart_pending = false;
+        handler.removeCallbacks(restart_pending_timeout);
+        refresh();
+    }
 
     /* ---- geometry ------------------------------------------------------------------------- */
 
@@ -642,13 +684,44 @@ public class SettingsSheet {
     private List<MainActivity.Lens> last_lenses;
     private int last_lenses_camera_id = -1;
 
+    /** The selfie lighting: the front camera has no flash, so these two buttons switch the white
+     *  areas beside the preview instead. Photo and video both show it (Kickoff Video-Blatt
+     *  Runde 2, item 3; Falk asked for it in the photo sheet too, 2026-09-21). */
+    private Row selfieLightRow() {
+        Preview preview = main_activity.getPreview();
+        final boolean on = preview.isSelfieLightOn();
+        String label_off = getString(R.string.settings_sheet_off);
+        String label_on = getString(R.string.settings_sheet_on);
+        List<Option> options = new ArrayList<>();
+        options.add(new Option(label_off, R.drawable.ms_lightbulb_off, null, null, 0.0f, !on,
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        main_activity.getPreview().setSelfieLightOn(false);
+                        refresh();
+                    }
+                }));
+        options.add(new Option(label_on, R.drawable.ms_lightbulb, null, null, 0.0f, on,
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        main_activity.getPreview().setSelfieLightOn(true);
+                        refresh();
+                    }
+                }));
+        return new Row(getString(R.string.settings_sheet_selfie_light), on ? label_on : label_off, options);
+    }
+
     private List<Row> photoGeneralRows(final List<CameraController.Size> sizes) {
         List<Row> rows = new ArrayList<>();
         Preview preview = main_activity.getPreview();
 
-        // more light: one button per light position this camera offers (the front camera has its
-        // own frontscreen values)
-        {
+        // light: the front camera gets the selfie lighting instead of the flash, which does not
+        // exist on it (Falk 2026-09-21)
+        if( frontCamera() ) {
+            rows.add(selfieLightRow());
+        }
+        else {
             List<String> supported = preview.getSupportedFlashValues();
             String [][] values = {
                     {"flash_off"},
@@ -704,49 +777,25 @@ public class SettingsSheet {
                     selectedLabelOr(options, current == null ? null : getString(R.string.settings_sheet_seconds, current)), options));
         }
 
-        // macro focus
-        {
-            List<String> focus_values = preview.getSupportedFocusValues();
-            if( focus_values != null && focus_values.contains("focus_mode_macro") ) {
-                boolean on = "focus_mode_macro".equals(preview.getCurrentFocusValue());
-                String label_off = getString(R.string.settings_sheet_off);
-                String label_on = getString(R.string.settings_sheet_on);
-                List<Option> options = new ArrayList<>();
-                options.add(new Option(label_off, R.drawable.ms_macro_off, null, null, 0.0f, !on,
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                main_activity.getPreview().updateFocus("focus_mode_continuous_picture", false, true);
-                                main_activity.getMainUI().destroyPopup();
-                                refresh();
-                            }
-                        }));
-                options.add(new Option(label_on, R.drawable.ms_local_florist, null, null, 0.0f, on,
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                main_activity.getPreview().updateFocus("focus_mode_macro", false, true);
-                                main_activity.getMainUI().destroyPopup();
-                                refresh();
-                            }
-                        }));
-                rows.add(new Row(getString(R.string.settings_sheet_macro), on ? label_on : label_off, options));
-            }
-        }
+        // no macro row (2026-09-21): macro is a lens, not a mode - it lives in the MA button of
+        // the manual lens selection now, and without that selection in video there is none at all
 
         // aspect ratio - not in panorama mode
         if( main_activity.getApplicationInterface().getPhotoMode() != MyApplicationInterface.PhotoMode.Panorama ) {
             CameraController.Size current = preview.getCurrentPictureSize();
             if( current != null && sizes != null && !sizes.isEmpty() ) {
-                float current_ratio = ratio(current);
-                List<Option> options = new ArrayList<>();
-                final float [] ratios = {16.0f / 9.0f, 4.0f / 3.0f};
+                final float [] ratios = ASPECT_CLASSES;
                 int [] labels = {R.string.settings_sheet_aspect_wide, R.string.settings_sheet_aspect_full};
                 String [] texts = {"16:9", "4:3"};
+                // exactly one button is marked, and it is the nearer class when the camera holds
+                // a size of neither (the selfie's full 10 MP size is 1,40:1) - an unmarked row
+                // looked like a bug on the device (2026-09-21)
+                int selected_ratio = aspectClassIndex(ratio(current));
+                List<Option> options = new ArrayList<>();
                 for(int i=0;i<ratios.length;i++) {
                     final float ratio = ratios[i];
                     options.add(new Option(getString(labels[i]), 0, Glyph.ASPECT, null, ratio,
-                            Math.abs(current_ratio - ratio) <= RATIO_TOLERANCE,
+                            i == selected_ratio,
                             new Runnable() {
                                 @Override
                                 public void run() {
@@ -771,7 +820,11 @@ public class SettingsSheet {
         Preview preview = main_activity.getPreview();
         final MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
 
-        // resolution: two classes - the largest size up to 13 MP, and the largest size at all
+        // resolution: two sizes per aspect class - the camera's largest, and the space-saving one
+        // Falk asked for (2026-09-21): its largest size that is still 1920 wide, the "FHD" he
+        // means (1920x1080 in 16:9, 1920x1440 in 4:3). The selfie has no choice, as in the native
+        // app: its row shows the one size it has, and the camera is put onto its largest (a stored
+        // 3 MP would otherwise be stuck there with no button to leave it)
         {
             CameraController.Size current = preview.getCurrentPictureSize();
             // Kickoff 3.4: the resolution list the camera reports, for the first device test
@@ -783,17 +836,31 @@ public class SettingsSheet {
                 // reopened; then the stored preference decides, which is the value the reopen is
                 // going to apply anyway (Kickoff Runde 2, 1.4)
                 String current_text = current != null ? sizeText(current) : storedPictureSize(preview);
+                // the selfie's own sizes are not exactly 16:9 or 4:3 either (its full size is
+                // 1,40:1, which the aspect row calls 4:3), so its row works on the aspect class
                 float ratio = current != null ? ratio(current) : currentRatio(current_text);
+                if( frontCamera() )
+                    ratio = aspectClass(ratio);
                 CameraController.Size max_size = largestSize(sizes, ratio, Float.MAX_VALUE);
-                CameraController.Size small_size = largestSize(sizes, ratio, SMALL_MP_CLASS);
-                if( max_size != null && small_size != null && mp(max_size) > SMALL_MP_CLASS ) {
+                CameraController.Size save_size = savingSize(sizes, ratio);
+                if( frontCamera() ) {
+                    CameraController.Size only = max_size != null ? max_size : current;
+                    if( only != null ) {
+                        rows.add(new Row(getString(R.string.settings_sheet_resolution),
+                                getString(R.string.settings_sheet_mp, String.valueOf(Math.round(mp(only)))),
+                                new ArrayList<Option>()));
+                        if( current_text != null && !sizeText(only).equals(current_text) )
+                            setPictureSize(only);
+                    }
+                }
+                else if( max_size != null && save_size != null && !sizeText(save_size).equals(sizeText(max_size)) ) {
                     // exactly one button is marked at all times: the one holding the camera's
-                    // size, otherwise the megapixel class the camera is in (Kickoff Runde 2, 1.4)
-                    boolean matches_small = sizeText(small_size).equals(current_text);
+                    // size, otherwise the larger one (Kickoff Runde 2, 1.4)
+                    boolean matches_small = sizeText(save_size).equals(current_text);
                     boolean matches_max = sizeText(max_size).equals(current_text);
-                    boolean small_selected = matches_small || (!matches_max && (current == null || mp(current) <= SMALL_MP_CLASS));
+                    boolean small_selected = matches_small || (!matches_max && (current == null || mp(current) <= mp(save_size)));
                     List<Option> options = new ArrayList<>();
-                    options.add(resolutionOption(small_size, small_selected));
+                    options.add(resolutionOption(save_size, small_selected));
                     options.add(resolutionOption(max_size, !small_selected));
                     // the value line shows the marked class, or the real size when neither
                     // button holds it
@@ -844,8 +911,7 @@ public class SettingsSheet {
                         new Runnable() {
                             @Override
                             public void run() {
-                                if( main_activity.getApplicationInterface().getCameraIdSPhysicalPref() != null )
-                                    main_activity.userSwitchToCamera(main_activity.getActualCameraId(), null);
+                                main_activity.switchToAutoLens();
                                 refresh();
                             }
                         }));
@@ -853,8 +919,8 @@ public class SettingsSheet {
                         new Runnable() {
                             @Override
                             public void run() {
-                                // start on the main lens, see MainActivity.getMainLensId()
-                                main_activity.switchToPhysicalLens(main_activity.getMainLensId());
+                                // start on the main lens, see MainActivity.getMainLens()
+                                main_activity.switchToManualLens(main_activity.getMainLens());
                                 refresh();
                             }
                         }));
@@ -918,29 +984,7 @@ public class SettingsSheet {
         final boolean front = frontCamera();
 
         if( front ) {
-            // the front camera has no flash: this row lights the areas beside the preview white
-            // instead (Kickoff Video-Blatt Runde 2, item 3)
-            boolean on = preview.isSelfieLightOn();
-            String label_off = getString(R.string.settings_sheet_off);
-            String label_on = getString(R.string.settings_sheet_on);
-            List<Option> options = new ArrayList<>();
-            options.add(new Option(label_off, R.drawable.ms_lightbulb_off, null, null, 0.0f, !on,
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            main_activity.getPreview().setSelfieLightOn(false);
-                            refresh();
-                        }
-                    }));
-            options.add(new Option(label_on, R.drawable.ms_lightbulb, null, null, 0.0f, on,
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            main_activity.getPreview().setSelfieLightOn(true);
-                            refresh();
-                        }
-                    }));
-            rows.add(new Row(getString(R.string.settings_sheet_selfie_light), on ? label_on : label_off, options));
+            rows.add(selfieLightRow());
         }
         // flash: only the values that make sense while recording. The middle one is not a flash
         // mode of the camera but the torch by ambient light (Kickoff Video-Blatt Runde 2, item 2)
@@ -979,14 +1023,21 @@ public class SettingsSheet {
         }
 
         // video resolution: FHD / 4K / 8K where the current frame rate offers them. Only 16:9 -
-        // the short badge is enough here, the resolution itself is what the knobs are for
-        if( !front ) {
+        // the short badge is enough here, the resolution itself is what the knobs are for. The
+        // selfie gets the same row (Falk 2026-09-21): it records up to 4K, so it shows FHD and 4K
+        // its own scope: the flash row above has an "options" of its own
+        {
+            // the front camera records 16:9 only, so a stored quality of another ratio (the pixel
+            // offers 1:1) is put right before the row reads the qualities (Video-Blatt Runde 1, 4)
+            if( front )
+                fixFrontVideoQuality();
             List<String> qualities = preview.getSupportedVideoQuality(fps_value);
             if( qualities == null || qualities.isEmpty() )
                 qualities = preview.getVideoQualityHander().getSupportedVideoQuality();
             // Kickoff 3.4/3.5: the video quality and frame rate lists the camera reports.
             // Deliberately not behind MyDebug.LOG, see the picture sizes above
             Log.d(TAG, "supported video qualities: " + qualities);
+            Log.d(TAG, "video sizes: " + preview.getVideoQualityHander().getSupportedVideoSizes());
             List<Option> options = new ArrayList<>();
             int [] widths = {1920, 3840, 7680};
             int [] heights = {1080, 2160, 4320};
@@ -994,10 +1045,12 @@ public class SettingsSheet {
             // untranslated (Kickoff 3.5)
             String [] labels = {"FHD", "4K", "8K"};
             String current = preview.getVideoQualityHander().getCurrentVideoQuality();
+            List<String> used = new ArrayList<>();
             for(int i=0;i<widths.length;i++) {
                 final String quality = findQuality(qualities, widths[i], heights[i]);
                 if( quality == null )
                     continue;
+                used.add(quality);
                 options.add(new Option(labels[i], 0, Glyph.TEXT, labels[i], 0.0f, quality.equals(current),
                         new Runnable() {
                             @Override
@@ -1006,20 +1059,51 @@ public class SettingsSheet {
                             }
                         }));
             }
+            // Falk's rule (2026-09-21) is a high and a space-saving size in every camera. The
+            // selfie has no 4K: this device's front camera reports FullHD as its highest profile
+            // and stops at 3264x1836 for recording, so its largest quality joins FullHD as the
+            // second button, labelled with its megapixels - the frame size is in the value line
+            if( options.size() == 1 && qualities != null ) {
+                String largest = null;
+                float largest_mp = 0.0f;
+                for(String quality : qualities) {
+                    CamcorderProfile profile = preview.getCamcorderProfile(quality);
+                    if( profile == null || profile.videoFrameWidth == 0 )
+                        continue;
+                    float megapixels = profile.videoFrameWidth * (float)profile.videoFrameHeight / 1000000.0f;
+                    if( megapixels > largest_mp && !used.contains(quality) ) {
+                        largest_mp = megapixels;
+                        largest = quality;
+                    }
+                }
+                if( largest != null && largest_mp > 0.0f ) {
+                    final String quality = largest;
+                    String label = getString(R.string.settings_sheet_mp, String.valueOf(Math.round(largest_mp)));
+                    options.add(new Option(label, 0, Glyph.TEXT, label, 0.0f, quality.equals(current),
+                            new Runnable() {
+                                @Override
+                                public void run() {
+                                    setVideoQuality(quality);
+                                }
+                            }));
+                }
+            }
             if( !options.isEmpty() ) {
-                // the value line keeps the camera's own wording ("1920x1080 FullHD") rather than
-                // the button's short badge: the row used to switch between the two as soon as one
-                // of the badges was the current setting (device 2026-09-21)
-                CharSequence value_text = current == null ? null : preview.getCamcorderProfileDescriptionShort(current);
+                // the value line holds the megapixels and nothing else, like the photo row: what
+                // FHD or 4K means in photos (Falk, 2026-09-21), in the same shape as "9MP" above.
+                // The camera's own wording ("1920x1080 FullHD · 2MP") made the longest line of
+                // the sheet and sat noticeably off the row's line (device 2026-09-21)
+                CharSequence value_text = null;
+                if( current != null ) {
+                    CamcorderProfile profile = preview.getCamcorderProfile(current);
+                    if( profile != null && profile.videoFrameWidth > 0 ) {
+                        value_text = getString(R.string.settings_sheet_mp,
+                                String.valueOf(Math.round(profile.videoFrameWidth * (float)profile.videoFrameHeight / 1000000.0f)));
+                    }
+                }
                 rows.add(new Row(getString(R.string.settings_sheet_resolution),
                         value_text != null ? value_text : selectedLabelOr(options, null), options));
             }
-        }
-        else {
-            // the front camera records 16:9 only - it has no resolution row to say so, so a
-            // stored non-16:9 quality (the pixel offers 1:1) is put right here once
-            // (Kickoff Video-Blatt Runde 1, item 4)
-            fixFrontVideoQuality();
         }
 
         // frame rate - the same candidates the settings list offers
@@ -1152,6 +1236,11 @@ public class SettingsSheet {
     private void postUpdateForSettings() {
         handler.removeCallbacks(update_settings_runnable);
         long delay = main_activity.getApplicationInterface().isCameraExtensionPref() ? 800 : 400;
+        // the sheet keeps what it shows until the camera is back (onCameraSetUp), instead of
+        // following it through the restart
+        restart_pending = true;
+        handler.removeCallbacks(restart_pending_timeout);
+        handler.postDelayed(restart_pending_timeout, RESTART_PENDING_TIMEOUT);
         handler.postDelayed(update_settings_runnable, delay);
     }
 
@@ -1196,6 +1285,63 @@ public class SettingsSheet {
 
     private static float ratio(CameraController.Size size) {
         return size.width / (float)size.height;
+    }
+
+    /** The two aspect classes the sheet offers, as the ratio of the sizes behind them. */
+    private static final float [] ASPECT_CLASSES = {16.0f / 9.0f, 4.0f / 3.0f};
+
+    /** The aspect class a ratio belongs to: the exact class when one matches, otherwise the
+     *  nearer one. So the selfie's full size (1,40:1) counts as 4:3 and a 1:1 size picked in the
+     *  full settings list lands on the nearer class - an unmarked aspect row looked like a bug on
+     *  the device (2026-09-21). */
+    private static float aspectClass(float size_ratio) {
+        float best = ASPECT_CLASSES[0];
+        float best_distance = Float.MAX_VALUE;
+        for(float class_ratio : ASPECT_CLASSES) {
+            float distance = Math.abs(size_ratio - class_ratio);
+            if( distance <= RATIO_TOLERANCE )
+                return class_ratio;
+            if( distance < best_distance ) {
+                best_distance = distance;
+                best = class_ratio;
+            }
+        }
+        return best;
+    }
+
+    private static int aspectClassIndex(float size_ratio) {
+        float class_ratio = aspectClass(size_ratio);
+        for(int i=0;i<ASPECT_CLASSES.length;i++) {
+            if( ASPECT_CLASSES[i] == class_ratio )
+                return i;
+        }
+        return -1;
+    }
+
+    /** The space-saving size of an aspect class: its largest size that is still 1920 wide, the
+     *  "FHD" Falk means (2026-09-21) - 1920x1080 in 16:9, 1920x1440 in 4:3. Falls back to the
+     *  smallest size of the class when the camera has nothing that narrow. */
+    private static CameraController.Size savingSize(List<CameraController.Size> sizes, float ratio) {
+        CameraController.Size best = null;
+        for(CameraController.Size size : sizes) {
+            if( Math.abs(ratio(size) - ratio) > RATIO_TOLERANCE || size.width > 1920 )
+                continue;
+            if( best == null || mp(size) > mp(best) )
+                best = size;
+        }
+        return best != null ? best : smallestSize(sizes, ratio);
+    }
+
+    /** The smallest size of the given ratio - the fallback of savingSize() above. */
+    private static CameraController.Size smallestSize(List<CameraController.Size> sizes, float ratio) {
+        CameraController.Size best = null;
+        for(CameraController.Size size : sizes) {
+            if( Math.abs(ratio(size) - ratio) > RATIO_TOLERANCE )
+                continue;
+            if( best == null || mp(size) < mp(best) )
+                best = size;
+        }
+        return best;
     }
 
     private static float mp(CameraController.Size size) {

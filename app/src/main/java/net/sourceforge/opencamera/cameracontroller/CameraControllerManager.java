@@ -19,6 +19,12 @@ public abstract class CameraControllerManager {
 
     public static class CameraInfo {
         public SizeF view_angle;
+        /** Focal length in mm (the first of the camera's available focal lengths), and the width
+         *  of the physical sensor in mm. The physical ids of one logical camera repeat the same
+         *  lens with a different readout on some devices, so the manual lens selection groups
+         *  them by focal length and keeps the one with the larger sensor (Falk 2026-09-21). */
+        public float focal_length;
+        public float sensor_width;
     }
 
     /** Version of getDescription() that supports Camera2 camera ID strings (used for physical cameras), also returns the

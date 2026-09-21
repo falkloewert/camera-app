@@ -990,9 +990,10 @@
     <string name="settings_sheet_fps">fps</string>
     <string name="settings_sheet_stabilization">Videostabilisierung</string>
     <string name="settings_sheet_selfie_light">Selfiebeleuchtung</string>
-    <string name="settings_sheet_lens_uw">UW</string>
-    <string name="settings_sheet_lens_w">W</string>
-    <string name="settings_sheet_lens_t">T</string>
+    <string name="settings_sheet_lens_ww">WW</string>
+    <string name="settings_sheet_lens_no">NO</string>
+    <string name="settings_sheet_lens_ma">MA</string>
+    <string name="settings_sheet_lens_te">TE</string>
     <string name="settings_sheet_seconds">%1$s s</string>
     <string name="settings_sheet_mp">%1$sMP</string>
 

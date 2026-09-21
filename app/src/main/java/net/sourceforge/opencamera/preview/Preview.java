@@ -302,7 +302,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
     private List<String> supported_flash_values; // our "values" format
     private int current_flash_index = -1; // this is an index into the supported_flash_values array, or -1 if no flash modes available
 
-    private boolean selfie_light_on; // whether the white areas beside the preview are shown (front camera, video)
+    private boolean selfie_light_on; // whether the white areas beside the preview are shown (front camera, photo and video)
 
     private List<String> supported_focus_values; // our "values" format
     private int current_focus_index = -1; // this is an index into the supported_focus_values array, or -1 if no focus modes available
@@ -5212,10 +5212,23 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
             }
             else if( current_flash != null && current_flash.startsWith("flash_frontscreen") ) {
                 // the front camera has no flash: the white areas beside the preview replace it
-                // (Kickoff Video-Blatt Runde 2, item 3). Not saved - photo mode uses the same
-                // flash preference and keeps its own value.
+                // (Kickoff Video-Blatt Runde 2, item 3)
                 if( MyDebug.LOG )
                     Log.d(TAG, "front camera: no flash in video mode, use the selfie lighting instead");
+                current_flash_index = -1; // reset to initial, to prevent toast from showing
+                updateFlash("flash_off", false);
+            }
+        }
+        else if( camera_controller != null && camera_controller.getFacing() == CameraController.Facing.FACING_FRONT ) {
+            // photo mode, front camera: the selfie lighting replaces the flash here as well - the
+            // screen flash would only be a second, weaker light next to it (Falk 2026-09-21).
+            // Saved for neither: the stored value is the mode's own, and the next camera setup
+            // reads it back (see setupCameraParameters).
+            String current_flash = getCurrentFlashValue();
+            if( current_flash != null && current_flash.startsWith("flash_frontscreen") ) {
+                if( MyDebug.LOG )
+                    Log.d(TAG, "front camera: no screen flash in photo mode, use the selfie lighting instead");
+                current_flash_index = -1; // reset to initial, to prevent toast from showing
                 updateFlash("flash_off", false);
             }
         }
@@ -5319,11 +5332,11 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         updateSelfieLight();
     }
 
-    /** Applies the stored selfie lighting to the view. Only while recording with the front
-     *  camera - in photo mode and on the rear camera there is nothing to light. Called when the
-     *  mode or the camera changes, and after the setting was changed. */
+    /** Applies the stored selfie lighting to the view. Only on the front camera - there is
+     *  nothing to light on the rear one. Called when the mode or the camera changes, and after the
+     *  setting was changed. Photo and video both use it (Falk 2026-09-21). */
     public void updateSelfieLight() {
-        boolean on = is_video && camera_controller != null && camera_controller.getFacing() == CameraController.Facing.FACING_FRONT &&
+        boolean on = camera_controller != null && camera_controller.getFacing() == CameraController.Facing.FACING_FRONT &&
                 PreferenceManager.getDefaultSharedPreferences(getContext()).getBoolean(PreferenceKeys.VideoSelfieLightPreferenceKey, false);
         selfie_light_on = on;
         Activity activity = (Activity)getContext();

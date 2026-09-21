@@ -7955,6 +7955,8 @@ public class CameraController2 extends CameraController {
                     Log.d(TAG, "frame duration: " + request.get(CaptureRequest.SENSOR_FRAME_DURATION));
                 }
             }
+            // TEMP probe (Kickoff 4.5): which physical lenses contribute to the frame on screen.
+            // Logged whenever the set changes, so a lens switch shows up as a new line
             process(request, result);
             processCompleted(request, result);
             super.onCaptureCompleted(session, request, result); // API docs say this does nothing, but call it just to be safe (as with Google Camera)

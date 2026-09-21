@@ -371,6 +371,15 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   Kamera in den trigger-only-Makromodus schicken (genau der unscharfe Zustand von vorher).
 
 
+- **2026-09-21 (Feature-Chat, Foto-Blatt Runde 1):** Kickoff `docs/kickoff/foto-blatt-fixes-runde1.md`
+  abgearbeitet. Verhältnis-Sprung behoben (Blatt-Neubau nur bei echter Drehungsänderung, über
+  `refresh()`), Timer-Icons 3/5/10 als Stoppuhr mit Ziffer im Ring, Makro-Zeile raus,
+  Objektivauswahl als Pille `WW · NO · MA · TE`, Auflösung: Rückkamera zwei Größen der
+  Verhältnis-Klasse ("2MP"/"9MP"), Selfie ohne Auswahl, Selfie-Beleuchtung statt Frontblitz,
+  Video-Wertzeile nur noch in MP. **Punkt 5 am Gerät geloggt:** die Linse bleibt beim Tippen
+  gepinnt (`pinned`/`contributing`/`LENS_FOCAL_LENGTH` konstant) – kein Fix nötig, Sonden wieder
+  entfernt. Nicht erreichbar mit Camera2: 50 MP (nur RAW10, kein JPEG) und 4K-Selfie-Video.
+
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 
 **Recherche-Ergebnis (2026-09-14, Researcher-Agent):**

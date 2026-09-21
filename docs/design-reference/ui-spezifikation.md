@@ -590,7 +590,17 @@ nicht verifizieren (closed source).
   Hilfetexte, kein Ersatz.
 - **Objektivauswahl "Manuell"** ist aus der Referenz nicht bekannt. Selbst gewählt:
   **Rad-Sperre** (Ziehen auf der Pille öffnet das Feinjustier-Rad nicht mehr, Pinch-Zoom
-  bleibt) und **Startlinse "W"** (Sichtwinkel am nächsten zur logischen Kamera).
+  bleibt), **vier Knöpfe `WW · NO · MA · TE`** (2026-09-21; MA ist dieselbe Weitwinkel-Linse
+  wie WW, aber mit `focus_mode_macro`) und **Startlinse "NO"** (Sichtwinkel am nächsten zur
+  logischen Kamera). Die Pille zeigt statt der Zoom-Stufen diese Knöpfe, ausgewählter Knopf
+  wie bei den Stufen weiß gefüllt.
+- **Wertzeile kleiner als die Referenz (2026-09-21):** `VALUE_SP` 18 statt 20 sp. Falks
+  Gerät läuft mit Schriftgröße 1,15 (`settings get system font_scale`), damit sprengte die
+  Wertzeile ihre 26-dp-Box und saß sichtbar neben der Zeilenmitte. Zusammen mit der kurzen
+  Wertzeile (siehe Video-Blatt) sitzt sie wieder auf einer Höhe mit Bezeichnung und Knöpfen.
+- **Video-Auflösungszeile zeigt nur noch Megapixel** ("2MP", "8MP") statt der Kamera-Angabe
+  "1920x1080 FullHD · 2MP": die lange Zeile war die längste im Blatt und lief bei
+  Schriftgröße 1,15 aus dem Raster (Falk 2026-09-21).
 - **Gleit-Animation** von 250 ms (schließen 200 ms) ist als **Ausnahme** bewusst gewählt:
   die Referenz wurde nicht in Bewegung gemessen, und das Blatt braucht eine
   Ein-/Ausblendung. Reines `translationY` in Fenster-Achsen – deshalb funktioniert die

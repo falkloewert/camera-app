@@ -255,7 +255,14 @@ dunkel) + ConstraintLayout (Phase 1); Zoom-Stufen-Pille `,5 1× 2 5` (gemessen 4
 (Fenster fest Hochformat, nur Glyphen drehen, `MainUI.rotateGlyphs()`); keine Info-Toasts.
 **Neu (2026-09-20, noch nicht am Gerät abgenommen):** Einstellungen-Blätter Foto + Video
 (`ui/SettingsSheet`, Hoch- und Querformat), linker Dock-Button, Wisch-Geste auf dem Sucher,
-Objektivauswahl "Manuell" (Zoom-Pille zeigt `UW · W · T`).
+Objektivauswahl "Manuell" (Zoom-Pille zeigt `WW · NO · MA · TE`).
+**Foto-Blatt Runde 1 (2026-09-21):** Verhältnis-Sprung weg (Blatt-Neubau nur noch bei echter
+Drehungsänderung über `refresh()`), Timer-Icons einheitlich (Stoppuhr mit Ziffer), Makro-Zeile
+raus (Makro nur noch über den MA-Knopf), Auflösungs-Zeile: Rückkamera zwei Größen der
+Verhältnis-Klasse in MP, Selfie ohne Auswahl, Video-Blatt Auflösung als MP-Wertzeile;
+Selfie-Beleuchtung statt Frontblitz auch im Foto-Blatt. Punkt 5 (AF bleibt auf der gewählten
+Linse, auch beim Tippen ins Bild) am Gerät mitgeloggt: die Linse bleibt gepinnt
+(`MC probe`-Logs, 2026-09-21) – kein Code nötig.
 **Offen:** rechter Dock-Button (Pro-Regler-Panel), danach Schritt C (Kopfzeile, dann
 Icon-Leiste + Popup weg); Rest `ui-spezifikation.md` Abschnitt 7 (Karussell →
 Sucher-Overlays → Farben/Blur/Schrift).

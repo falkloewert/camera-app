@@ -20,8 +20,9 @@
         app:layout_constraintBottom_toBottomOf="parent"
         />
 
-    <!-- Selfie-Beleuchtung (Frontkamera, Video): fuellt die schwarzen Flaechen ueber und unter
-         dem Vorschaubild weiss (Kickoff Video-Blatt Runde 2, Punkt 3). Sie liegt direkt hinter
+    <!-- Selfie-Beleuchtung (Frontkamera, Foto und Video): fuellt die schwarzen Flaechen ueber und
+         unter dem Vorschaubild weiss (Kickoff Video-Blatt Runde 2, Punkt 3; seit 2026-09-21 auch
+         im Foto-Blatt statt des Frontblitzes). Sie liegt direkt hinter
          der Vorschau und vor allen Bedienelementen - die bleiben also obenauf - und wird von
          MainUI.layoutUI() nie angefasst (bildschirmfuellend per Constraints). Nicht clickable,
          damit Beruehrungen zum Sucher darunter durchfallen. -->

@@ -3,7 +3,22 @@
     android:height="24dp"
     android:viewportWidth="960"
     android:viewportHeight="960">
+  <!-- Stopwatch ring copied verbatim from ms_timer_5, so the timer row is one style: the
+       Material glyph "timer_3" is the bare digit without the ring, which looked nothing like
+       the "3" the reference shows (found by Falk on the device 2026-09-21). -->
   <path
       android:fillColor="@android:color/white"
-      android:pathData="M320,760L320,640L560,640Q560,640 560,640Q560,640 560,640L560,540Q560,540 560,540Q560,540 560,540L360,540L360,420L560,420Q560,420 560,420Q560,420 560,420L560,320Q560,320 560,320Q560,320 560,320L320,320L320,200L560,200Q610,200 645,235Q680,270 680,320L680,396Q680,431 655.5,455.5Q631,480 596,480Q631,480 655.5,504.5Q680,529 680,564L680,640Q680,690 645,725Q610,760 560,760L320,760Z"/>
+      android:pathData="M360,120L360,40L600,40L600,120L360,120ZM480,880Q406,880 340.5,851.5Q275,823 226,774Q177,725 148.5,659.5Q120,594 120,520Q120,446 148.5,380.5Q177,315 226,266Q275,217 340.5,188.5Q406,160 480,160Q542,160 599,180Q656,200 706,238L762,182L818,238L762,294Q800,344 820,401Q840,458 840,520Q840,594 811.5,659.5Q783,725 734,774Q685,823 619.5,851.5Q554,880 480,880ZM480,800Q596,800 678,718Q760,636 760,520Q760,404 678,322Q596,240 480,240Q364,240 282,322Q200,404 200,520Q200,636 282,718Q364,800 480,800Z"/>
+  <!-- the digit of the Material glyph "timer_3", scaled to the size the "5" of ms_timer_5 has
+       inside the ring (0,6667 = 240/360 wide) and centred in it - values chosen by hand, no
+       reference screenshot has the row at that size, see ui-spezifikation.md Abschnitt 8 -->
+  <group
+      android:scaleX="0.66667"
+      android:scaleY="0.66667"
+      android:translateX="146.667"
+      android:translateY="185">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M320,760L320,640L560,640Q560,640 560,640Q560,640 560,640L560,540Q560,540 560,540Q560,540 560,540L360,540L360,420L560,420Q560,420 560,420Q560,420 560,420L560,320Q560,320 560,320Q560,320 560,320L320,320L320,200L560,200Q610,200 645,235Q680,270 680,320L680,396Q680,431 655.5,455.5Q631,480 596,480Q631,480 655.5,504.5Q680,529 680,564L680,640Q680,690 645,725Q610,760 560,760L320,760Z"/>
+  </group>
 </vector>

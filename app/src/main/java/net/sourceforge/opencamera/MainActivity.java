@@ -2389,32 +2389,34 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         userSwitchToCamera(curr_camera_id, target_physical_id);
     }
 
-    /** One physical lens of the current logical camera, for the manual lens selection of the
-     *  settings sheet (Kickoff 3.3/3.4) and the lens buttons of the zoom pill. */
+    /** One lens button of the manual lens selection, for the settings sheet (Kickoff 3.3/3.4) and
+     *  the lens buttons of the zoom pill. Two buttons can name the same physical id - that is the
+     *  ultra wide lens shown as "WW" (its own autofocus) and as "MA" (macro focus, Falk
+     *  2026-09-21). */
     public static class Lens {
         public final String physical_id;
-        public final int label_res;     // "UW" (ultra wide), "W" (main) or "T" (tele)
+        public final int label_res;     // "WW", "NO", "MA" or "TE" (Falk 2026-09-21)
         public final float view_angle;
         public final boolean main;
+        public final boolean macro;     // this button is the lens in macro focus
 
-        Lens(String physical_id, int label_res, float view_angle, boolean main) {
+        Lens(String physical_id, int label_res, float view_angle, boolean main, boolean macro) {
             this.physical_id = physical_id;
             this.label_res = label_res;
             this.view_angle = view_angle;
             this.main = main;
+            this.macro = macro;
         }
     }
 
     private CameraController manual_lenses_cache_for_controller;
     private List<Lens> manual_lenses;
-    private String manual_main_lens_id;
 
     private void updateManualLensCache() {
         CameraController camera_controller = preview.getCameraController();
         if( camera_controller != null && camera_controller == manual_lenses_cache_for_controller )
             return;
         manual_lenses = null;
-        manual_main_lens_id = null;
         if( camera_controller == null || preview.isOpeningCamera() ) {
             // nothing to cache until a camera is open and set up; leave the key unset so the
             // next call computes it
@@ -2424,32 +2426,56 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         manual_lenses_cache_for_controller = camera_controller;
         if( !preview.hasPhysicalCameras() )
             return;
-        // sort the physical lenses by field of view, widest first (the same source the panorama
-        // lens cache uses)
+        // collect the physical lenses, then sort them by field of view, widest first (the same
+        // source the panorama lens cache uses)
         class PhysicalLens {
             final String physical_id;
             final float view_angle;
-            PhysicalLens(String physical_id, float view_angle) {
+            final float focal_length;
+            final float sensor_width;
+            PhysicalLens(String physical_id, float view_angle, float focal_length, float sensor_width) {
                 this.physical_id = physical_id;
                 this.view_angle = view_angle;
+                this.focal_length = focal_length;
+                this.sensor_width = sensor_width;
             }
         }
-        List<PhysicalLens> lenses = new ArrayList<>();
+        List<PhysicalLens> all = new ArrayList<>();
         for(String physical_id : preview.getPhysicalCameras()) {
             CameraControllerManager.CameraInfo info = new CameraControllerManager.CameraInfo();
             preview.getCameraControllerManager().getDescription(info, this, physical_id, false, true);
-            lenses.add(new PhysicalLens(physical_id, info.view_angle == null ? 0.0f : info.view_angle.getWidth()));
+            all.add(new PhysicalLens(physical_id, info.view_angle == null ? 0.0f : info.view_angle.getWidth(),
+                    info.focal_length, info.sensor_width));
         }
-        if( lenses.size() < 2 )
-            return;
+        // The same lens appears under several ids: the Pixel 9 Pro reports six physical ids for
+        // its three rear lenses, each lens once with its full sensor and once cropped. They share
+        // the focal length, so that is the key; of each lens the id with the larger sensor stays,
+        // the cropped one would cost resolution without adding reach (Falk 2026-09-21).
+        Collections.sort(all, new Comparator<PhysicalLens>() {
+            @Override
+            public int compare(PhysicalLens a, PhysicalLens b) {
+                int by_focal = Float.compare(a.focal_length, b.focal_length);
+                if( by_focal != 0 )
+                    return by_focal;
+                return Float.compare(b.sensor_width, a.sensor_width);
+            }
+        });
+        List<PhysicalLens> lenses = new ArrayList<>();
+        for(PhysicalLens lens : all) {
+            PhysicalLens last = lenses.isEmpty() ? null : lenses.get(lenses.size() - 1);
+            if( last != null && Math.abs(last.focal_length - lens.focal_length) < 0.01f )
+                continue;   // same lens, and the one already taken has the larger sensor
+            lenses.add(lens);
+        }
         Collections.sort(lenses, new Comparator<PhysicalLens>() {
             @Override
             public int compare(PhysicalLens a, PhysicalLens b) {
                 return Float.compare(b.view_angle, a.view_angle);
             }
         });
-        // the main lens is the one whose field of view comes closest to the logical camera's own;
-        // everything wider is labelled "UW", everything narrower "T" (Kickoff 3.4)
+        if( lenses.size() < 2 )
+            return;
+        // the main lens is the one whose field of view comes closest to the logical camera's own
         CameraControllerManager.CameraInfo main_info = new CameraControllerManager.CameraInfo();
         preview.getCameraControllerManager().getDescription(main_info, this, String.valueOf(getActualCameraId()), false, true);
         float main_angle = main_info.view_angle == null ? 0.0f : main_info.view_angle.getWidth();
@@ -2462,15 +2488,28 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                 main_index = i;
             }
         }
+        // The buttons Falk asked for: WW (the widest lens), NO (the main one), MA (that widest lens
+        // with macro focus) and TE (the narrowest). WW and MA are the same physical lens - the
+        // ultra wide one focuses down to 2 cm, which is what makes it the macro lens on this
+        // device. A camera without an ultra wide gets NO/MA/TE, a camera with a single lens none.
+        PhysicalLens widest = lenses.get(0);
+        PhysicalLens main_lens = lenses.get(main_index);
+        PhysicalLens narrowest = lenses.get(lenses.size() - 1);
         List<Lens> result = new ArrayList<>();
-        for(int i=0;i<lenses.size();i++) {
-            int label = i < main_index ? R.string.settings_sheet_lens_uw : (i == main_index ? R.string.settings_sheet_lens_w : R.string.settings_sheet_lens_t);
-            result.add(new Lens(lenses.get(i).physical_id, label, lenses.get(i).view_angle, i == main_index));
+        if( widest != main_lens )
+            result.add(new Lens(widest.physical_id, R.string.settings_sheet_lens_ww, widest.view_angle, false, false));
+        result.add(new Lens(main_lens.physical_id, R.string.settings_sheet_lens_no, main_lens.view_angle, true, false));
+        result.add(new Lens(widest.physical_id, R.string.settings_sheet_lens_ma, widest.view_angle, false, true));
+        if( narrowest != main_lens ) {
+            // only the narrowest lens gets a button, so a device with two teles has none for the
+            // middle one
+            // ponytail: four buttons max, no such device seen yet; then a lens name row would be
+            // needed instead
+            result.add(new Lens(narrowest.physical_id, R.string.settings_sheet_lens_te, narrowest.view_angle, false, false));
         }
         manual_lenses = result;
-        manual_main_lens_id = result.get(main_index).physical_id;
         if( MyDebug.LOG )
-            Log.d(TAG, "manual lenses: " + result.size() + " main: " + manual_main_lens_id);
+            Log.d(TAG, "manual lenses: " + result.size() + " main: " + main_lens.physical_id);
     }
 
     /** The physical lenses of the current camera, widest first - null if this camera has none
@@ -2480,11 +2519,17 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         return manual_lenses;
     }
 
-    /** The lens the manual selection starts on: the one closest to the logical camera's own
-     *  field of view, i.e. the one labelled "W" (Kickoff 3.4). */
-    public String getMainLensId() {
+    /** The button the manual selection starts on: the lens closest to the logical camera's own
+     *  field of view, i.e. the one labelled "NO" (Kickoff 3.4). */
+    public Lens getMainLens() {
         updateManualLensCache();
-        return manual_main_lens_id;
+        if( manual_lenses == null )
+            return null;
+        for(Lens lens : manual_lenses) {
+            if( lens.main )
+                return lens;
+        }
+        return null;
     }
 
     /** Switches the current camera to one of its physical lenses - the same call the panorama
@@ -2499,6 +2544,40 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         if( !preview.canSwitchCamera() )
             return;
         userSwitchToCamera(getActualCameraId(), cameraIdSPhysical);
+    }
+
+    /** Switches to one of the manual lens buttons: its physical lens plus the autofocus mode the
+     *  button stands for - MA is the ultra wide lens in macro focus, every other button keeps the
+     *  continuous autofocus it has (Falk 2026-09-21).
+     *  <p>
+     *  The focus mode is stored (updateFocus saves it), so the reopen that the lens switch starts
+     *  comes back up on it instead of resetting the lens to the automatic autofocus. */
+    public void switchToManualLens(Lens lens) {
+        if( lens == null )
+            return;
+        updateFocusForLens(lens);
+        switchToPhysicalLens(lens.physical_id);
+    }
+
+    /** Back to the automatic lens choice. The focus mode of the manual buttons goes with it: a
+     *  macro focus left behind would keep the automatic choice in macro (Falk 2026-09-21). */
+    public void switchToAutoLens() {
+        if( MyDebug.LOG )
+            Log.d(TAG, "switchToAutoLens");
+        updateFocusForLens(null);
+        if( getApplicationInterface().getCameraIdSPhysicalPref() != null )
+            userSwitchToCamera(getActualCameraId(), null);
+    }
+
+    /** Applies the autofocus mode of a lens button to the camera, and stores it; null stands for
+     *  the automatic lens choice, which uses the continuous autofocus of the current mode. */
+    private void updateFocusForLens(Lens lens) {
+        boolean macro = lens != null && lens.macro;
+        String focus_value = macro ? "focus_mode_macro" :
+                (preview.isVideo() ? "focus_mode_continuous_video" : "focus_mode_continuous_picture");
+        // quiet: no toast for a lens tap, the pill's highlight says what happened. The call
+        // saves the value, which is what the camera reopen reads back
+        preview.updateFocus(focus_value, true, true);
     }
 
     /* ---- settings sheet (Kickoff 3.1/3.2) ------------------------------------------------- */
@@ -5558,9 +5637,11 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
 
         this.getApplicationInterface().getDrawPreview().setDimPreview(false);
 
-        // an open settings sheet re-reads its rows from the new camera state (Kickoff 3.2)
+        // an open settings sheet re-reads its rows from the new camera state (Kickoff 3.2), and
+        // this is the moment it may: while the camera was restarting it deliberately left them
+        // alone (Falk 2026-09-21)
         if( settingsSheet != null )
-            settingsSheet.refresh();
+            settingsSheet.onCameraSetUp();
     }
 
     /** For Camera2 only. Sets whether the zoom ratios should be sticky or not (see documentation of
