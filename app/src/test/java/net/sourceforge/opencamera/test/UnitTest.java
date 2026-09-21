@@ -538,6 +538,22 @@ public class UnitTest {
     }
 
     @Test
+    public void testTorchAutoHysteresis() {
+        Log.d(TAG, "testTorchAutoHysteresis");
+
+        // threshold values are TORCH_AUTO_ISO_ON / TORCH_AUTO_ISO_OFF in Preview - the two numbers to change there
+        // while off, the torch comes on once the scene gets dark enough
+        assertFalse(Preview.torchAutoOn(false, 0));
+        assertFalse(Preview.torchAutoOn(false, 799));
+        assertTrue(Preview.torchAutoOn(false, 800));
+        assertTrue(Preview.torchAutoOn(false, 6400));
+        // while on, it only goes off again once the scene is clearly bright (hysteresis against its own light)
+        assertTrue(Preview.torchAutoOn(true, 200));
+        assertTrue(Preview.torchAutoOn(true, 1600));
+        assertFalse(Preview.torchAutoOn(true, 199));
+    }
+
+    @Test
     public void testImageSaverQueueSize() {
         Log.d(TAG, "testImageSaverQueueSize");
 

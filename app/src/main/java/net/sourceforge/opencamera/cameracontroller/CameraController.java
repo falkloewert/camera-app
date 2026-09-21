@@ -358,6 +358,15 @@ public abstract class CameraController {
         void onContinuousFocusMove(boolean start);
     }
 
+    /** Interface to define callback for the ISO the camera measured for the scene in front of the
+     *  lens (from the capture results). Higher ISO means a darker scene - used as a brightness
+     *  signal, e.g. for the video flash "auto" torch. This callback may be called on a background
+     *  thread (CameraController2).
+     */
+    public interface ISOChangeCallback {
+        void onISOChange(int iso);
+    }
+
     public interface ErrorCallback {
         void onError();
     }
@@ -730,6 +739,10 @@ public abstract class CameraController {
     public abstract void setCaptureFollowAutofocusHint(boolean capture_follows_autofocus_hint);
     public abstract void cancelAutoFocus();
     public abstract void setContinuousFocusMoveCallback(ContinuousFocusMoveCallback cb);
+    /** Sets the callback for the measured ISO (see ISOChangeCallback), or null to remove it. Only
+     *  Camera2 reports capture results; the base implementation does nothing. */
+    public void setISOChangeCallback(ISOChangeCallback cb) {
+    }
     public abstract void takePicture(final CameraController.PictureCallback picture, final ErrorCallback error);
     public abstract void setDisplayOrientation(int degrees);
     public abstract int getDisplayOrientation();

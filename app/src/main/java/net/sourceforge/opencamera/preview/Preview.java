@@ -61,9 +61,7 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
-import android.hardware.Sensor;
 import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.hardware.camera2.CameraExtensionCharacteristics;
 import android.location.Location;
@@ -1498,7 +1496,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
             // no need to call camera_controller.setCaptureFollowAutofocusHint() as we're closing the camera
         }
         set_flash_value_after_autofocus = "";
-        updateTorchAuto(null); // let go of the light sensor while no camera is open
+        updateTorchAuto(null); // let go of the ISO callback while no camera is open
         successfully_focused = false;
         preview_targetRatio = 0.0;
         // the physical cameras belong to the camera being closed - if kept, the next camera's
@@ -3124,12 +3122,16 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
             }
 
             if( current_size_index == -1 ) {
-                // the app's standard resolution: the largest size within the camera's own 12 MP
-                // grid, see CameraController.STANDARD_PICTURE_WIDTH (Falk, 2026-09-21)
+                // the app's standard resolution: the largest 16:9 size within the camera's own
+                // 12 MP grid, see CameraController.STANDARD_PICTURE_WIDTH. 16:9 is the ratio the
+                // app starts on in every mode, like the reference app (Falk, 2026-09-21); a stored
+                // choice always wins over it
                 CameraController.Size current_size = null;
                 for(int i=0;i<photo_sizes.size();i++) {
                     CameraController.Size size = photo_sizes.get(i);
                     if( size.width > CameraController.STANDARD_PICTURE_WIDTH )
+                        continue;
+                    if( Math.abs(((double)size.width)/(double)size.height - 16.0/9.0) > 0.02 )
                         continue;
                     if( current_size == null || size.width*size.height > current_size.width*current_size.height ) {
                         current_size_index = i;
@@ -5256,75 +5258,71 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
                 flash_mode.equals("flash_torch") || flash_mode.equals("flash_frontscreen_torch") );
     }
 
-    /** Ambient light below this (in lux) switches the torch on for the video flash mode "auto"
-     *  (Kickoff Video-Blatt Runde 2, item 2). Measured with the device's light sensor; if Falk
-     *  wants the threshold elsewhere, this is the one number to change. */
-    private static final float TORCH_AUTO_LUX = 10.0f;
+    /** Video flash mode "auto": the torch is driven by the ISO the camera measures for the scene in
+     *  front of the lens (Kickoff Video-Blatt Runde 2, item 2). Higher ISO means a darker scene, so
+     *  the torch comes on at or above TORCH_AUTO_ISO_ON and goes off below TORCH_AUTO_ISO_OFF - the
+     *  gap between the two is the hysteresis that stops the torch flickering on its own light.
+     *  If Falk wants the thresholds elsewhere, these are the two numbers to change. */
+    private static final int TORCH_AUTO_ISO_ON = 800; // scene this dark -> torch on
+    private static final int TORCH_AUTO_ISO_OFF = 200; // scene this bright -> torch off
 
-    private SensorEventListener light_sensor_listener;
+    private boolean torch_auto_registered;
     private boolean torch_auto_on;
 
     /** The flash mode the camera itself gets: with the video flash "auto" the hardware flash
-     *  stays off, the torch is switched by the light sensor instead (see updateTorchAuto). */
+     *  stays off, the torch is switched by the measured ISO instead (see updateTorchAuto). */
     private String flashValueForCamera(String flash_value) {
         if( is_video && flash_value != null && flash_value.equals("flash_auto") )
             return "flash_off";
         return flash_value;
     }
 
-    /** Registers or unregisters the light sensor that drives the torch for the video flash mode
+    /** Registers or unregisters the ISO callback that drives the torch for the video flash mode
      *  "auto": in the dark the torch comes on, otherwise it stays off. Does nothing when the mode
-     *  isn't "auto" in video mode - the sensor is only held while it is needed. */
+     *  isn't "auto" in video mode - the callback is only held while it is needed. */
     private void updateTorchAuto(String flash_value) {
         boolean needed = is_video && flash_value != null && flash_value.equals("flash_auto") && camera_controller != null;
-        if( needed == (light_sensor_listener != null) )
+        if( needed == torch_auto_registered )
             return;
         if( needed ) {
-            SensorManager sensor_manager = (SensorManager)getContext().getSystemService(Context.SENSOR_SERVICE);
-            Sensor light_sensor = sensor_manager == null ? null : sensor_manager.getDefaultSensor(Sensor.TYPE_LIGHT);
-            if( light_sensor == null ) {
-                if( MyDebug.LOG )
-                    Log.d(TAG, "no light sensor - video flash auto stays without torch");
-                return;
-            }
-            light_sensor_listener = new SensorEventListener() {
+            camera_controller.setISOChangeCallback(new CameraController.ISOChangeCallback() {
                 @Override
-                public void onSensorChanged(SensorEvent event) {
-                    setTorchForLight(event.values[0]);
+                public void onISOChange(int iso) {
+                    setTorchForISO(iso);
                 }
-
-                @Override
-                public void onAccuracyChanged(Sensor sensor, int accuracy) {
-                }
-            };
-            sensor_manager.registerListener(light_sensor_listener, light_sensor, SensorManager.SENSOR_DELAY_NORMAL);
+            });
+            torch_auto_registered = true;
             torch_auto_on = false;
             if( MyDebug.LOG )
-                Log.d(TAG, "registered light sensor for video flash auto");
+                Log.d(TAG, "registered ISO callback for video flash auto");
         }
         else {
-            if( light_sensor_listener != null ) {
-                SensorManager sensor_manager = (SensorManager)getContext().getSystemService(Context.SENSOR_SERVICE);
-                if( sensor_manager != null )
-                    sensor_manager.unregisterListener(light_sensor_listener);
-                if( MyDebug.LOG )
-                    Log.d(TAG, "unregistered light sensor");
-            }
-            light_sensor_listener = null;
+            if( camera_controller != null )
+                camera_controller.setISOChangeCallback(null);
+            torch_auto_registered = false;
             torch_auto_on = false;
+            if( MyDebug.LOG )
+                Log.d(TAG, "unregistered ISO callback for video flash auto");
         }
     }
 
-    /** Turns the torch on or off according to the ambient light - only when it changes, so the
-     *  camera is not reconfigured for every sensor reading. */
-    private void setTorchForLight(float lux) {
+    /** Whether the torch should be on for the measured ISO, given whether it is currently on. The
+     *  two thresholds above are the hysteresis: the torch only goes off again once the scene has
+     *  become clearly bright, so its own light does not make it switch itself off. */
+    public static boolean torchAutoOn(boolean currently_on, int iso) {
+        return currently_on ? iso >= TORCH_AUTO_ISO_OFF : iso >= TORCH_AUTO_ISO_ON;
+    }
+
+    /** Turns the torch on or off according to the ISO the camera measured - only when it changes, so
+     *  the camera is not reconfigured for every frame. */
+    private void setTorchForISO(int iso) {
         if( camera_controller == null )
             return;
-        boolean on = lux < TORCH_AUTO_LUX;
+        boolean on = torchAutoOn(torch_auto_on, iso);
         if( on == torch_auto_on )
             return;
         if( MyDebug.LOG )
-            Log.d(TAG, "ambient light " + lux + " lux -> torch " + (on ? "on" : "off"));
+            Log.d(TAG, "measured ISO " + iso + " -> torch " + (on ? "on" : "off"));
         torch_auto_on = on;
         camera_controller.setFlashValue(on ? "flash_torch" : "flash_off");
     }
@@ -5540,8 +5538,8 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
             return;
         }
         cancelAutoFocus();
-        // with the video flash "auto" the camera gets "off" - the torch is switched by the light
-        // sensor instead (updateTorchAuto)
+        // with the video flash "auto" the camera gets "off" - the torch is switched by the measured
+        // ISO instead (updateTorchAuto)
         camera_controller.setFlashValue(flashValueForCamera(flash_value));
         updateTorchAuto(flash_value);
     }

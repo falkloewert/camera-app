@@ -300,6 +300,7 @@ public class CameraController2 extends CameraController {
     private long fake_precapture_use_flash_time_ms = -1; // when we last checked to use flash in auto mode
 
     private ContinuousFocusMoveCallback continuous_focus_move_callback;
+    private ISOChangeCallback iso_change_callback;
     
     private final MediaActionSound media_action_sound = new MediaActionSound();
     private final int shutter_click_sound; // which sound to use for shutter click
@@ -6226,6 +6227,16 @@ public class CameraController2 extends CameraController {
         this.continuous_focus_move_callback = cb;
     }
 
+    @Override
+    public void setISOChangeCallback(ISOChangeCallback cb) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "setISOChangeCallback");
+        if( cb != null ) {
+            BLOCK_FOR_EXTENSIONS();
+        }
+        this.iso_change_callback = cb;
+    }
+
     /** Whether the stillRequest has a manual exposure time different to the preview, and if so,
      *  whether we first need to set the preview exposure to match (needed for Samsung Galaxy devices,
      *  which don't honor a manual exposure that's different to the current preview exposure).
@@ -8714,6 +8725,13 @@ public class CameraController2 extends CameraController {
 
             updateCachedCaptureResult(result);
             handleFaceDetection(result);
+
+            // report the measured scene brightness (ISO) to anyone interested, e.g. the video flash "auto" torch
+            if( iso_change_callback != null ) {
+                Integer iso = result.get(CaptureResult.SENSOR_SENSITIVITY);
+                if( iso != null )
+                    iso_change_callback.onISOChange(iso);
+            }
 
             if( push_repeating_request_when_torch_off && push_repeating_request_when_torch_off_id == request && previewBuilder != null ) {
                 if( MyDebug.LOG )
