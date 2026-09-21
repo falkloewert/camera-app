@@ -1154,4 +1154,7 @@
     <string name="settings_sheet_lens_te" translatable="false">TE</string>
     <string name="settings_sheet_seconds">%1$s s</string>
     <string name="settings_sheet_mp" translatable="false">%1$sMP</string>
+    <!-- Wertzeile der Zeilen mit Kuerzel-Knopf: das Kuerzel plus die genaue Aufloesung in
+         Klammern ("12MP (4032x3024)", "FHD (1920x1080)") - Falk, 2026-09-21 -->
+    <string name="settings_sheet_with_resolution" translatable="false">%1$s (%2$s)</string>
 </resources>

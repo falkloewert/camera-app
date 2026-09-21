@@ -683,16 +683,19 @@ public class SettingsSheet {
     }
 
     /** Draws one option button as selected or not - also used when a tap marks its option
-     *  immediately (Kickoff Runde 2, 1.5). */
+     *  immediately (Kickoff Runde 2, 1.5). Every button is the same square: selected the white
+     *  circle, unselected the dark rounded square (reference, measured 2026-09-21). */
     private void markOptionButton(View button, boolean selected) {
         button.setBackgroundResource(selected ? R.drawable.settings_sheet_button_selected : R.drawable.settings_sheet_button);
         int glyph_color = ContextCompat.getColor(main_activity, selected ?
                 R.color.settings_sheet_button_glyph_selected : R.color.settings_sheet_button_glyph);
+        int fill_color = ContextCompat.getColor(main_activity, selected ?
+                R.color.settings_sheet_button_selected : R.color.settings_sheet_button);
         View glyph = ((ViewGroup)button).getChildAt(0);
         if( glyph instanceof ImageView )
             ((ImageView)glyph).setImageTintList(ColorStateList.valueOf(glyph_color));
         else if( glyph instanceof GlyphView )
-            ((GlyphView)glyph).setColor(glyph_color);
+            ((GlyphView)glyph).setColor(glyph_color, fill_color);
     }
 
     /* ---- rows of the photo sheet (Kickoff 3.3/3.4) ---------------------------------------- */
@@ -916,7 +919,7 @@ public class SettingsSheet {
                     CameraController.Size only = max_size != null ? max_size : current;
                     if( only != null ) {
                         rows.add(new Row(getString(R.string.settings_sheet_resolution),
-                                getString(R.string.settings_sheet_mp, String.valueOf(Math.round(mp(only)))),
+                                withResolution(getString(R.string.settings_sheet_mp, String.valueOf(Math.round(mp(only)))), only),
                                 new ArrayList<Option>()));
                         if( current_text != null && !sizeText(only).equals(current_text) )
                             setPictureSize(only);
@@ -933,10 +936,11 @@ public class SettingsSheet {
                     options.add(resolutionOption(max_size, !small_selected));
                     // the value line shows the marked class, or the real size when neither
                     // button holds it
-                    CharSequence value_text = current != null && !matches_small && !matches_max ?
-                            getString(R.string.settings_sheet_mp, String.valueOf(Math.round(mp(current)))) :
-                            selectedLabelOr(options, null);
-                    rows.add(new Row(getString(R.string.settings_sheet_resolution), value_text, options));
+                    CameraController.Size shown = current != null && !matches_small && !matches_max ?
+                            current : (small_selected ? save_size : max_size);
+                    rows.add(new Row(getString(R.string.settings_sheet_resolution),
+                            withResolution(getString(R.string.settings_sheet_mp, String.valueOf(Math.round(mp(shown)))), shown),
+                            options));
                 }
             }
         }
@@ -1009,6 +1013,17 @@ public class SettingsSheet {
 
     private static String sizeText(CameraController.Size size) {
         return size == null ? null : size.width + " " + size.height;
+    }
+
+    /** The short form of a row's value ("12MP", "FHD") plus the exact frame size in brackets:
+     *  the badges have room for the short form only, the value line carries both (Falk,
+     *  2026-09-21). */
+    private String withResolution(String value, CameraController.Size size) {
+        return withResolution(value, size.width, size.height);
+    }
+
+    private String withResolution(String value, int width, int height) {
+        return getString(R.string.settings_sheet_with_resolution, value, width + "x" + height);
     }
 
     /** The resolution the stored preference holds for this camera, in the camera's own
@@ -1116,12 +1131,16 @@ public class SettingsSheet {
             // untranslated (Kickoff 3.5)
             String [] labels = {"FHD", "4K", "8K"};
             String current = preview.getVideoQualityHander().getCurrentVideoQuality();
+            // the badge text of every quality the row offers, parallel to the qualities: the value
+            // line names the current one with it
             List<String> used = new ArrayList<>();
+            List<String> used_names = new ArrayList<>();
             for(int i=0;i<widths.length;i++) {
                 final String quality = findQuality(qualities, widths[i], heights[i]);
                 if( quality == null )
                     continue;
                 used.add(quality);
+                used_names.add(labels[i]);
                 options.add(new Option(labels[i], 0, Glyph.TEXT, labels[i], 0.0f, quality.equals(current),
                         new Runnable() {
                             @Override
@@ -1133,9 +1152,11 @@ public class SettingsSheet {
             // Falk's rule (2026-09-21) is a high and a space-saving size in every camera. The
             // selfie has no 4K: this device's front camera reports FullHD as its highest profile
             // and stops at 3264x1836 for recording, so its largest quality joins FullHD as the
-            // second button, labelled with its megapixels - the frame size is in the value line
+            // second button. It is named by its resolution class like the buttons next to it
+            // ("3K" - the class is rounded, 3264 is 3.2K), not by its megapixels (Falk, 2026-09-21)
             if( options.size() == 1 && qualities != null ) {
                 String largest = null;
+                int largest_width = 0;
                 float largest_mp = 0.0f;
                 for(String quality : qualities) {
                     CamcorderProfile profile = preview.getCamcorderProfile(quality);
@@ -1144,12 +1165,15 @@ public class SettingsSheet {
                     float megapixels = profile.videoFrameWidth * (float)profile.videoFrameHeight / 1000000.0f;
                     if( megapixels > largest_mp && !used.contains(quality) ) {
                         largest_mp = megapixels;
+                        largest_width = profile.videoFrameWidth;
                         largest = quality;
                     }
                 }
                 if( largest != null && largest_mp > 0.0f ) {
                     final String quality = largest;
-                    String label = getString(R.string.settings_sheet_mp, String.valueOf(Math.round(largest_mp)));
+                    String label = Math.round(largest_width / 1000.0f) + "K";
+                    used.add(quality);
+                    used_names.add(label);
                     options.add(new Option(label, 0, Glyph.TEXT, label, 0.0f, quality.equals(current),
                             new Runnable() {
                                 @Override
@@ -1160,16 +1184,19 @@ public class SettingsSheet {
                 }
             }
             if( !options.isEmpty() ) {
-                // the value line holds the megapixels and nothing else, like the photo row: what
-                // FHD or 4K means in photos (Falk, 2026-09-21), in the same shape as "9MP" above.
-                // The camera's own wording ("1920x1080 FullHD · 2MP") made the longest line of
-                // the sheet and sat noticeably off the row's line (device 2026-09-21)
+                // the value line names the current quality and adds its exact frame size, the same
+                // shape as the photo row (Falk, 2026-09-21). The camera's own wording
+                // ("1920x1080 FullHD · 2MP") made the longest line of the sheet and sat noticeably
+                // off the row's line (device 2026-09-21)
                 CharSequence value_text = null;
                 if( current != null ) {
                     CamcorderProfile profile = preview.getCamcorderProfile(current);
                     if( profile != null && profile.videoFrameWidth > 0 ) {
-                        value_text = getString(R.string.settings_sheet_mp,
-                                String.valueOf(Math.round(profile.videoFrameWidth * (float)profile.videoFrameHeight / 1000000.0f)));
+                        int index = used.indexOf(current);
+                        String short_form = index >= 0 ? used_names.get(index) :
+                                getString(R.string.settings_sheet_mp,
+                                        String.valueOf(Math.round(profile.videoFrameWidth * (float)profile.videoFrameHeight / 1000000.0f)));
+                        value_text = withResolution(short_form, profile.videoFrameWidth, profile.videoFrameHeight);
                     }
                 }
                 rows.add(new Row(getString(R.string.settings_sheet_resolution),
@@ -1193,7 +1220,7 @@ public class SettingsSheet {
                 supported_fps.add(value);
                 boolean selected = value.equals(fps_value) ||
                         ("default".equals(fps_value) && candidates[i] == real_fps);
-                options.add(new Option(value, 0, Glyph.TEXT, value, 0.0f, selected,
+                options.add(new Option(value, 0, Glyph.FPS, value, 0.0f, selected,
                         new Runnable() {
                             @Override
                             public void run() {
@@ -1335,6 +1362,10 @@ public class SettingsSheet {
 
     private String getString(int resId, String arg) {
         return main_activity.getResources().getString(resId, arg);
+    }
+
+    private String getString(int resId, String arg1, String arg2) {
+        return main_activity.getResources().getString(resId, arg1, arg2);
     }
 
     private static String firstSupported(List<String> supported, String [] values) {
@@ -1539,7 +1570,7 @@ public class SettingsSheet {
     /* ---- the self-drawn glyphs of the option buttons -------------------------------------- */
 
     /** The shapes of the option buttons that are not Material Symbols (Kickoff 2.4). */
-    private enum Glyph { ASPECT, MP, RAW, RAW_OFF, LENS_AUTO, TEXT }
+    private enum Glyph { ASPECT, MP, FPS, RAW, RAW_OFF, LENS_AUTO, TEXT }
 
     private class GlyphView extends View {
         private final Glyph glyph;
@@ -1547,6 +1578,8 @@ public class SettingsSheet {
         private final float ratio;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF rect = new RectF();
+        /** The button's own fill, the label colour of the badge chips. */
+        private int fill_color;
 
         GlyphView(Glyph glyph, String text, float ratio, boolean selected) {
             super(main_activity);
@@ -1555,12 +1588,42 @@ public class SettingsSheet {
             this.ratio = ratio;
             paint.setTextAlign(Paint.Align.CENTER);
             setColor(ContextCompat.getColor(main_activity, selected ?
-                    R.color.settings_sheet_button_glyph_selected : R.color.settings_sheet_button_glyph));
+                            R.color.settings_sheet_button_glyph_selected : R.color.settings_sheet_button_glyph),
+                    ContextCompat.getColor(main_activity, selected ?
+                            R.color.settings_sheet_button_selected : R.color.settings_sheet_button));
         }
 
-        void setColor(int color) {
+        void setColor(int color, int fill) {
             paint.setColor(color);
+            this.fill_color = fill;
             invalidate();
+        }
+
+        /** Draws a badge label on the small inverted chip of the reference: the chip in the
+         *  button's glyph colour, the label in the button's own fill colour, the lines led by
+         *  their cap height. Measured on the Pixel screenshots (2026-09-21): the chip is
+         *  #E2E2E2 with a #1F1F1F label on the dark button, the other way round on the white
+         *  one - the same four colours the sheet already uses. */
+        private void drawChip(Canvas canvas, float w, float h, String [] lines, float pad_x, float pad_y) {
+            // Roboto's cap height is 0.71 of the text size; the reference leads the lines of a
+            // two-line badge by barely more
+            float cap = paint.getTextSize() * 0.72f;
+            float line_gap = dp(1.0f);
+            float block = lines.length * cap + (lines.length - 1) * line_gap;
+            float text_width = 0.0f;
+            for(String line : lines)
+                text_width = Math.max(text_width, paint.measureText(line));
+            int glyph_color = paint.getColor();
+            rect.set(w / 2 - text_width / 2 - pad_x, h / 2 - block / 2 - pad_y,
+                    w / 2 + text_width / 2 + pad_x, h / 2 + block / 2 + pad_y);
+            canvas.drawRoundRect(rect, dp(2.5f), dp(2.5f), paint);
+            paint.setColor(fill_color);
+            float y = h / 2 - block / 2 + cap;
+            for(String line : lines) {
+                canvas.drawText(line, w / 2, y, paint);
+                y += cap + line_gap;
+            }
+            paint.setColor(glyph_color);
         }
 
         @Override
@@ -1578,12 +1641,33 @@ public class SettingsSheet {
                     break;
                 }
                 case MP: {
+                    // the number over "MP", both lines the same size, on the chip
                     paint.setStyle(Paint.Style.FILL);
                     paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-                    paint.setTextSize(sp(7.0f));
-                    canvas.drawText(text, w / 2, h * 0.46f, paint);
-                    paint.setTextSize(sp(5.0f));
-                    canvas.drawText("MP", w / 2, h * 0.92f, paint);
+                    paint.setTextSize(sp(8.5f));
+                    drawChip(canvas, w, h, new String [] { text, "MP" }, dp(3.5f), dp(2.5f));
+                    break;
+                }
+                case FPS: {
+                    // the frame rate over the reference's little gauge: three thin strokes and one
+                    // wide one, all the same height
+                    paint.setStyle(Paint.Style.FILL);
+                    paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+                    paint.setTextSize(sp(15.0f));
+                    float cap = paint.getTextSize() * 0.72f;
+                    float gauge_height = dp(5.5f), gauge_gap = dp(3.0f);
+                    float tick_width = dp(1.8f), bar_width = dp(7.5f), stroke_gap = dp(2.5f);
+                    float total = 3 * (tick_width + stroke_gap) + bar_width;
+                    float block = cap + gauge_gap + gauge_height;
+                    canvas.drawText(text, w / 2, h / 2 - block / 2 + cap, paint);
+                    float left = w / 2 - total / 2;
+                    float top = h / 2 + block / 2 - gauge_height;
+                    for(int i=0;i<4;i++) {
+                        float width = i == 3 ? bar_width : tick_width;
+                        rect.set(left, top, left + width, top + gauge_height);
+                        canvas.drawRect(rect, paint);
+                        left += width + stroke_gap;
+                    }
                     break;
                 }
                 case RAW:
@@ -1612,10 +1696,11 @@ public class SettingsSheet {
                     break;
                 }
                 case TEXT: {
+                    // the video resolution's short name ("FHD") on the chip
                     paint.setStyle(Paint.Style.FILL);
                     paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-                    paint.setTextSize(sp(8.0f));
-                    canvas.drawText(text, w / 2, h * 0.68f, paint);
+                    paint.setTextSize(sp(8.5f));
+                    drawChip(canvas, w, h, new String [] { text }, dp(3.5f), dp(5.0f));
                     break;
                 }
                 default:
