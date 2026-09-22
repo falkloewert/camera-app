@@ -361,6 +361,16 @@ Nacht-Erweiterung läuft nur auf der Hauptkamera, der Mond setzt das Objektiv de
   Kamera im Foto-Modus aufgebaut wurde. **Offen:** H1 (Timer-Chip) ließ sich nicht nachstellen –
   der Chip zykelt am Gerät korrekt; H8 (Auto-Torch in Zeitraffer/Zeitlupe) ist ungeklärt und
   braucht einen Geräteversuch im Dunkeln. Kickoff: `docs/kickoff/redesign-schritt-h-befunde.md`.
+- **Schritt I (Falks sechs Punkte, 2026-09-22):** gebaut und im Gerätetest geprüft: alle Chips im
+  Kopfband so groß wie der Auflösungs-Chip „9 MP" (18 dp, gemeinsamer Hintergrund), **Video-Blitz
+  nur noch Aus/Taschenlicht**, **Pro-Knopf in Zeitraffer/Zeitlupe nach Google-Vorbild** (Stärke-Pille
+  und Pro-Knopf wechseln sich in der unteren rechten Ecke ab, die offene Stärke-Reihe nimmt
+  Modusleiste und Foto/Video-Umschalter weg), Kamera-Neustart beim Blitzwechsel entfällt.
+  **Falk-Frage beantwortet:** der Neustart bleibt nur bei der **Nacht** (Kamera-Erweiterung, kann
+  beim Umkonfigurieren hängen). **Panorama:** Nacht erzwingt Blitz Aus; RAW ist dort upstream nicht
+  erlaubt (`isRawAllowed()`), der fehlende Chip ist also korrekt. **Offen:** Falks Abnahme; Frage,
+  ob `res/drawable/header_chip_background_icon.xml` (unbenutzt) gelöscht werden darf. Kickoff:
+  `docs/kickoff/redesign-schritt-i-chips-video-blitz.md`.
 **Feste Entscheidungen:** Screenshot-Spec schlägt Detail-Spec, gemessene Werte (2,25 px/dp)
 schlagen beide; keine Animationen außer Auslöser, Glyph-Drehung, Rad-Morph, Blatt-Gleiten;
 Roboto Flex; Konflikte K1–K13 in `ui-spezifikation.md` 9; was die App nicht kann: 4b dort.

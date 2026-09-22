@@ -1213,22 +1213,25 @@ public class SettingsSheet {
         // flash: only the values that make sense while recording. The middle one is not a flash
         // mode of the camera but the torch by ambient light (Kickoff Video-Blatt Runde 2, item 2)
         else {
-            // Die drei Knöpfe fragen die Hardware, nicht die Werte der laufenden Sitzung: mit
-            // manuellem ISO streicht Preview.setupCameraParameters() das "flash_auto" aus der
-            // Liste, und der mittlere Knopf verschwand damit in jedem Video-Modus (Falk, Schritt G
-            // Punkt 1). Wer die Automatik wählt, bekommt dafür das feste ISO ausgeschaltet
-            // (MainUI.lightFlashSettings()).
+            // Zwei Knöpfe, aus und an (Falk 2026-09-22: "bei video lassen wir den automatischen
+            // blitz einfach komplett und machen nur an oder aus da es nur probleme verursacht und
+            // bloat ist"). Der mittlere war zuletzt zweierlei: der Blitz der Kamera und zugleich
+            // das Taschenlicht bei Dunkelheit - letzteres ist entfernt (Preview.updateTorchAuto
+            // gibt es nicht mehr), ein gemerktes "flash_auto" fällt auf "aus".
+            // Die beiden Knöpfe fragen weiter die Hardware, nicht die Werte der laufenden Sitzung:
+            // mit manuellem ISO streicht Preview.setupCameraParameters() das "flash_auto" aus der
+            // Liste (Falk, Schritt G Punkt 1).
             List<String> supported = new ArrayList<>();
             if( preview.hasFlashUnit() ) {
-                for(String value : new String[] {"flash_off", "flash_auto", "flash_torch"}) {
+                for(String value : new String[] {"flash_off", "flash_torch"}) {
                     if( Preview.isFlashSupportedForVideo(value) )
                         supported.add(value);
                 }
             }
             String current = preview.getCurrentFlashValue();
-            String [] values = {"flash_off", "flash_auto", "flash_torch"};
-            int [] labels = {R.string.settings_sheet_off, R.string.settings_sheet_auto, R.string.settings_sheet_on};
-            int [] icons = {R.drawable.ms_flash_off, R.drawable.ms_flash_auto, R.drawable.ms_flash_on};
+            String [] values = {"flash_off", "flash_torch"};
+            int [] labels = {R.string.settings_sheet_off, R.string.settings_sheet_on};
+            int [] icons = {R.drawable.ms_flash_off, R.drawable.ms_flash_on};
             List<Option> options = new ArrayList<>();
             for(int i=0;i<values.length;i++) {
                 final String value = values[i];
@@ -1447,20 +1450,14 @@ public class SettingsSheet {
         postUpdateForSettings();
     }
 
-    /** Ein Blitz-Knopf des Video-Blatts. Leise wie bisher (kein Toast), aber: mit festem ISO
-     *  streicht die Kamera das "flash_auto" aus ihren Werten (Preview.setupCameraParameters), und
-     *  die Automatik des Taschenlichts (Preview.updateTorchAuto) hängt an einem gemessenen ISO -
-     *  wer sie wählt, bekommt es darum abgeschaltet (Schritt G, Punkt 1). Die laufende Sitzung
-     *  liest das feste ISO erst beim nächsten Aufbau, deshalb wird der gleich angestoßen. */
+    /** Ein Blitz-Knopf des Video-Blatts: aus oder an, leise wie bisher (kein Toast). Das feste ISO
+     *  muss nicht mehr mit zurückgenommen werden - das war nur für die weggefallene Automatik des
+     *  Taschenlichts nötig, die an einem gemessenen ISO hing (Schritt G, Punkt 1; Falk hat die
+     *  Automatik am 2026-09-22 ganz gestrichen). */
     private void setVideoFlash(String value) {
-        MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
-        if( "flash_auto".equals(value) ) {
-            applicationInterface.clearISOPref();
-            applicationInterface.clearExposureTimePref();
-        }
         main_activity.getPreview().updateFlashQuiet(value);
-        // wie die Auflösungs- und die Qualitäts-Zeile: der Neuaufbau ist der Weg, auf dem ein
-        // zurückgenommenes ISO wieder bei der Kamera ankommt
+        // wie die Auflösungs- und die Qualitäts-Zeile: der Neuaufbau ist der Weg, auf dem der neue
+        // Wert bei der Kamera ankommt
         postUpdateForSettings();
     }
 

@@ -102,6 +102,10 @@ public class MainUI {
      *  aus demselben Grund ruft es setShutterState() direkt; stoppedVideo() meldet das Ende. */
     private boolean video_recording_ui;
 
+    /** Ob die offene Stärke-Reihe die unterste Video-Zeile selbst weggenommen hat (Schritt I) -
+     *  nur dann holt hideVideoSpeedBar() sie wieder, s. refreshVideoSpeedRowDock(). */
+    private boolean speed_row_dock_hidden;
+
     /** Welcher Eintrag der Modusleiste welchen Modus setzt - Ansichts-ID auf Wert. Die beiden
      *  Karten sind die einzige Zuordnung: die Karussell-Leiste meldet nur den angetippten Eintrag
      *  zurück (ModeBar.Listener), und der unterscheidet nicht zwischen Foto- und Video-Einträgen. */
@@ -357,7 +361,12 @@ public class MainUI {
      *  Der rechte Rand ist der des Bandes, die Höhe die Trefferfläche einer Anzeige; ihre Mitte
      *  sitzt auf derselben Achse wie der Chip. */
     private static final float header_indicators_right_dp = 16.0f;
-    private static final float header_indicators_height_dp = 32.0f;
+    /** Der Kasten der Icon-Chips ist derselbe wie der des Auflösungs-Chips "9 MP" (Falk
+     *  2026-09-22: "alle chips weiße box kleiner genau so groß wie der auflösung knopf 9mp nimm
+     *  den als vergleich auch zukünftig sollen alle chips so aussehen") - vorher 32 dp. Das Zeichen
+     *  darin schrumpft mit: das Layout gibt den Knöpfen 3 dp Polster, damit es auf ~11,8 dp kommt,
+     *  im selben Verhältnis, in dem die 9-dp-Schrift im Auflösungs-Chip sitzt. */
+    private static final float header_indicators_height_dp = header_chip_square_dp;
 
     /** Der Text des Auflösungs-Chips. Foto: die Megapixel unserer Auflösung, zweizeilig wie das
      *  "50 MP" der Referenz (bei uns "12 MP", weil der Standard das native 12-MP-Raster ist).
@@ -728,15 +737,16 @@ public class MainUI {
             cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, (int) (16 * scale + 0.5f));
             pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f));
 
-            // Der Staerke-Knopf von Zeitraffer/Zeitlupe steht links neben dem Pro-Knopf: seit
-            // Schritt H gibt es das Pro-Panel auch im Video (Falk Punkt 9), also teilen sich die
-            // beiden den Platz unten rechts statt einander abzuloesen (vorher war der Pro-Knopf im
-            // Video aus, und der Staerke-Knopf stand allein in der Ecke). Die Reihe der Staerken,
-            // die er oeffnet, nimmt weiterhin den Platz der Zoom-Pille ein.
+            // Der Staerke-Knopf von Zeitraffer/Zeitlupe nimmt denselben Platz ein wie der
+            // Pro-Knopf: die beiden loesen einander ab (Google-Modell, Schritt I, Falk 2026-09-22
+            // "bei zeitraffer und zeitlupe sind die knöpfe sehr gequetscht"). Nebeneinander - wie
+            // in Schritt H - waren sie in derselben Ecke gedraengt. Welcher von beiden zu sehen
+            // ist, entscheidet updateVideoSpeedButton()/proButtonRowsWithSpeed(). Die Reihe der
+            // Staerken, die er oeffnet, nimmt weiterhin den Platz der Zoom-Pille ein.
             view = main_activity.findViewById(R.id.video_speed_button);
             view_id = view.getId();
             resetView(cs, view);
-            cs.connect(view_id, ConstraintSet.RIGHT, R.id.pro_panel_button, ConstraintSet.LEFT, (int) (16 * scale + 0.5f));
+            cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, (int) (16 * scale + 0.5f));
             pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f));
 
             view = main_activity.findViewById(R.id.video_speed_bar);
@@ -1197,7 +1207,12 @@ public class MainUI {
         // nimmt die Kamera das "flash_auto" aus ihren Werten (Preview.setupCameraParameters), der
         // gespeicherte Wert liefe ins Leere und der Knopf im Blatt spränge zurück (Falk: "Auto Blitz
         // lässt sich nicht auswählen", Schritt G Punkt 5). Wer die Automatik wählt, meint sie.
+        boolean manual_iso_cleared = false;
         if( "flash_auto".equals(flash_value) ) {
+            // ... nur wenn wirklich ein festes ISO stand: das ist der einzige Fall, in dem der neue
+            // Blitzwert erst nach einem Neuaufbau bei der Kamera ankommt (unten)
+            manual_iso_cleared = !CameraController.ISO_DEFAULT.equals(applicationInterface.getISOPref())
+                    || applicationInterface.getExposureTimePref() != CameraController.EXPOSURE_TIME_DEFAULT;
             applicationInterface.clearISOPref();
             applicationInterface.clearExposureTimePref();
         }
@@ -1210,18 +1225,59 @@ public class MainUI {
             if( applicationInterface.getCameraIdSPhysicalPref() != null )
                 applicationInterface.setCameraIdPref(main_activity.getActualCameraId(), null);
         }
-        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(main_activity).edit();
+        // Nacht und Blitz schließen sich aus (Falk 2026-09-22, im Panorama: "ich habe bei panorama
+        // grade auto nacht angehabt und er hat aber blitz benutzt"): wer die Nacht wählt, bekommt
+        // den Blitz zurückgenommen - so wie ein Blitz-Knopf die Nacht zurücknimmt (unten im Blatt).
+        // Ohne das feuerte der gemerkte "Blitz-Auto" weiter: die Automatik braucht erst einen
+        // dunklen Messwert und 10 s Ruhe, ehe sie umschaltet (checkNightAuto), und im Panorama
+        // schaltet sie während der Aufnahme gar nicht (dort läuft der Kreisel). In der Zwischenzeit
+        // - und im ganzen laufenden Panorama - sah Falk also den Blitz statt der Nacht.
+        if( (night_on != null && night_on) || night_auto )
+            flash_value = "flash_off";
+
+        // Was den Neuaufbau wirklich braucht (Falk 2026-09-22: "warum muss die kamera eigentlich neu
+        // starten wenn ich auto blitz oder nacht an mache, kann man das nicht im hintergrund lassen
+        // damit es smooth ist?"): der Modus und die Nacht. Beide wechseln die Kamera-Sitzung - die
+        // Nacht ist eine Erweiterungs-Sitzung (CameraExtensionCharacteristics.EXTENSION_NIGHT), und
+        // die kann beim Umbau hängen, darum öffnet MainActivity.updateForSettings() dort die Kamera
+        // neu ("need to reopen camera for changes to extension session"). Der Neustart ist an dieser
+        // Stelle die Notbremse, nicht die Bequemlichkeit.
+        // Ein reiner Blitzwechsel braucht ihn nicht: Preview.updateFlashQuiet() setzt den Wert in
+        // der laufenden Sitzung - derselbe Weg, den das Video-Blatt für seinen Blitz nimmt. Der
+        // Sprung, den Falk beim Blitz gesehen hat, ist damit weg.
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
+        boolean rebuild = !photo_mode_preference_value.equals(
+                        sharedPreferences.getString(PreferenceKeys.PhotoModePreferenceKey, "preference_photo_mode_std"))
+                || night_auto != sharedPreferences.getBoolean(PreferenceKeys.NightAutoPreferenceKey, false)
+                || (night_on != null && night_on != sharedPreferences.getBoolean(PreferenceKeys.NightOnPreferenceKey, false))
+                // ein zurückgenommenes festes ISO erreicht die laufende Sitzung nur über den
+                // Neuaufbau - und ohne das bliebe "Blitz-Auto" aus den Werten der Kamera gestrichen
+                // (Preview.setupCameraParameters), der Knopf spränge zurück (Schritt G Punkt 5)
+                || manual_iso_cleared;
+
+        SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString(PreferenceKeys.PhotoModePreferenceKey, photo_mode_preference_value);
         editor.putBoolean(PreferenceKeys.NightAutoPreferenceKey, night_auto);
         if( night_on != null )
             editor.putBoolean(PreferenceKeys.NightOnPreferenceKey, night_on);
         editor.apply();
-        if( flash_value != null )
-            main_activity.getApplicationInterface().setFlashPref(flash_value);
-        main_activity.getApplicationInterface().getDrawPreview().updateSettings(); // because we cache the photomode
-        main_activity.updateForSettings(true, null, false, true);
+        if( flash_value != null ) {
+            applicationInterface.setFlashPref(flash_value);
+            if( !rebuild ) {
+                main_activity.getPreview().updateFlashQuiet(flash_value);
+                // der Blitz-Chip im Band haengt am Zustand und frischt sich sonst erst beim
+                // naechsten showGUI auf (wie der Timer-Chip, Schritt H Punkt 1)
+                onScreenIcons.updateOnScreenIcons();
+            }
+        }
+        if( rebuild ) {
+            applicationInterface.getDrawPreview().updateSettings(); // because we cache the photomode
+            main_activity.updateForSettings(true, null, false, true);
+            // die Ruhezeit gilt einem Aufbau, den es hier nicht gab - ohne den Aufbau bleibt sie
+            // stehen, sonst wartete die Automatik nach jedem Blitz-Tipp 10 s aufs nächste Schalten
+            updateNightAutoCheck();
+        }
         updateModeBar();
-        updateNightAutoCheck();
     }
 
     /** Nimmt die Nacht zurück, ohne die Kamera neu aufzubauen: der Aufrufer baut sie danach selbst
@@ -1540,6 +1596,13 @@ public class MainUI {
     private void switchVideoSpeedRate(float rate) {
         if( main_activity.getPreview().isVideoRecording() )
             return;
+        // Die bereits gewaehlte Stufe schliesst die Reihe wieder: seit Schritt I sitzt der
+        // Staerke-Knopf, der sie auf- und zuklappt, nicht mehr neben ihr, sondern weicht dem
+        // Pro-Knopf (Google-Modell) - ohne diesen Weg gaebe es keinen, sie wieder loszuwerden.
+        if( Math.abs(rate - main_activity.getApplicationInterface().getVideoCaptureRateFactor()) < 1.0e-5f ) {
+            hideVideoSpeedBar();
+            return;
+        }
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
         sharedPreferences.edit().putFloat(captureRatePreferenceKey(), rate).apply();
         main_activity.getApplicationInterface().getDrawPreview().updateSettings();
@@ -1570,6 +1633,8 @@ public class MainUI {
         buildVideoSpeedBar();
         main_activity.findViewById(R.id.video_speed_bar).setVisibility(View.VISIBLE);
         setZoomStepperVisibility(View.GONE);
+        // die offene Reihe raeumt die unterste Zeile und gibt dem Pro-Knopf die Ecke (Schritt I)
+        refreshVideoSpeedRowDock();
     }
 
     public void hideVideoSpeedBar() {
@@ -1579,6 +1644,7 @@ public class MainUI {
         bar.setVisibility(View.GONE);
         // the zoom pill comes back - unless it has no steps or it is not welcome right now
         setZoomStepperVisibility(getZoomStepper().hasSteps() && !inImmersiveMode() ? View.VISIBLE : View.GONE);
+        refreshVideoSpeedRowDock();
     }
 
     /** One chip per rate the mode offers, styled like the mode bar's entries - the selected one is
@@ -1612,25 +1678,78 @@ public class MainUI {
         }
     }
 
+    /** Ob der aktuelle Video-Modus ueberhaupt Staerken anbietet (Zeitraffer/Zeitlupe und nicht
+     *  "aus"). Traegt die Ecken-Regel unten: ohne Staerken braucht es den Tauschplatz nicht. */
+    private boolean videoSpeedOffered() {
+        Preview preview = main_activity.getPreview();
+        if( !preview.isVideo() )
+            return false;
+        String speed_mode = getVideoSpeedMode();
+        return !MyApplicationInterface.VIDEO_SPEED_OFF.equals(speed_mode) && supportsVideoSpeedMode(speed_mode);
+    }
+
+    /** Der Pro-Knopf weicht in Zeitraffer und Zeitlupe, solange die Staerke-Reihe zu ist: die Ecke
+     *  unten rechts gehoert dann dem Staerke-Knopf, denn der ist der einzige Weg zu den Raten. Erst
+     *  mit der offenen Reihe tritt der Pro-Knopf in diese Ecke (Google-Modell, Schritt I, Falk
+     *  2026-09-22). Ist das Panel schon offen, bleibt sein Knopf stehen - sonst verschwaende der
+     *  Knopf, der es wieder schliesst (das Panel blendet die Staerke-Reihe beim Oeffnen aus). */
+    private boolean proButtonRowsWithSpeed() {
+        return videoSpeedOffered() && !isVideoSpeedBarOpen() && !main_activity.proPanelIsOpen();
+    }
+
+    /** Die unterste Zeile in Zeitraffer und Zeitlupe: ist die Staerke-Reihe offen, raeumen die
+     *  Modusleiste und der Foto/Video-Umschalter sie (in der Referenz stehen dort dann die
+     *  Pro-Knoepfe), und der Pro-Knopf nimmt die Ecke des Staerke-Knopfes ein. Alle Stellen, die
+     *  die Reihe ein- oder ausblenden, gehen hier durch. Die drei Ansichten werden nur angefasst,
+     *  solange sie sichtbar sind: waehrend einer Aufnahme stehen sie auf INVISIBLE, und das setzt
+     *  showGUI beim naechsten Lauf ohnehin neu. */
+    private void refreshVideoSpeedRowDock() {
+        View mode_bar = main_activity.findViewById(R.id.mode_bar);
+        // Merker: nur was diese Reihe selbst weggenommen hat, holt sie auch wieder zurueck. Ohne
+        // ihn liess die Pruefung "steht die Zeile ueberhaupt?" das Zurueckholen aus, und die Ecke
+        // trug danach Staerke- und Pro-Knopf nebeneinander (am Geraet 2026-09-22).
+        if( isVideoSpeedBarOpen() ) {
+            // nur wegnehmen, was auch steht: waehrend einer Aufnahme steht die Zeile auf INVISIBLE,
+            // und die soll das bleiben (showGUI setzt sie beim naechsten Lauf ohnehin neu)
+            if( mode_bar.getVisibility() == View.VISIBLE ) {
+                speed_row_dock_hidden = true;
+                mode_bar.setVisibility(View.INVISIBLE);
+                main_activity.findViewById(R.id.photo_video_switch).setVisibility(View.INVISIBLE);
+                // der Pro-Knopf tritt in die Ecke, die der Staerke-Knopf freigibt
+                main_activity.findViewById(R.id.pro_panel_button).setVisibility(View.VISIBLE);
+            }
+        }
+        else if( speed_row_dock_hidden ) {
+            // nur zurueckholen, was diese Reihe selbst weggenommen hat
+            speed_row_dock_hidden = false;
+            mode_bar.setVisibility(View.VISIBLE);
+            main_activity.findViewById(R.id.photo_video_switch).setVisibility(View.VISIBLE);
+            main_activity.findViewById(R.id.pro_panel_button).setVisibility(
+                    proButtonRowsWithSpeed() ? View.GONE : View.VISIBLE);
+        }
+        updateVideoSpeedButton();
+    }
+
     /** Shows the current rate and its symbol on the right dock button, and keeps the button away
-     *  everywhere else - the reference has it in the two special modes only. */
+     *  everywhere else - the reference has it in the two special modes only. Weg bleibt er auch,
+     *  solange die Staerke-Reihe offen ist: dann sitzt der Pro-Knopf in dieser Ecke (s.
+     *  proButtonRowsWithSpeed()), und abgeschlossen wird die Reihe durch Tippen auf die bereits
+     *  gewaehlte Stufe (switchVideoSpeedRate). */
     private void updateVideoSpeedButton() {
         LinearLayout button = main_activity.findViewById(R.id.video_speed_button);
-        String speed_mode = getVideoSpeedMode();
-        // Das offene Pro-Panel hat den Platz unten rechts (seit Schritt H steht sein Knopf auch im
-        // Video dort, der Staerke-Knopf links daneben) - und beim Ende einer Aufnahme laeuft diese
-        // Zuweisung nach applyHiddenWhileOpen(), holte den Knopf also zurueck auf die Reiter-Reihe
-        boolean show = main_activity.getPreview().isVideo()
+        // Das offene Pro-Panel hat den Platz unten rechts - und beim Ende einer Aufnahme laeuft
+        // diese Zuweisung nach applyHiddenWhileOpen(), holte den Knopf also zurueck auf die
+        // Reiter-Reihe
+        boolean show = videoSpeedOffered()
                 && !main_activity.proPanelIsOpen()
+                && !isVideoSpeedBarOpen()
                 && !video_recording_ui
-                && !main_activity.getPreview().isVideoRecording()
-                && !MyApplicationInterface.VIDEO_SPEED_OFF.equals(speed_mode)
-                && supportsVideoSpeedMode(speed_mode);
+                && !main_activity.getPreview().isVideoRecording();
         button.setVisibility(show ? View.VISIBLE : View.GONE);
         if( !show )
             return;
         ImageView icon = main_activity.findViewById(R.id.video_speed_icon);
-        icon.setImageResource(MyApplicationInterface.VIDEO_SPEED_SLOW.equals(speed_mode) ?
+        icon.setImageResource(MyApplicationInterface.VIDEO_SPEED_SLOW.equals(getVideoSpeedMode()) ?
                 R.drawable.ic_slow_motion_video_white_48dp : R.drawable.ic_fast_forward_white_48dp);
         TextView label = main_activity.findViewById(R.id.video_speed_label);
         label.setText(speedLabel(main_activity.getApplicationInterface().getVideoCaptureRateFactor()));
@@ -1794,6 +1913,8 @@ public class MainUI {
                 int mode_visibility = immersive_mode ? View.INVISIBLE : View.VISIBLE;
                 main_activity.findViewById(R.id.mode_bar).setVisibility(mode_visibility);
                 main_activity.findViewById(R.id.photo_video_switch).setVisibility(mode_visibility);
+                // im Foto gibt es die Staerke-Reihe nicht - der Merker aus dem Video gilt hier nicht
+                speed_row_dock_hidden = false;
                 main_activity.findViewById(R.id.settings_sheet_button).setVisibility(mode_visibility);
                 // Das Pro-Panel gibt es seit Schritt H auch im Video (dort mit Belichtung und
                 // Weissabgleich, Falk Punkt 9) - der Knopf steht also in beiden Modi da, wo die
@@ -1924,7 +2045,19 @@ public class MainUI {
                 // Belichtung und Weissabgleich, ProPanel.tabOffered()) - der Knopf bleibt also
                 // stehen wie die uebrigen Dock-Knoepfe. Ein offenes Panel wird nicht mehr
                 // geschlossen, es zeigt im Video von selbst die kuerzere Reiter-Reihe.
-                main_activity.findViewById(R.id.pro_panel_button).setVisibility(mode_visibility);
+                // In Zeitraffer/Zeitlupe weicht er der Staerke, solange deren Reihe zu ist
+                // (Schritt I, s. proButtonRowsWithSpeed()).
+                int pro_visibility = mode_visibility;
+                if( proButtonRowsWithSpeed() )
+                    pro_visibility = View.GONE;
+                main_activity.findViewById(R.id.pro_panel_button).setVisibility(pro_visibility);
+                // Ist in Zeitraffer/Zeitlupe die Staerke-Reihe offen, nimmt sie die unterste Zeile
+                // wieder weg und holt den Pro-Knopf in die Ecke (Google-Modell, Schritt I): in der
+                // Referenz erscheinen die Pro-Knoepfe in genau der Zeile, die die Reihe freiraeumt.
+                // showGUI hat die Zeile gerade neu gesetzt, also faengt der Merker bei null an.
+                speed_row_dock_hidden = false;
+                if( mode_visibility == View.VISIBLE && isVideoSpeedBarOpen() )
+                    refreshVideoSpeedRowDock();
                 updateModeBar();
 
                 if( show_gui_photo && show_gui_video ) {

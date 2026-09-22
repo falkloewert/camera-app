@@ -527,8 +527,8 @@ Ring ist Schwarz 60 %, keine weiße Kontur (K10). Die alten Drawables
 - Statt des Makro-Symbols (Referenz) und des „?“ (Google-Hilfe, Falk 2026-09-21) gibt es
   nichts: Makro ist in dieser App eine Linse, kein Zustand.
 - Rechte Gruppe: fünf Zustandsanzeigen (Blitz, RAW, GPS, Ausrichtungssperre, Textstempel),
-  16-dp-Glyphen in 32-dp-Trefferlächen, rechts 16 dp vom Rand, auf der Chip-Achse. Die
-  Blitz-Anzeige ist als einzige **immer** an, sobald das Gerät einen Blitz hat (rein visuell,
+  **18-dp-Kästen** wie der Auflösungs-Chip (Schritt I), rechts 16 dp vom Rand, auf der Chip-Achse.
+  Die Blitz-Anzeige ist als einzige **immer** an, sobald das Gerät einen Blitz hat (rein visuell,
   keine Modus-/Preference-Sperre); die übrigen vier hängen an ihren Preferences.
 - **Schritt G (2026-09-22) – Chips statt Sucher-Reihe:** die Akku-Anzeige und die Icon-Reihe im
   Sucher entfallen; ihre Zustände stehen im Band. Links neben dem Auflösungs-Chip der
@@ -588,7 +588,10 @@ Farb-/Blur-Punkte (7.3):
   sitzt nicht hier, sondern in einer eigenen Leiste am Platz der Zoom-Pille
   (`video_speed_bar`, Chips wie die Modus-Einträge gestylt) und wird über die dunkle Pille
   `video_speed_button` im rechten Dock geöffnet/geschlossen; offen ist die Zoom-Pille weg
-  (`MainUI.setZoomStepperVisibility()` gibt ihr den Vorrang).
+  (`MainUI.setZoomStepperVisibility()` gibt ihr den Vorrang). **Seit Schritt I (2026-09-22)**
+  teilt sich die Pille die Ecke mit dem Pro-Knopf: offen rückt sie mittig über den Auslöser,
+  Modusleiste und Foto/Video-Umschalter verschwinden und der Pro-Knopf nimmt die Ecke ein
+  (`MainUI.refreshVideoSpeedRowDock()`).
 - Inaktiv `#F2F2F2` (`md_dark_on_surface`), normal. Soll: `#8E918F`, 14 dp, Gewicht 500.
 - Aktiv: Volltonfüllung `#F2F2F2` + dunkler Text `#1B1B1B` + `BOLD` 700. Beide Specs sagen
   **nicht volltonweiß** – Detail-Spec `rgba(255,255,255,0.15)` + weißer Text 600,
@@ -780,7 +783,27 @@ nicht verifizieren (closed source).
 - **Stärke-Knopf** von Zeitraffer/Zeitlupe: rückt links neben den Pro-Knopf, statt mit ihm
   um denselben Platz zu streiten; solange das Panel offen ist, weicht er ihm.
 
+### Schritt I (2026-09-22) – Entscheidungen Falk
+
+- **Chip-Maß ist überall der Kasten des Auflösungs-Chips** („alle chips weiße box kleiner genau
+  so groß wie der auflösung knopf 9mp … auch zukünftig sollen alle chips so aussehen"): 17,8 dp
+  (18 dp) mit `header_chip_background`, 3 dp Innenabstand, das Zeichen ≈11,8 dp. Kein zweiter
+  Chip-Hintergrund mehr – künftige Chips nehmen dieselben Maße.
+- **Video-Blitz kennt nur Aus und An** („da es nur probleme verursacht und bloat ist"),
+  Taschenlicht ist das An. „Auto" gibt es im Video nicht, auch nicht als gespeicherter Wert.
+- **Zeitraffer/Zeitlupe nach Google-Vorbild** (Screenrecording, von gemini ausgewertet): der
+  Stärke-Knopf und der Pro-Knopf streiten nicht um Platz, sondern **wechseln sich in der unteren
+  rechten Ecke ab**. Zu: nur die Stärke-Pille. Offen (Pille getippt): Modusleiste und
+  Foto/Video-Umschalter verschwinden, die Stärke-Reihe steht mittig über dem Auslöser, der
+  Pro-Knopf sitzt in der freigewordenen Ecke. Erneuter Tipp auf die gewählte Stärke schließt die
+  Reihe.
+- **Blitzwechsel im Foto braucht keinen Kamera-Neustart** mehr; die Nacht (Kamera-Erweiterung)
+  behält ihn.
+- **Nacht schlägt Blitz:** mit „Nacht auto" oder „Nacht an" wird der gespeicherte Blitzwert auf
+  **Aus** gezogen (Panorama-Befund „er hat aber blitz benutzt").
+
 ### Beim Orientierungs-Umbau (2026-09-17) festgestellt, nicht orientierungsbedingt
+
 
 Diese Punkte sind Folgen noch nicht gebauter Teile aus Abschnitt 7, keine
 Entscheidungen. Sie lösen sich auf, wenn die jeweiligen Elemente kommen:

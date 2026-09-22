@@ -496,6 +496,15 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   (`VideoQualityHandler.getMaxSupportedVideoSizeHighSpeed()` lief in eine NPE). Offen: H1
   (Timer-Chip) war nicht nachstellbar, H8 (Auto-Torch in Zeitraffer/Zeitlupe) ist ungeklärt –
   siehe `docs/kickoff/redesign-schritt-h-befunde.md`.
+- **2026-09-22 (Feature-Chat, Schritt I – Chip-Größe, Video-Blitz, Dock für Zeitraffer/Zeitlupe):**
+  alle Chips im Kopfband auf den Kasten des Auflösungs-Chips „9 MP" (18 dp, gemeinsamer
+  Hintergrund, `activity_main.xml`); **Video-Blitz nur noch Aus/Taschenlicht** – Automatik samt
+  Auto-Torch-Einrichtung entfernt (`Preview.java`, `SettingsSheet.java`), damit ist H8 erledigt;
+  **Google-Vorbild für Zeitraffer/Zeitlupe**: Stärke- und Pro-Knopf teilen sich die untere rechte
+  Ecke, die offene Stärke-Reihe nimmt Modusleiste und Umschalter weg (`MainUI.refreshVideoSpeedRowDock()`);
+  **Kamera-Neustart** beim Blitzwechsel entfällt, nur die Nacht-Erweiterung braucht ihn weiter;
+  **Nacht erzwingt Blitz Aus**. Offen: RAW ist in Panorama upstream nicht erlaubt. Kickoff:
+  `docs/kickoff/redesign-schritt-i-chips-video-blitz.md`.
 
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 

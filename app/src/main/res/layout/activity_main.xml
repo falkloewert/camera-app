@@ -93,14 +93,14 @@
          Seine Größe setzt MainUI.layoutHeader() wie bei den beiden anderen Chips. -->
     <ImageButton
         android:id="@+id/header_mode"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:padding="8dp"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:padding="3dp"
         android:scaleType="fitCenter"
         android:clickable="false"
         android:focusable="false"
         app:srcCompat="@drawable/dro_icon"
-        android:background="@drawable/header_chip_background_icon"
+        android:background="@drawable/header_chip_background"
         android:tint="@android:color/black"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
@@ -110,9 +110,10 @@
     <!-- Die Zustandsanzeigen der Kopfzeile: Blitz, RAW, GPS, Ausrichtungssperre, Textstempel.
          Sie sind das, was von der alten Icon-Leiste geblieben ist (SPEC 4.5, Schritt C) - die
          uebrigen Icons waren entweder doppelt oder gehoeren in die Einstellungen. Die Reihe sitzt
-         rechts im Band; welche Anzeige an ist, entscheidet ui/OnScreenIcons. Die Icons sind
-         16-dp-Glyphen (32-dp-Bild mit 8 dp Polster) und tragen das Regelmaess der alten Leiste
-         weiter; das Band selbst ist schwarz, darum hier keine eigene Fuellung. -->
+         rechts im Band; welche Anzeige an ist, entscheidet ui/OnScreenIcons. Kasten und Groesse
+         sind die des Aufloesungs-Chips "9 MP" (18 dp, 3 dp Polster auf das Zeichen; Falk
+         2026-09-22: "alle chips weiße box kleiner genau so groß wie der auflösung knopf 9mp");
+         die Zeichen werden schwarz getoent, weil die ms_*-Vektoren weiss gefuellt sind. -->
     <LinearLayout
         android:id="@+id/header_indicators"
         android:layout_width="wrap_content"
@@ -124,13 +125,13 @@
 
         <ImageButton
             android:id="@+id/cycle_raw"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:padding="8dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:padding="3dp"
             android:scaleType="fitCenter"
             android:contentDescription="@string/cycle_raw"
             app:srcCompat="@drawable/raw_off_icon"
-            android:background="@drawable/header_chip_background_icon"
+            android:background="@drawable/header_chip_background"
             android:tint="@android:color/black"
             android:layout_marginStart="4dp"
             android:visibility="gone"
@@ -139,13 +140,13 @@
 
         <ImageButton
             android:id="@+id/store_location"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:padding="8dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:padding="3dp"
             android:scaleType="fitCenter"
             android:contentDescription="@string/preference_location_enable"
             app:srcCompat="@drawable/ic_gps_fixed_white_48dp"
-            android:background="@drawable/header_chip_background_icon"
+            android:background="@drawable/header_chip_background"
             android:tint="@android:color/black"
             android:layout_marginStart="4dp"
             android:visibility="gone"
@@ -154,13 +155,13 @@
 
         <ImageButton
             android:id="@+id/cycle_lock_orientation"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:padding="8dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:padding="3dp"
             android:scaleType="fitCenter"
             android:contentDescription="@string/cycle_lock_orientation"
             app:srcCompat="@drawable/mobile_unlock_48px"
-            android:background="@drawable/header_chip_background_icon"
+            android:background="@drawable/header_chip_background"
             android:tint="@android:color/black"
             android:layout_marginStart="4dp"
             android:visibility="gone"
@@ -169,13 +170,13 @@
 
         <ImageButton
             android:id="@+id/text_stamp"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:padding="8dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:padding="3dp"
             android:scaleType="fitCenter"
             android:contentDescription="@string/preference_textstamp_summary"
             app:srcCompat="@drawable/baseline_text_fields_white_48"
-            android:background="@drawable/header_chip_background_icon"
+            android:background="@drawable/header_chip_background"
             android:tint="@android:color/black"
             android:layout_marginStart="4dp"
             android:visibility="gone"
@@ -190,13 +191,13 @@
 
         <ImageButton
             android:id="@+id/face_detection"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:padding="8dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:padding="3dp"
             android:scaleType="fitCenter"
             android:contentDescription="@string/preference_face_detection"
             app:srcCompat="@drawable/ic_face_white_48dp"
-            android:background="@drawable/header_chip_background_icon"
+            android:background="@drawable/header_chip_background"
             android:tint="@android:color/black"
             android:layout_marginStart="4dp"
             android:visibility="gone"
@@ -204,13 +205,13 @@
 
         <ImageButton
             android:id="@+id/auto_stabilise"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:padding="8dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:padding="3dp"
             android:scaleType="fitCenter"
             android:contentDescription="@string/preference_auto_stabilise"
             app:srcCompat="@drawable/auto_stabilise_icon"
-            android:background="@drawable/header_chip_background_icon"
+            android:background="@drawable/header_chip_background"
             android:tint="@android:color/black"
             android:layout_marginStart="4dp"
             android:visibility="gone"
@@ -218,13 +219,13 @@
 
         <ImageButton
             android:id="@+id/audio_disabled"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:padding="8dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:padding="3dp"
             android:scaleType="fitCenter"
             android:contentDescription="@string/preference_record_audio"
             app:srcCompat="@drawable/ic_mic_off_white_48dp"
-            android:background="@drawable/header_chip_background_icon"
+            android:background="@drawable/header_chip_background"
             android:tint="@android:color/black"
             android:layout_marginStart="4dp"
             android:visibility="gone"
@@ -235,13 +236,13 @@
              er ist deshalb auch in der Sichtbarkeit kein reiner Zustand (Falk, Schritt G Punkt 6). -->
         <ImageButton
             android:id="@+id/cycle_timer"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:padding="8dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:padding="3dp"
             android:scaleType="fitCenter"
             android:contentDescription="@string/settings_sheet_timer"
             app:srcCompat="@drawable/ms_timer_off"
-            android:background="@drawable/header_chip_background_icon"
+            android:background="@drawable/header_chip_background"
             android:tint="@android:color/black"
             android:layout_marginStart="4dp"
             android:visibility="gone"
@@ -254,13 +255,13 @@
              den Mond der Lichtzeile (Schritt G Punkt 4). -->
         <ImageButton
             android:id="@+id/cycle_flash"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:padding="8dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:padding="3dp"
             android:scaleType="fitCenter"
             android:contentDescription="@string/cycle_flash"
             app:srcCompat="@drawable/flash_off"
-            android:background="@drawable/header_chip_background_icon"
+            android:background="@drawable/header_chip_background"
             android:tint="@android:color/black"
             android:layout_marginStart="4dp"
             android:visibility="gone"

@@ -1497,7 +1497,6 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
             // no need to call camera_controller.setCaptureFollowAutofocusHint() as we're closing the camera
         }
         set_flash_value_after_autofocus = "";
-        updateTorchAuto(null); // let go of the ISO callback while no camera is open
         successfully_focused = false;
         preview_targetRatio = 0.0;
         // the physical cameras belong to the camera being closed - if kept, the next camera's
@@ -5202,8 +5201,10 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
         if( MyDebug.LOG )
             Log.d(TAG, "updateFlashForVideo()");
         if( is_video ) {
-            // check flash is not auto or on - except "auto", which in video mode means the torch
-            // when it is dark (Kickoff Video-Blatt Runde 2, item 2)
+            // im Video gibt es nur noch aus und an (Taschenlicht): die Automatik ist weg (Falk
+            // 2026-09-22: "bei video lassen wir den automatischen blitz einfach komplett und machen
+            // nur an oder aus da es nur probleme verursacht und bloat ist"). Ein gemerktes
+            // "flash_auto" aus einem frueheren Lauf faellt hier auf "aus" zurueck.
             String current_flash = getCurrentFlashValue();
             if( current_flash != null && !isFlashSupportedForVideo(current_flash) ) {
                 if( MyDebug.LOG )
@@ -5233,86 +5234,35 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
                 updateFlash("flash_off", false);
             }
         }
-        updateTorchAuto(getCurrentFlashValue());
         updateSelfieLight();
     }
 
-    /** Whether the flash mode is supported in video mode.
-     */
+    /** Whether the flash mode is supported in video mode. "flash_auto" faellt hier seit
+     *  2026-09-22 durch: die Automatik des Taschenlichts ist entfernt (Falk: "bei video lassen wir
+     *  den automatischen blitz einfach komplett und machen nur an oder aus"), der Blitz im Video
+     *  kennt nur noch aus und an. */
     public static boolean isFlashSupportedForVideo(String flash_mode) {
-        return flash_mode != null && ( flash_mode.equals("flash_off") || flash_mode.equals("flash_auto") ||
+        return flash_mode != null && ( flash_mode.equals("flash_off") ||
                 flash_mode.equals("flash_torch") || flash_mode.equals("flash_frontscreen_torch") );
     }
 
     /** An automatic light is driven by the ISO the camera measures for the scene in front of the
      *  lens: a higher ISO means a darker scene. It comes on at or above AUTO_ISO_ON and goes off
      *  below AUTO_ISO_OFF - the gap between the two is the hysteresis that stops a light flickering
-     *  on its own light. Two lights use the pair: the video flash "auto" torch (updateTorchAuto,
-     *  Kickoff Video-Blatt Runde 2, item 2) and the photo sheet's "Nacht auto", which switches the
-     *  night extension from here in the preview (MainUI.checkNightAuto). If Falk wants the
-     *  thresholds elsewhere, these are the two numbers to change. */
+     *  on its own light. Nur noch ein Licht nutzt das Paar: "Nacht auto" im Foto-Blatt, das die
+     *  Nacht-Erweiterung von hier aus der Vorschau schaltet (MainUI.checkNightAuto). Die Automatik
+     *  des Video-Taschenlichts, die es frueher mitbenutzte, ist am 2026-09-22 entfernt worden
+     *  (Falk: "bei video lassen wir den automatischen blitz einfach komplett und machen nur an oder
+     *  aus da es nur probleme verursacht und bloat ist"). Wenn Falk die Schwellen anders will,
+     *  sind das hier die zwei Zahlen. */
     public static final int AUTO_ISO_ON = 800; // scene this dark -> light on
     public static final int AUTO_ISO_OFF = 200; // scene this bright -> light off
-
-    private boolean torch_auto_registered;
-    private boolean torch_auto_on;
-
-    /** The flash mode the camera itself gets: with the video flash "auto" the hardware flash
-     *  stays off, the torch is switched by the measured ISO instead (see updateTorchAuto). */
-    private String flashValueForCamera(String flash_value) {
-        if( is_video && flash_value != null && flash_value.equals("flash_auto") )
-            return "flash_off";
-        return flash_value;
-    }
-
-    /** Registers or unregisters the ISO callback that drives the torch for the video flash mode
-     *  "auto": in the dark the torch comes on, otherwise it stays off. Does nothing when the mode
-     *  isn't "auto" in video mode - the callback is only held while it is needed. */
-    private void updateTorchAuto(String flash_value) {
-        boolean needed = is_video && flash_value != null && flash_value.equals("flash_auto") && camera_controller != null;
-        if( needed == torch_auto_registered )
-            return;
-        if( needed ) {
-            camera_controller.setISOChangeCallback(new CameraController.ISOChangeCallback() {
-                @Override
-                public void onISOChange(int iso) {
-                    setTorchForISO(iso);
-                }
-            });
-            torch_auto_registered = true;
-            torch_auto_on = false;
-            if( MyDebug.LOG )
-                Log.d(TAG, "registered ISO callback for video flash auto");
-        }
-        else {
-            if( camera_controller != null )
-                camera_controller.setISOChangeCallback(null);
-            torch_auto_registered = false;
-            torch_auto_on = false;
-            if( MyDebug.LOG )
-                Log.d(TAG, "unregistered ISO callback for video flash auto");
-        }
-    }
 
     /** Whether an automatic light should be on for the measured ISO, given whether it is currently
      *  on. The two thresholds above are the hysteresis: the light only goes off again once the
      *  scene has become clearly bright, so its own light does not make it switch itself off. */
     public static boolean autoLightOn(boolean currently_on, int iso) {
         return currently_on ? iso >= AUTO_ISO_OFF : iso >= AUTO_ISO_ON;
-    }
-
-    /** Turns the torch on or off according to the ISO the camera measured - only when it changes, so
-     *  the camera is not reconfigured for every frame. */
-    private void setTorchForISO(int iso) {
-        if( camera_controller == null )
-            return;
-        boolean on = autoLightOn(torch_auto_on, iso);
-        if( on == torch_auto_on )
-            return;
-        if( MyDebug.LOG )
-            Log.d(TAG, "measured ISO " + iso + " -> torch " + (on ? "on" : "off"));
-        torch_auto_on = on;
-        camera_controller.setFlashValue(on ? "flash_torch" : "flash_off");
     }
 
     /** Whether the selfie lighting is on: while recording with the front camera, the areas
@@ -5526,10 +5476,7 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
             return;
         }
         cancelAutoFocus();
-        // with the video flash "auto" the camera gets "off" - the torch is switched by the measured
-        // ISO instead (updateTorchAuto)
-        camera_controller.setFlashValue(flashValueForCamera(flash_value));
-        updateTorchAuto(flash_value);
+        camera_controller.setFlashValue(flash_value);
     }
 
     // this returns the flash value indicated by the UI, rather than from the camera parameters (may be different, e.g., in startup autofocus!)
