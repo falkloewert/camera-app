@@ -505,6 +505,18 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   **Kamera-Neustart** beim Blitzwechsel entfällt, nur die Nacht-Erweiterung braucht ihn weiter;
   **Nacht erzwingt Blitz Aus**. Offen: RAW ist in Panorama upstream nicht erlaubt. Kickoff:
   `docs/kickoff/redesign-schritt-i-chips-video-blitz.md`.
+- **2026-09-22 (Feature-Chat, Schritt J – Stärke im Pro-Panel, Taschenlampe, Panorama):** Falks
+  Korrektur zu Schritt I. Der **Dock-Tausch ist wieder heraus** (`MainUI.refreshVideoSpeedRowDock()`
+  entfernt) – er ließ Foto/Video-Umschalter und Modusleiste verschwinden, bis die App neu startete.
+  Stattdessen öffnet der Stärke-Knopf in Zeitraffer/Zeitlupe das **Pro-Panel auf dem neuen Reiter
+  „Geschwindigkeit"** (`ProPanel.TAB_SPEED`, zweiter Eintrag, Symbol wie der Knopf); die Reihe der
+  Raten steht dabei über dem Auslöser, Pille und Auto-Knopf bleiben weg, und beim Schließen ist
+  unten rechts alles wie vorher. **Video-Zeile „Blitz" → „Taschenlampe"** samt neuer Zeichen
+  (`ms_flashlight_on/off.xml`, auch im Band-Chip). **Panorama:** der erzwungene „Blitz Aus" geht
+  jetzt immer auch in die laufende Sitzung (`applyLightSettings()`; der Neuaufbau entfällt, wenn
+  der Sucher noch startet – genau dort blitzte es bei Nacht-Auto), und der **RAW-Eintrag
+  verschwindet** in den vollen Einstellungen, wo RAW nichts bewirkt. Kickoff:
+  `docs/kickoff/redesign-schritt-j-staerke-im-pro-panel.md`.
 
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 

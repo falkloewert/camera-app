@@ -102,10 +102,6 @@ public class MainUI {
      *  aus demselben Grund ruft es setShutterState() direkt; stoppedVideo() meldet das Ende. */
     private boolean video_recording_ui;
 
-    /** Ob die offene Stärke-Reihe die unterste Video-Zeile selbst weggenommen hat (Schritt I) -
-     *  nur dann holt hideVideoSpeedBar() sie wieder, s. refreshVideoSpeedRowDock(). */
-    private boolean speed_row_dock_hidden;
-
     /** Welcher Eintrag der Modusleiste welchen Modus setzt - Ansichts-ID auf Wert. Die beiden
      *  Karten sind die einzige Zuordnung: die Karussell-Leiste meldet nur den angetippten Eintrag
      *  zurück (ModeBar.Listener), und der unterscheidet nicht zwischen Foto- und Video-Einträgen. */
@@ -738,11 +734,12 @@ public class MainUI {
             pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f));
 
             // Der Staerke-Knopf von Zeitraffer/Zeitlupe nimmt denselben Platz ein wie der
-            // Pro-Knopf: die beiden loesen einander ab (Google-Modell, Schritt I, Falk 2026-09-22
-            // "bei zeitraffer und zeitlupe sind die knöpfe sehr gequetscht"). Nebeneinander - wie
-            // in Schritt H - waren sie in derselben Ecke gedraengt. Welcher von beiden zu sehen
-            // ist, entscheidet updateVideoSpeedButton()/proButtonRowsWithSpeed(). Die Reihe der
-            // Staerken, die er oeffnet, nimmt weiterhin den Platz der Zoom-Pille ein.
+            // Pro-Knopf: die beiden loesen einander ab (Google-Modell, Falk 2026-09-22 "bei
+            // zeitraffer und zeitlupe sind die knöpfe sehr gequetscht"). Nebeneinander - wie in
+            // Schritt H - waren sie in derselben Ecke gedraengt. Welcher von beiden zu sehen ist,
+            // entscheidet updateVideoSpeedButton() gegen proPanelIsOpen(). Die Reihe der Staerken
+            // nimmt weiterhin den Platz der Zoom-Pille ein - seit Schritt J oeffnet sie sich im
+            // Pro-Panel auf dessen Reiter "Geschwindigkeit" und liegt ueber dem Auslöser.
             view = main_activity.findViewById(R.id.video_speed_button);
             view_id = view.getId();
             resetView(cs, view);
@@ -1263,12 +1260,20 @@ public class MainUI {
         editor.apply();
         if( flash_value != null ) {
             applicationInterface.setFlashPref(flash_value);
-            if( !rebuild ) {
-                main_activity.getPreview().updateFlashQuiet(flash_value);
-                // der Blitz-Chip im Band haengt am Zustand und frischt sich sonst erst beim
-                // naechsten showGUI auf (wie der Timer-Chip, Schritt H Punkt 1)
-                onScreenIcons.updateOnScreenIcons();
-            }
+            // Der Wert geht **immer** auch in die laufende Sitzung, nicht nur wenn kein Neuaufbau
+            // ansteht: der Neuaufbau ist der Regelweg, aber er findet nicht in jedem Fall statt.
+            // MainActivity.updateForSettings() steigt aus, solange der Sucher noch startet ("preview
+            // is still starting"), und genau in dieses Fenster fällt ein Tipp auf die Licht-Zeile
+            // direkt nach einem Moduswechsel - also Falk's Panorama-Befund (2026-09-22: "der
+            // autoplatz loest immer im blitz aus. Zumindest habe ich es gerade im hellen probiert"):
+            // der erzwungene flash_off landete nur in den Einstellungen, die laufende Sitzung behielt
+            // ihren "Blitz-Auto" und das Panorama fotografierte damit. Nach einem App-Neustart war
+            // es weg, weil die Sitzung den Wert dann von Anfang an liest - derselbe Wert, nur
+            // zuverlässig zugestellt. Ein zweites Setzen desselben Werts ist folgenlos.
+            main_activity.getPreview().updateFlashQuiet(flash_value);
+            // der Blitz-Chip im Band haengt am Zustand und frischt sich sonst erst beim
+            // naechsten showGUI auf (wie der Timer-Chip, Schritt H Punkt 1)
+            onScreenIcons.updateOnScreenIcons();
         }
         if( rebuild ) {
             applicationInterface.getDrawPreview().updateSettings(); // because we cache the photomode
@@ -1596,13 +1601,11 @@ public class MainUI {
     private void switchVideoSpeedRate(float rate) {
         if( main_activity.getPreview().isVideoRecording() )
             return;
-        // Die bereits gewaehlte Stufe schliesst die Reihe wieder: seit Schritt I sitzt der
-        // Staerke-Knopf, der sie auf- und zuklappt, nicht mehr neben ihr, sondern weicht dem
-        // Pro-Knopf (Google-Modell) - ohne diesen Weg gaebe es keinen, sie wieder loszuwerden.
-        if( Math.abs(rate - main_activity.getApplicationInterface().getVideoCaptureRateFactor()) < 1.0e-5f ) {
-            hideVideoSpeedBar();
+        // Die schon gewaehlte Stufe tut nichts: seit Schritt J gibt es keine Reihe mehr, die sie
+        // zuklappen muesste - sie steht im Pro-Panel, das der Staerke-Knopf oeffnet (Falk
+        // 2026-09-22), und das schliesst sein eigener Knopf wieder.
+        if( Math.abs(rate - main_activity.getApplicationInterface().getVideoCaptureRateFactor()) < 1.0e-5f )
             return;
-        }
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
         sharedPreferences.edit().putFloat(captureRatePreferenceKey(), rate).apply();
         main_activity.getApplicationInterface().getDrawPreview().updateSettings();
@@ -1611,20 +1614,15 @@ public class MainUI {
         updateVideoSpeedButton();
     }
 
-    /** The dock button toggles the row of rates. */
-    public void toggleVideoSpeedBar() {
-        if( isVideoSpeedBarOpen() )
-            hideVideoSpeedBar();
-        else
-            showVideoSpeedBar();
-    }
-
+    /** Steht die Reihe der Raten gerade offen? Seit Schritt J fuehrt sie das Pro-Panel auf seinem
+     *  Reiter "Geschwindigkeit" (ProPanel.syncSpeedBar) - hier wird nur noch gefragt, nie
+     *  umgeschaltet. */
     public boolean isVideoSpeedBarOpen() {
         return main_activity.findViewById(R.id.video_speed_bar).getVisibility() == View.VISIBLE;
     }
 
-    /** Shows the row of rates in the zoom pill's place - the reference puts it exactly there, and
-     *  the two are never up at the same time (pixel-zeitraffer-zeitlupe-beschreibung.md 2). */
+    /** Zeigt die Reihe der Raten ueber dem Auslöser. Gerufen wird sie aus ProPanel, solange dessen
+     *  Reiter "Geschwindigkeit" offen ist (Schritt J, Falk 2026-09-22). */
     public void showVideoSpeedBar() {
         String speed_mode = getVideoSpeedMode();
         if( !main_activity.getPreview().isVideo() || main_activity.getPreview().isVideoRecording()
@@ -1633,10 +1631,10 @@ public class MainUI {
         buildVideoSpeedBar();
         main_activity.findViewById(R.id.video_speed_bar).setVisibility(View.VISIBLE);
         setZoomStepperVisibility(View.GONE);
-        // die offene Reihe raeumt die unterste Zeile und gibt dem Pro-Knopf die Ecke (Schritt I)
-        refreshVideoSpeedRowDock();
     }
 
+    /** Versteckt die Reihe der Raten. Der Merker "steht sie offen?" bleibt: das Pro-Panel führt
+     *  seinen Reiter und den Zustand der Kamera selbst. */
     public void hideVideoSpeedBar() {
         View bar = main_activity.findViewById(R.id.video_speed_bar);
         if( bar.getVisibility() != View.VISIBLE )
@@ -1644,7 +1642,7 @@ public class MainUI {
         bar.setVisibility(View.GONE);
         // the zoom pill comes back - unless it has no steps or it is not welcome right now
         setZoomStepperVisibility(getZoomStepper().hasSteps() && !inImmersiveMode() ? View.VISIBLE : View.GONE);
-        refreshVideoSpeedRowDock();
+        updateVideoSpeedButton();
     }
 
     /** One chip per rate the mode offers, styled like the mode bar's entries - the selected one is
@@ -1679,8 +1677,9 @@ public class MainUI {
     }
 
     /** Ob der aktuelle Video-Modus ueberhaupt Staerken anbietet (Zeitraffer/Zeitlupe und nicht
-     *  "aus"). Traegt die Ecken-Regel unten: ohne Staerken braucht es den Tauschplatz nicht. */
-    private boolean videoSpeedOffered() {
+     *  "aus"). Traegt seit Schritt J den Reiter "Geschwindigkeit" im Pro-Panel: ohne Staerken gibt
+     *  es ihn nicht. */
+    public boolean videoSpeedOffered() {
         Preview preview = main_activity.getPreview();
         if( !preview.isVideo() )
             return false;
@@ -1688,71 +1687,36 @@ public class MainUI {
         return !MyApplicationInterface.VIDEO_SPEED_OFF.equals(speed_mode) && supportsVideoSpeedMode(speed_mode);
     }
 
-    /** Der Pro-Knopf weicht in Zeitraffer und Zeitlupe, solange die Staerke-Reihe zu ist: die Ecke
-     *  unten rechts gehoert dann dem Staerke-Knopf, denn der ist der einzige Weg zu den Raten. Erst
-     *  mit der offenen Reihe tritt der Pro-Knopf in diese Ecke (Google-Modell, Schritt I, Falk
-     *  2026-09-22). Ist das Panel schon offen, bleibt sein Knopf stehen - sonst verschwaende der
-     *  Knopf, der es wieder schliesst (das Panel blendet die Staerke-Reihe beim Oeffnen aus). */
-    private boolean proButtonRowsWithSpeed() {
-        return videoSpeedOffered() && !isVideoSpeedBarOpen() && !main_activity.proPanelIsOpen();
-    }
-
-    /** Die unterste Zeile in Zeitraffer und Zeitlupe: ist die Staerke-Reihe offen, raeumen die
-     *  Modusleiste und der Foto/Video-Umschalter sie (in der Referenz stehen dort dann die
-     *  Pro-Knoepfe), und der Pro-Knopf nimmt die Ecke des Staerke-Knopfes ein. Alle Stellen, die
-     *  die Reihe ein- oder ausblenden, gehen hier durch. Die drei Ansichten werden nur angefasst,
-     *  solange sie sichtbar sind: waehrend einer Aufnahme stehen sie auf INVISIBLE, und das setzt
-     *  showGUI beim naechsten Lauf ohnehin neu. */
-    private void refreshVideoSpeedRowDock() {
-        View mode_bar = main_activity.findViewById(R.id.mode_bar);
-        // Merker: nur was diese Reihe selbst weggenommen hat, holt sie auch wieder zurueck. Ohne
-        // ihn liess die Pruefung "steht die Zeile ueberhaupt?" das Zurueckholen aus, und die Ecke
-        // trug danach Staerke- und Pro-Knopf nebeneinander (am Geraet 2026-09-22).
-        if( isVideoSpeedBarOpen() ) {
-            // nur wegnehmen, was auch steht: waehrend einer Aufnahme steht die Zeile auf INVISIBLE,
-            // und die soll das bleiben (showGUI setzt sie beim naechsten Lauf ohnehin neu)
-            if( mode_bar.getVisibility() == View.VISIBLE ) {
-                speed_row_dock_hidden = true;
-                mode_bar.setVisibility(View.INVISIBLE);
-                main_activity.findViewById(R.id.photo_video_switch).setVisibility(View.INVISIBLE);
-                // der Pro-Knopf tritt in die Ecke, die der Staerke-Knopf freigibt
-                main_activity.findViewById(R.id.pro_panel_button).setVisibility(View.VISIBLE);
-            }
-        }
-        else if( speed_row_dock_hidden ) {
-            // nur zurueckholen, was diese Reihe selbst weggenommen hat
-            speed_row_dock_hidden = false;
-            mode_bar.setVisibility(View.VISIBLE);
-            main_activity.findViewById(R.id.photo_video_switch).setVisibility(View.VISIBLE);
-            main_activity.findViewById(R.id.pro_panel_button).setVisibility(
-                    proButtonRowsWithSpeed() ? View.GONE : View.VISIBLE);
-        }
-        updateVideoSpeedButton();
-    }
-
-    /** Shows the current rate and its symbol on the right dock button, and keeps the button away
-     *  everywhere else - the reference has it in the two special modes only. Weg bleibt er auch,
-     *  solange die Staerke-Reihe offen ist: dann sitzt der Pro-Knopf in dieser Ecke (s.
-     *  proButtonRowsWithSpeed()), und abgeschlossen wird die Reihe durch Tippen auf die bereits
-     *  gewaehlte Stufe (switchVideoSpeedRate). */
-    private void updateVideoSpeedButton() {
+    /** Zeigt die gerade gewaehlte Staerke mit ihrem Zeichen auf dem Knopf unten rechts, und haelt
+     *  den Knopf ueberall sonst weg - die Referenz hat ihn nur in den beiden Sondermodi. Weg bleibt
+     *  er auch bei offenem Panel: dort sitzt die Pille des Panels an dieser Stelle (Schritt J,
+     *  Falk 2026-09-22). */
+    public void updateVideoSpeedButton() {
         LinearLayout button = main_activity.findViewById(R.id.video_speed_button);
+        if( button == null )
+            return;
         // Das offene Pro-Panel hat den Platz unten rechts - und beim Ende einer Aufnahme laeuft
         // diese Zuweisung nach applyHiddenWhileOpen(), holte den Knopf also zurueck auf die
         // Reiter-Reihe
         boolean show = videoSpeedOffered()
                 && !main_activity.proPanelIsOpen()
-                && !isVideoSpeedBarOpen()
                 && !video_recording_ui
                 && !main_activity.getPreview().isVideoRecording();
         button.setVisibility(show ? View.VISIBLE : View.GONE);
         if( !show )
             return;
         ImageView icon = main_activity.findViewById(R.id.video_speed_icon);
-        icon.setImageResource(MyApplicationInterface.VIDEO_SPEED_SLOW.equals(getVideoSpeedMode()) ?
-                R.drawable.ic_slow_motion_video_white_48dp : R.drawable.ic_fast_forward_white_48dp);
+        icon.setImageResource(getVideoSpeedIcon());
         TextView label = main_activity.findViewById(R.id.video_speed_label);
         label.setText(speedLabel(main_activity.getApplicationInterface().getVideoCaptureRateFactor()));
+    }
+
+    /** Das Zeichen der laufenden Staerke-Art: die Zeitlupe bekommt ihr eigenes, der Zeitraffer
+     *  das Vorspulen. Der Staerke-Knopf der Ecke traegt es, und der Reiter "Geschwindigkeit" im
+     *  Pro-Panel traegt dasselbe (Falk 2026-09-22 "mit dem gleichen Symbol"). */
+    public int getVideoSpeedIcon() {
+        return MyApplicationInterface.VIDEO_SPEED_SLOW.equals(getVideoSpeedMode()) ?
+                R.drawable.ic_slow_motion_video_white_48dp : R.drawable.ic_fast_forward_white_48dp;
     }
 
     /** Meldet Anfang und Ende einer Aufnahme aus MyApplicationInterface.startingVideo() und
@@ -1913,8 +1877,6 @@ public class MainUI {
                 int mode_visibility = immersive_mode ? View.INVISIBLE : View.VISIBLE;
                 main_activity.findViewById(R.id.mode_bar).setVisibility(mode_visibility);
                 main_activity.findViewById(R.id.photo_video_switch).setVisibility(mode_visibility);
-                // im Foto gibt es die Staerke-Reihe nicht - der Merker aus dem Video gilt hier nicht
-                speed_row_dock_hidden = false;
                 main_activity.findViewById(R.id.settings_sheet_button).setVisibility(mode_visibility);
                 // Das Pro-Panel gibt es seit Schritt H auch im Video (dort mit Belichtung und
                 // Weissabgleich, Falk Punkt 9) - der Knopf steht also in beiden Modi da, wo die
@@ -2045,19 +2007,10 @@ public class MainUI {
                 // Belichtung und Weissabgleich, ProPanel.tabOffered()) - der Knopf bleibt also
                 // stehen wie die uebrigen Dock-Knoepfe. Ein offenes Panel wird nicht mehr
                 // geschlossen, es zeigt im Video von selbst die kuerzere Reiter-Reihe.
-                // In Zeitraffer/Zeitlupe weicht er der Staerke, solange deren Reihe zu ist
-                // (Schritt I, s. proButtonRowsWithSpeed()).
-                int pro_visibility = mode_visibility;
-                if( proButtonRowsWithSpeed() )
-                    pro_visibility = View.GONE;
-                main_activity.findViewById(R.id.pro_panel_button).setVisibility(pro_visibility);
-                // Ist in Zeitraffer/Zeitlupe die Staerke-Reihe offen, nimmt sie die unterste Zeile
-                // wieder weg und holt den Pro-Knopf in die Ecke (Google-Modell, Schritt I): in der
-                // Referenz erscheinen die Pro-Knoepfe in genau der Zeile, die die Reihe freiraeumt.
-                // showGUI hat die Zeile gerade neu gesetzt, also faengt der Merker bei null an.
-                speed_row_dock_hidden = false;
-                if( mode_visibility == View.VISIBLE && isVideoSpeedBarOpen() )
-                    refreshVideoSpeedRowDock();
+                // In Zeitraffer/Zeitlupe traegt die Ecke stattdessen der Staerke-Knopf; der fuehrt
+                // seit Schritt J in dasselbe Panel (Reiter "Geschwindigkeit", s.
+                // updateVideoSpeedButton()) - die Zeile unten bleibt, wie sie ist.
+                main_activity.findViewById(R.id.pro_panel_button).setVisibility(mode_visibility);
                 updateModeBar();
 
                 if( show_gui_photo && show_gui_video ) {

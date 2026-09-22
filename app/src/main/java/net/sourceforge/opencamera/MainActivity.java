@@ -2582,15 +2582,25 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         }
     }
 
-    /** The round button inside the pro panel's pill: back to automatic for the active tab. */
-    /** Der Stärke-Knopf im Zeitraffer/Zeitlupe (SPEC 4.6): öffnet und schliesst die Leiste mit
-     *  den Stärken. */
+    /** Der Stärke-Knopf in Zeitraffer und Zeitlupe (SPEC 4.6): er öffnet dasselbe Panel wie der
+     *  Pro-Knopf, nur auf dessen Reiter "Geschwindigkeit" - und schliesst es wieder (Falk
+     *  2026-09-22). Die Reihe der Raten steht dann über dem Auslöser. */
     public void clickedVideoSpeed(View view) {
         if( MyDebug.LOG )
             Log.d(TAG, "clickedVideoSpeed");
-        mainUI.toggleVideoSpeedBar();
+        ProPanel panel = getProPanel();
+        if( panel.isOpen() ) {
+            panel.close();
+        }
+        else {
+            // das Blatt und das Panel sitzen beide auf der Unterkante - nur eines zur Zeit
+            if( settingsSheetIsOpen() )
+                getSettingsSheet().close();
+            panel.openSpeedSetting();
+        }
     }
 
+    /** The round button inside the pro panel's pill: back to automatic for the active tab. */
     public void clickedProPanelAuto(View view) {
         if( MyDebug.LOG )
             Log.d(TAG, "clickedProPanelAuto");

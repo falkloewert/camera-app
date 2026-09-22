@@ -57,13 +57,17 @@ public class ProPanel {
     /* ---- Reiter, in der Reihenfolge der Referenz (Beschreibung 4) ------------------------- */
 
     private static final int TAB_RESET = 0;
-    private static final int TAB_EXPOSURE = 1;
-    private static final int TAB_WB = 2;
-    private static final int TAB_FOCUS = 3;
-    private static final int TAB_SHUTTER = 4;
-    private static final int TAB_ISO = 5;
-    private static final int TAB_PEAKING = 6;
-    private static final int N_TABS = 7;
+    /** Die Staerke von Zeitraffer und Zeitlupe - direkt hinter "Alle zuruecksetzen" und vor dem
+     *  Trennstrich (Falk 2026-09-22). Den Reiter gibt es nur, wo es Staerken gibt
+     *  ({@link #tabOffered}). */
+    private static final int TAB_SPEED = 1;
+    private static final int TAB_EXPOSURE = 2;
+    private static final int TAB_WB = 3;
+    private static final int TAB_FOCUS = 4;
+    private static final int TAB_SHUTTER = 5;
+    private static final int TAB_ISO = 6;
+    private static final int TAB_PEAKING = 7;
+    private static final int N_TABS = 8;
 
     /** Mit diesem Reiter oeffnet das Panel ("Helligkeit" der Referenz). */
     private static final int OPEN_TAB = TAB_EXPOSURE;
@@ -177,6 +181,8 @@ public class ProPanel {
 
     private boolean open;
     private int selected_tab = OPEN_TAB;
+    /** Der naechste open() soll auf dem Staerke-Reiter landen ({@link #openSpeedSetting()}). */
+    private boolean speed_tab_requested;
 
     /* ---- der umgehaengte Regler ----------------------------------------------------------- */
 
@@ -406,6 +412,10 @@ public class ProPanel {
      */
     private boolean tabOffered(int tab) {
         Preview preview = main_activity.getPreview();
+        // Der Staerke-Reiter haengt nicht am Modus, sondern an den Staerken: im Foto gaebe es ihn
+        // sonst ebenfalls (Falk 2026-09-22).
+        if( tab == TAB_SPEED )
+            return preview != null && main_activity.getMainUI().videoSpeedOffered();
         if( preview == null || !preview.isVideo() )
             return true;
         switch( tab ) {
@@ -422,6 +432,9 @@ public class ProPanel {
         switch( tab ) {
             case TAB_RESET:
                 return R.drawable.ms_restart_alt;
+            case TAB_SPEED:
+                // dasselbe Zeichen wie der Staerke-Knopf unten rechts (Falk 2026-09-22)
+                return main_activity.getMainUI().getVideoSpeedIcon();
             case TAB_EXPOSURE:
                 return R.drawable.ic_exposure_white_48dp;
             case TAB_WB:
@@ -441,6 +454,8 @@ public class ProPanel {
         switch( tab ) {
             case TAB_RESET:
                 return main_activity.getResources().getString(R.string.pro_panel_reset);
+            case TAB_SPEED:
+                return main_activity.getResources().getString(R.string.pro_panel_speed);
             case TAB_EXPOSURE:
                 return main_activity.getResources().getString(R.string.exposure);
             case TAB_WB:
@@ -479,6 +494,9 @@ public class ProPanel {
         markTabs();
         updateAutoButton();
         updateBadge();
+        // der Staerke-Reiter hat keinen Regler: bei ihm steht die Reihe der Raten ueber dem
+        // Ausloeser, und die Pille bleibt weg (Falk 2026-09-22)
+        updatePanelContent();
         if( tab == TAB_FOCUS ) {
             // welcher Modus gerade laeuft, steht sonst nirgends ausgeschrieben
             String current = main_activity.getPreview().getCurrentFocusValue();
@@ -1564,7 +1582,9 @@ public class ProPanel {
         // Automatik" braucht er nicht mehr, deshalb faellt sie hier weg - die Sichtbarkeit haengt
         // nur noch am Panel: ohne diese Bedingung blieb er nach dem Schliessen stehen (Falk
         // 2026-09-21), weil close() ihn nicht kennt.
-        auto_button.setVisibility(open ? View.VISIBLE : View.GONE);
+        // Der Staerke-Reiter kennt keine Automatik: er hat keinen Regler, und ohne Pille haette
+        // der Knopf nichts, worauf er sich bezieht (Falk 2026-09-22).
+        auto_button.setVisibility(open && selected_tab != TAB_SPEED ? View.VISIBLE : View.GONE);
     }
 
     /** Der Wert des aktiven Reglers, in der Blase ueber der Pille. */
@@ -1643,6 +1663,14 @@ public class ProPanel {
         return open;
     }
 
+    /** Oeffnet das Panel auf dem Reiter "Geschwindigkeit" - der Weg des Staerke-Knopfes unten
+     *  rechts in Zeitraffer und Zeitlupe (MainActivity.clickedVideoSpeed, Falk 2026-09-22). Ist
+     *  das Panel schon offen, bleibt es, wie es ist. */
+    public void openSpeedSetting() {
+        speed_tab_requested = true;
+        open();
+    }
+
     public void open() {
         if( open )
             return;
@@ -1670,6 +1698,13 @@ public class ProPanel {
                 }
             }
         }
+        if( speed_tab_requested ) {
+            speed_tab_requested = false;
+            // der Staerke-Knopf oeffnet hier (s. openSpeedSetting); gibt es die Staerken nicht
+            // mehr, bleibt es beim Reiter der Vorgabe
+            if( tabOffered(TAB_SPEED) )
+                selected_tab = TAB_SPEED;
+        }
         ruler_labels_tab = -1;
         hideWhileOpen();
         // kein ensureModeForTab() hier: das Oeffnen des Panels darf die Kamera nicht umstellen
@@ -1684,6 +1719,7 @@ public class ProPanel {
         pill.setVisibility(View.VISIBLE);
         tabs_scroll.setVisibility(View.VISIBLE);
         badge.setVisibility(View.VISIBLE);
+        updatePanelContent();
         // Hintergrundband und Griffstueck wie am Einstellungen-Blatt (Falk 2026-09-21)
         sheet.setVisibility(View.VISIBLE);
         handle.setVisibility(View.VISIBLE);
@@ -1708,6 +1744,31 @@ public class ProPanel {
         handle.setVisibility(View.GONE);
         ruler.setVisibility(View.GONE);
         auto_button.setVisibility(View.GONE);
+        // die Reihe der Raten gehoert dem Reiter "Geschwindigkeit" - mit dem Panel geht sie
+        updatePanelContent();
+    }
+
+    /** Was vom Panel zu sehen ist, haengt am Reiter: der Staerke-Reiter hat keinen Regler. Statt
+     *  der Pille zeigt er die Reihe der Raten ueber dem Ausloeser (MainUI.showVideoSpeedBar), und
+     *  mit ihr zusammen faellt der Automatik-Knopf weg - er gehoert zur Pille, die dort nicht
+     *  steht (Falk 2026-09-22 "Auslöser und dann der Rest"). */
+    private void updatePanelContent() {
+        boolean speed = open && selected_tab == TAB_SPEED;
+        if( open )
+            // zu ist das Panel ohnehin weggeraeumt - close() setzt die Pille selbst auf GONE
+            pill.setVisibility(speed ? View.GONE : View.VISIBLE);
+        auto_button.setVisibility(open && !speed ? View.VISIBLE : View.GONE);
+        syncSpeedBar();
+    }
+
+    /** Die Reihe der Raten steht genau dann, wenn das Panel auf seinem Staerke-Reiter offen ist.
+     *  Sie sitzt auf dem Platz der Zoom-Pille und ueber dem Ausloeser; der Reiter ist ihr einziger
+     *  Schalter, der Staerke-Knopf der Ecke oeffnet und schliesst nur das Panel. */
+    private void syncSpeedBar() {
+        if( open && selected_tab == TAB_SPEED )
+            main_activity.getMainUI().showVideoSpeedBar();
+        else
+            main_activity.getMainUI().hideVideoSpeedBar();
     }
 
     /** Zoom-Pille, Modus-Leiste und Foto/Video-Umschalter gehen weg, solange das Panel offen ist
@@ -1723,10 +1784,12 @@ public class ProPanel {
         // Tab-Reihe in deren Slot ganz unten (Falk 2026-09-21) - beide koennen nicht dort sein.
         int [] ids = { R.id.zoom_stepper, R.id.zoom_badge, R.id.mode_bar, R.id.photo_video_switch,
                 R.id.focus_seekbar, R.id.settings_sheet_button, R.id.pro_panel_button,
-                // der Staerke-Knopf von Zeitraffer/Zeitlupe und seine Reihe sitzen in derselben
-                // Ecke bzw. auf demselben Platz wie die Reiter-Reihe des Panels und lagen sonst
-                // darueber (Falk, Schritt H)
-                R.id.video_speed_button, R.id.video_speed_bar };
+                // der Staerke-Knopf von Zeitraffer/Zeitlupe sitzt in derselben Ecke wie die
+                // Reiter-Reihe des Panels und lag sonst darueber (Falk, Schritt H). Seine Reihe
+                // der Raten gehoert dagegen zum Panel: auf dem Staerke-Reiter steht sie ueber dem
+                // Ausloeser, und sie geht mit dem Reiter (updatePanelContent) - deshalb steht sie
+                // hier nicht mehr in der Liste (Falk 2026-09-22).
+                R.id.video_speed_button };
         for(int id : ids) {
             View view = main_activity.findViewById(id);
             if( view == null )

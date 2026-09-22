@@ -586,12 +586,14 @@ Farb-/Blur-Punkte (7.3):
 - ~~**Im Videomodus leer**~~ **Gebaut (2026-09-21, SPEC 4.6):** `Video · Zeitlupe ·
   Zeitraffer`, statisch, Reihenfolge wie die Referenz (Abschnitt 5 oben). Die Stärke selbst
   sitzt nicht hier, sondern in einer eigenen Leiste am Platz der Zoom-Pille
-  (`video_speed_bar`, Chips wie die Modus-Einträge gestylt) und wird über die dunkle Pille
-  `video_speed_button` im rechten Dock geöffnet/geschlossen; offen ist die Zoom-Pille weg
-  (`MainUI.setZoomStepperVisibility()` gibt ihr den Vorrang). **Seit Schritt I (2026-09-22)**
-  teilt sich die Pille die Ecke mit dem Pro-Knopf: offen rückt sie mittig über den Auslöser,
-  Modusleiste und Foto/Video-Umschalter verschwinden und der Pro-Knopf nimmt die Ecke ein
-  (`MainUI.refreshVideoSpeedRowDock()`).
+  (`video_speed_bar`, Chips wie die Modus-Einträge gestylt). **Seit Schritt J (2026-09-22,
+  Falks Korrektur)** öffnet die dunkle Pille `video_speed_button` im rechten Dock das
+  **Pro-Panel auf dem Reiter „Geschwindigkeit"** (zweiter Eintrag hinter „Alle zurücksetzen",
+  Symbol wie der Knopf): die Reihe der Raten steht dann über dem Auslöser, die Pille des
+  Panels und sein Automatik-Knopf bleiben auf diesem Reiter weg, und beim Schließen ist unten
+  rechts wieder alles wie vorher. Der Dock-Tausch aus Schritt I
+  (`MainUI.refreshVideoSpeedRowDock()`) ist damit **wieder heraus** – er ließ Umschalter und
+  Modusleiste verschwinden, bis die App neu startete.
 - Inaktiv `#F2F2F2` (`md_dark_on_surface`), normal. Soll: `#8E918F`, 14 dp, Gewicht 500.
 - Aktiv: Volltonfüllung `#F2F2F2` + dunkler Text `#1B1B1B` + `BOLD` 700. Beide Specs sagen
   **nicht volltonweiß** – Detail-Spec `rgba(255,255,255,0.15)` + weißer Text 600,
@@ -797,10 +799,35 @@ nicht verifizieren (closed source).
   Foto/Video-Umschalter verschwinden, die Stärke-Reihe steht mittig über dem Auslöser, der
   Pro-Knopf sitzt in der freigewordenen Ecke. Erneuter Tipp auf die gewählte Stärke schließt die
   Reihe.
+  **Von Schritt J am Gerät widerlegt und ersetzt** (s. unten) – so gebaut verschwand der
+  Foto/Video-Umschalter bis zum App-Neustart.
 - **Blitzwechsel im Foto braucht keinen Kamera-Neustart** mehr; die Nacht (Kamera-Erweiterung)
   behält ihn.
 - **Nacht schlägt Blitz:** mit „Nacht auto" oder „Nacht an" wird der gespeicherte Blitzwert auf
   **Aus** gezogen (Panorama-Befund „er hat aber blitz benutzt").
+
+### Schritt J (2026-09-22) – Entscheidungen Falk
+
+Falks Korrektur zu Schritt I, nach dem Gerätetest. Kurz: **der Stärke-Knopf öffnet das
+Pro-Panel**, nichts verschwindet mehr.
+
+- **Ein Ort für alles** („Also dies soll alles in einem sein"): der Stärke-Knopf in
+  Zeitraffer/Zeitlupe öffnet das Pro-Panel auf dem Reiter **„Geschwindigkeit"** – erster
+  Eintrag bleibt „Alle zurücksetzen", dann der Platzhalter (Trennstrich), dann die
+  Geschwindigkeit mit **demselben Symbol** wie der Knopf, dann Belichtung und Weißabgleich.
+  Gelten `[Alle zurücksetzen] [Geschwindigkeit] |—| [Belichtung] [Weißabgleich]`.
+- **Die Blase mit den Geschwindigkeitsmodi steht über dem Auslöser**, wie vorher; die Pille
+  des Panels und sein Automatik-Knopf bleiben auf diesem Reiter weg (der Reiter hat keinen
+  Regler).
+- **Schließen stellt alles wieder her** („Ist unten rechts wieder wie normal"): Knopf,
+  Modusleiste und Foto/Video-Umschalter. Der Dock-Tausch aus Schritt I entfällt ersatzlos.
+- **Video: „Blitz" heißt „Taschenlampe"** – im Blatt und im Chip des Bandes, Zeichen sind
+  Taschenlampe und durchgestrichene Taschenlampe (nicht mehr die Blitzzeichen).
+- **RAW-Eintrag nur, wo RAW etwas bewirkt:** in den vollen Einstellungen (Foto-Einstellungen)
+  fehlt er im Panorama und in Porträt; mit der Nacht (die als Foto zählt) bleibt er.
+- **Nacht schlägt Blitz gilt auch für die laufende Sitzung:** der erzwungene „Blitz Aus" wird
+  immer an die Kamera geschickt, nicht nur beim Neuaufbau (Falks Panorama-Befund: im Hellen
+  geblitzt, weg erst nach App-Neustart).
 
 ### Beim Orientierungs-Umbau (2026-09-17) festgestellt, nicht orientierungsbedingt
 

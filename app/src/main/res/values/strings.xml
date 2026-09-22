@@ -1144,6 +1144,7 @@
     <string name="pro_panel_plus">Increase value one step</string>
     <string name="pro_panel_open">Open pro panel</string>
     <string name="pro_panel_reset">Reset all</string>
+    <string name="pro_panel_speed">Speed</string>
     <string name="pro_panel_focus">Focus</string>
     <!-- Auf dem Massband ist fuer "Unendlich" kein Platz: die Nachbarzahl klebte daran (am Geraet
          gesehen, Falk 2026-09-21). In der Blase steht weiter das ausgeschriebene Wort. -->

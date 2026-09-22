@@ -972,6 +972,7 @@
     <string name="pro_panel_plus">Wert einen Schritt vergrößern</string>
     <string name="pro_panel_open">Pro-Panel öffnen</string>
     <string name="pro_panel_reset">Alle zurücksetzen</string>
+    <string name="pro_panel_speed">Geschwindigkeit</string>
     <string name="pro_panel_focus">Fokus</string>
     <string name="pro_panel_auto">Automatik</string>
     <string name="pro_panel_auto_value">Auto</string>

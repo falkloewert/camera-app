@@ -130,7 +130,18 @@ public class PreferenceSubPhoto extends PreferenceSubScreen {
             pref.setEntryValues(R.array.preference_image_format_values_nojpegr);
         }
 
-        if( !supports_raw ) {
+        // RAW gibt es nicht in jedem Modus (Panorama, Portraet ...): dort verschwindet der Eintrag
+        // wie bei einem Format, das die Kamera nicht hergibt, statt eine Einstellung anzubieten,
+        // die nichts bewirkt (Falk 2026-09-22: "bei Panorama die raw Einstellungen ganz weg").
+        // Gefragt wird dieselbe Stelle, die auch beim Speichern entscheidet - sonst gaebe es hier
+        // eine zweite Liste, die auseinanderlaeuft. Gefragt wird nach dem *obersten* Modus: die
+        // Nacht ist ein Lichtzustand und zaehlt dort als Foto (MyApplicationInterface), sonst
+        // verschwaende der Eintrag mit jedem Nacht-Knopf (am Geraet gesehen, 2026-09-22).
+        MainActivity main_activity = (MainActivity)getActivity();
+        boolean raw_offered = supports_raw && main_activity != null && main_activity.getPreview() != null
+                && main_activity.getApplicationInterface().isRawAllowed(
+                        main_activity.getApplicationInterface().getTopLevelPhotoMode());
+        if( !raw_offered ) {
             Preference pref = findPreference("preference_raw");
             //PreferenceGroup pg = (PreferenceGroup)this.findPreference("preference_screen_photo_settings");
             PreferenceGroup pg = (PreferenceGroup)this.findPreference("preferences_root");

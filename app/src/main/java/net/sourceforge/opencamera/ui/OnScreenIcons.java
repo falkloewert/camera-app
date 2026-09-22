@@ -136,6 +136,15 @@ public class OnScreenIcons {
             return;
         }
         view.setContentDescription(main_activity.getResources().getString(R.string.cycle_flash));
+        // Im Video gibt es nur noch Taschenlicht (aus/an) - dort traegt der Platz die
+        // Taschenlampe statt der Blitzzeichen, denn "Blitz" beschreibt dort nichts mehr
+        // (Falk 2026-09-22). Der Foto-Zweig darunter bleibt unveraendert.
+        if( main_activity.getPreview().isVideo() ) {
+            String video_flash = main_activity.getPreview().getCurrentFlashValue();
+            view.setImageResource("flash_torch".equals(video_flash) ?
+                    R.drawable.ms_flashlight_on : R.drawable.ms_flashlight_off);
+            return;
+        }
         // n.b., read from preview rather than saved application preference - so the icon updates correctly when in flash
         // auto mode, but user switches to manual ISO where flash auto isn't supported
         String flash_value = main_activity.getPreview().getCurrentFlashValue();

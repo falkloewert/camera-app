@@ -1231,7 +1231,9 @@ public class SettingsSheet {
             String current = preview.getCurrentFlashValue();
             String [] values = {"flash_off", "flash_torch"};
             int [] labels = {R.string.settings_sheet_off, R.string.settings_sheet_on};
-            int [] icons = {R.drawable.ms_flash_off, R.drawable.ms_flash_on};
+            // Taschenlampen-Zeichen statt der Blitzzeichen: im Video gibt es keinen Blitz mehr,
+            // und der Chip im Band traegt dieselben Zeichen (Falk 2026-09-22)
+            int [] icons = {R.drawable.ms_flashlight_off, R.drawable.ms_flashlight_on};
             List<Option> options = new ArrayList<>();
             for(int i=0;i<values.length;i++) {
                 final String value = values[i];
@@ -1246,7 +1248,9 @@ public class SettingsSheet {
                         }));
             }
             if( options.size() >= 2 )
-                rows.add(new Row(getString(R.string.settings_sheet_flash), selectedLabelOr(options, current), options));
+                // "Taschenlampe" statt "Blitz": im Video schaltet die Zeile nur noch ein Dauerlicht
+                // (Falk 2026-09-22) - die Zeichen sind die der Taschenlampe
+                rows.add(new Row(getString(R.string.flash_torch), selectedLabelOr(options, current), options));
         }
 
         // video resolution: FHD / 4K / 8K where the current frame rate offers them. Only 16:9 -

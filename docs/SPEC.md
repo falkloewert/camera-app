@@ -371,6 +371,17 @@ Nacht-Erweiterung läuft nur auf der Hauptkamera, der Mond setzt das Objektiv de
   erlaubt (`isRawAllowed()`), der fehlende Chip ist also korrekt. **Offen:** Falks Abnahme; Frage,
   ob `res/drawable/header_chip_background_icon.xml` (unbenutzt) gelöscht werden darf. Kickoff:
   `docs/kickoff/redesign-schritt-i-chips-video-blitz.md`.
+- **Schritt J (Falks Korrektur zu Schritt I, 2026-09-22):** gebaut, Gerätetest durch Falk offen.
+  Der Dock-Tausch aus Schritt I ist **wieder heraus** (er ließ Foto/Video-Umschalter und
+  Modusleiste verschwinden, bis die App neu startete): der Stärke-Knopf öffnet jetzt das
+  **Pro-Panel auf dem Reiter „Geschwindigkeit"** (zweiter Eintrag hinter „Alle zurücksetzen",
+  gleiches Symbol wie der Knopf), die Reihe der Raten steht dabei über dem Auslöser, und beim
+  Schließen ist unten rechts alles wie vorher. **Video-Zeile heißt „Taschenlampe"** (Zeichen:
+  Taschenlampe und durchgestrichene Taschenlampe, auch im Band-Chip). **Panorama:** der
+  erzwungene „Blitz Aus" geht jetzt immer auch in die laufende Sitzung (Falks Befund: bei
+  Nacht-Auto blitzte das Panorama im Hellen, weg erst nach App-Neustart), und der **RAW-Eintrag
+  verschwindet in den vollen Einstellungen**, wo RAW nichts bewirkt (`isRawAllowed()` des obersten
+  Modus). Kickoff: `docs/kickoff/redesign-schritt-j-staerke-im-pro-panel.md`.
 **Feste Entscheidungen:** Screenshot-Spec schlägt Detail-Spec, gemessene Werte (2,25 px/dp)
 schlagen beide; keine Animationen außer Auslöser, Glyph-Drehung, Rad-Morph, Blatt-Gleiten;
 Roboto Flex; Konflikte K1–K13 in `ui-spezifikation.md` 9; was die App nicht kann: 4b dort.
