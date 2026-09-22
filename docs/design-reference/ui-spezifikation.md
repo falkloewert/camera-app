@@ -196,8 +196,8 @@ einfache Vorzeichen statt Spiegel-Flags.
 
 | Zeile | Werte / Icons |
 |---|---|
-| **Mehr Licht** | `ms_block` · `ms_flash_auto` · `ms_flash_on` – Werte `flash_off` / `flash_auto`·`frontscreen_auto` / `flash_on`·`frontscreen_on`; Frontkamera zeigt die Frontblitz-Werte. Zeile entfällt bei weniger als zwei Optionen |
-| **Timer** | vier Optionen: Aus · 3 s · 5 s · 10 s (`ms_timer_off/3/5/10`), `TimerPreferenceKey`; im Panoramamodus weggelassen |
+| **Mehr Licht** | **fünf** Optionen in Falks Reihenfolge (Schritt E, 2026-09-22): nichts · auto nacht · auto blitz · nacht an · blitz an (`ms_block` · `ms_night_sight_auto` · `ms_flash_auto` · `ms_dark_mode` · `ms_flash_on`); genau **eine** ist markiert (Nacht auto > Nacht an > Blitz auto > Blitz an > nichts), Tippen setzt den Rest zurück. Alle Zustände schreibt `MainUI.applyLightSettings()`; im Video heißt die Zeile „Blitz" und bietet nur aus · auto · an (Taschenlampe). Wer `auto blitz` wählt, verliert das manuelle ISO |
+| **Timer** | vier Optionen: Aus · 3 s · 5 s · 10 s (`ms_timer_off/3/5/10`), `TimerPreferenceKey`; im Panoramamodus weggelassen – dort gibt es auch keinen Timer-Chip im Band |
 | **Makrofokus** | **nur zwei Optionen:** Aus · An (`focus_mode_continuous_picture` ↔ `focus_mode_macro`) |
 | **Verhältnis** | **nur zwei Optionen:** Breitbild (16:9) · Vollbild (4:3) |
 
@@ -530,6 +530,15 @@ Ring ist Schwarz 60 %, keine weiße Kontur (K10). Die alten Drawables
   16-dp-Glyphen in 32-dp-Trefferlächen, rechts 16 dp vom Rand, auf der Chip-Achse. Die
   Blitz-Anzeige ist als einzige **immer** an, sobald das Gerät einen Blitz hat (rein visuell,
   keine Modus-/Preference-Sperre); die übrigen vier hängen an ihren Preferences.
+- **Schritt G (2026-09-22) – Chips statt Sucher-Reihe:** die Akku-Anzeige und die Icon-Reihe im
+  Sucher entfallen; ihre Zustände stehen im Band. Links neben dem Auflösungs-Chip der
+  **Modus-Chip** (`header_mode`: DRO, HDR, Expo-Burst, Serienbild, Rauschunterdrückung; nur wenn
+  kein Bildraten-Chip steht, im Video nie). Rechts auf der Achse, in dieser Reihenfolge: RAW, GPS,
+  Ausrichtungssperre, Textstempel, Gesichtserkennung, Auto-Ausrichten, Ton aus, **Timer**,
+  **Blitz/Mond** – der Timer-Chip ist tippbar (aus→3→5→10→aus, `ms_timer_*`, im Panorama wie die
+  Timer-Zeile des Blattes ohne Chip), der Blitz-Platz trägt bei Nacht den Mond (`ms_dark_mode`
+  „Nacht an", `ms_night_sight_auto` mit „A"; die Automatik gewinnt, wenn beide an sind) und im
+  Video den Blitzwert (die Nacht gibt es dort nicht).
 - `trash`/`share`/`kraken_icon` sind entfällt (Löschen/Teilen nur noch auf dem pausierten
   Standbild, wie schon vor Schritt C); `audio_control` (Rausch-Auslöser) bleibt nur über die
   Preference in der vollen Einstellungen-Aktivität erreichbar.

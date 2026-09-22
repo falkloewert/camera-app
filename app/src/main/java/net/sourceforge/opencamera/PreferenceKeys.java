@@ -129,6 +129,16 @@ public class PreferenceKeys {
 
     public static final String PhotoModePreferenceKey = "preference_photo_mode";
 
+    /** Whether the night extension switches itself with the darkness of the scene (Schritt E,
+     *  the "Nacht auto" button of the photo sheet's light row). Photo only. */
+    public static final String NightAutoPreferenceKey = "preference_night_auto";
+
+    /** Whether the night extension is on (Schritt F): a *state* of the light, no longer a photo
+     *  mode of its own. That is what lets night run inside the panorama - the mode stays Panorama
+     *  and only the camera session changes. Kept apart from NightAutoPreferenceKey, which says
+     *  whether the darkness may switch it. */
+    public static final String NightOnPreferenceKey = "preference_night_on";
+
     public static final String HDRSaveExpoPreferenceKey = "preference_hdr_save_expo";
 
     public static final String HDRTonemappingPreferenceKey = "preference_hdr_tonemapping";
@@ -249,8 +259,6 @@ public class PreferenceKeys {
 
     public static final String ShowPreviewShotsPreferenceKey = "preference_show_preview_shots";
 
-    public static final String ShowCycleFlashPreferenceKey = "preference_show_cycle_flash";
-
     public static final String ShowFocusPeakingPreferenceKey = "preference_show_focus_peaking";
 
     public static final String ShowAutoLevelPreferenceKey = "preference_show_auto_level";
@@ -306,8 +314,6 @@ public class PreferenceKeys {
     public static final String ShowTimePreferenceKey = "preference_show_time";
 
     public static final String ShowCameraIDPreferenceKey = "preference_show_camera_id";
-
-    public static final String ShowBatteryPreferenceKey = "preference_show_battery";
 
     public static final String ShowGridPreferenceKey = "preference_grid";
 

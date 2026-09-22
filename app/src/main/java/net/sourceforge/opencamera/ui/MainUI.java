@@ -19,10 +19,12 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.hardware.camera2.CameraExtensionCharacteristics;
 import android.media.AudioManager;
 import android.media.CamcorderProfile;
 import android.os.Build;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.util.TypedValue;
@@ -52,6 +54,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -99,6 +102,12 @@ public class MainUI {
      *  aus demselben Grund ruft es setShutterState() direkt; stoppedVideo() meldet das Ende. */
     private boolean video_recording_ui;
 
+    /** Welcher Eintrag der Modusleiste welchen Modus setzt - Ansichts-ID auf Wert. Die beiden
+     *  Karten sind die einzige Zuordnung: die Karussell-Leiste meldet nur den angetippten Eintrag
+     *  zurück (ModeBar.Listener), und der unterscheidet nicht zwischen Foto- und Video-Einträgen. */
+    private final Map<Integer, String> mode_bar_photo_modes = new HashMap<>();
+    private final Map<Integer, String> mode_bar_video_speeds = new HashMap<>();
+
     // For remote control: keep track of the currently highlighted
     // line and icon within the exposure UI
     private boolean remote_control_mode; // whether remote control mode is enabled
@@ -123,6 +132,11 @@ public class MainUI {
 
         this.setSeekbarColors();
         this.setupModeBar();
+        // the night automation (see checkNightAuto) is armed here as well, so that a "Nacht auto"
+        // that is still picked when the app starts takes over again; it starts itself only when it
+        // is wanted, and the first look happens after the camera is up (nothing may be asked of
+        // the preview right now: it is created after this UI, in MainActivity.onCreate)
+        this.night_auto_handler.postDelayed(this.night_auto_runnable, NIGHT_AUTO_CHECK_MS);
     }
 
     public OnScreenIcons getOnScreenIcons() {
@@ -397,6 +411,49 @@ public class MainUI {
         return fps > 0 ? String.valueOf(fps) : "";
     }
 
+    /** Das Symbol des Foto-Modus fuer den Chip links im Band (Schritt G Punkt 8: "HDR und Dro Chip
+     *  sollen oben links neben aufloesungs chip") - 0, wenn es fuer den Modus keines gibt. Das sind
+     *  genau die Modi, deren Symbol die Sucher-Reihe bis Schritt G zeigte; Panorama fehlt, weil die
+     *  Modusleiste es ohnehin ausweist und seine eigene Objektivreihe hat. */
+    private int headerModeIcon() {
+        Preview preview = main_activity.getPreview();
+        if( preview == null || preview.isVideo() )
+            return 0;
+        switch( main_activity.getApplicationInterface().getPhotoMode() ) {
+            case DRO:
+                return R.drawable.dro_icon;
+            case HDR:
+                return R.drawable.ic_hdr_on_white_48dp;
+            case ExpoBracketing:
+                return R.drawable.expo_icon;
+            case FastBurst:
+                return R.drawable.ic_burst_mode_white_48dp;
+            case NoiseReduction:
+                return R.drawable.nr_icon;
+            default:
+                return 0;
+        }
+    }
+
+    /** Der Name des Modus fuer die Vorlesehilfe des Modus-Chips - dieselbe Beschriftung, die das
+     *  Modus-Popup benutzt. */
+    private int headerModeIconLabel() {
+        switch( main_activity.getApplicationInterface().getPhotoMode() ) {
+            case DRO:
+                return R.string.photo_mode_dro;
+            case HDR:
+                return R.string.photo_mode_hdr;
+            case ExpoBracketing:
+                return R.string.photo_mode_expo_bracketing_full;
+            case FastBurst:
+                return R.string.photo_mode_fast_burst_full;
+            case NoiseReduction:
+                return R.string.photo_mode_noise_reduction_full;
+            default:
+                return 0;
+        }
+    }
+
     /** Legt die Kopfzeile: das schwarze Band, den Auflösungs-Chip auf seiner festen Achse und
      *  rechts daneben den Bildraten-Chip (Video) auf derselben Mittelachse. Band und Chips sitzen fest im
      *  Layout und drehen nicht mit (wie die Beschriftungen der Modusleiste): sie sind auf die
@@ -452,13 +509,36 @@ public class MainUI {
                 (int) (header_chip_center_y_dp * scale + 0.5f) - fps_size / 2);
         fps.setTextSize(TypedValue.COMPLEX_UNIT_PX, header_chip_text_size_dp * scale);
 
+        // Der Modus-Chip (Foto) nimmt dieselbe Lücke ein wie der Bildraten-Chip: er hängt wie
+        // dieser am rechten Rand des Auflösungs-Chips und sitzt auf derselben Achse. Beide zusammen
+        // gibt es nicht - der Chip erscheint nur, wenn der fps-Chip leer ist (und umgekehrt, s.
+        // headerFpsLabel(): eine Rate gibt es nur im Video, diese Foto-Modi nur im Foto).
+        final int indicators_icon_size = (int) (header_indicators_height_dp * scale + 0.5f);
+        ImageButton mode = main_activity.findViewById(R.id.header_mode);
+        int mode_icon = headerModeIcon();
+        int mode_id = mode.getId();
+        resetView(cs, mode);
+        cs.setVisibility(mode_id, (fps_label.isEmpty() && mode_icon != 0) ? View.VISIBLE : View.GONE);
+        if( mode_icon != 0 ) {
+            mode.setImageResource(mode_icon);
+            int mode_label = headerModeIconLabel();
+            if( mode_label != 0 )
+                mode.setContentDescription(main_activity.getResources().getString(mode_label));
+        }
+        cs.constrainWidth(mode_id, indicators_icon_size);
+        cs.constrainHeight(mode_id, indicators_icon_size);
+        cs.connect(mode_id, ConstraintSet.LEFT, chip_id, ConstraintSet.RIGHT,
+                (int) (header_chip_gap_dp * scale + 0.5f));
+        cs.connect(mode_id, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP,
+                (int) (header_chip_center_y_dp * scale + 0.5f) - indicators_icon_size / 2);
+
         // Die Zustandsanzeigen (RAW, Blitz, GPS, Ausrichtungssperre, Textstempel) sitzen rechts
         // im Band; welche davon an sind, entscheidet OnScreenIcons. Die Reihe selbst hängt rechts
         // am Rand und bleibt sonst, wie das Band sie mitbringt (Breite aus dem Layout).
         View indicators = main_activity.findViewById(R.id.header_indicators);
         int indicators_id = indicators.getId();
         resetView(cs, indicators);
-        cs.constrainHeight(indicators_id, (int) (header_indicators_height_dp * scale + 0.5f));
+        cs.constrainHeight(indicators_id, indicators_icon_size);
         cs.connect(indicators_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT,
                 (int) (header_indicators_right_dp * scale + 0.5f));
         cs.connect(indicators_id, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP,
@@ -474,6 +554,10 @@ public class MainUI {
         // den Bildraten-Chip nur einblenden, wenn es im aktuellen Modus eine Rate gibt
         main_activity.findViewById(R.id.header_fps).setVisibility(
                 visibility == View.VISIBLE && headerFpsLabel().isEmpty() ? View.GONE : visibility);
+        // den Modus-Chip nur einblenden, wenn der Modus ein Symbol hat - und nicht neben dem
+        // Bildraten-Chip, mit dem er sich die Luecke teilt
+        main_activity.findViewById(R.id.header_mode).setVisibility(
+                visibility == View.VISIBLE && headerFpsLabel().isEmpty() && headerModeIcon() != 0 ? View.VISIBLE : View.GONE);
         onScreenIcons.setHeaderVisibility(visibility);
     }
 
@@ -489,6 +573,12 @@ public class MainUI {
         if( main_activity.proPanelIsOpen() )
             visibility = View.INVISIBLE;
         else if( visibility == View.VISIBLE && isVideoSpeedBarOpen() )
+            visibility = View.GONE;
+        // Im Panorama bleibt die Pille in jedem Fall weg: dort führt die Panorama-Reihe die
+        // Objektivwahl. Sonst ginge der Stepper in seinen Objektiv-Modus, sobald ein physisches
+        // Objektiv festgelegt ist, und stünde hinter dem offenen Blatt (Falk, Schritt G Punkt 11).
+        else if( visibility == View.VISIBLE &&
+                main_activity.getApplicationInterface().getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama )
             visibility = View.GONE;
         view.setVisibility(visibility);
     }
@@ -975,43 +1065,58 @@ public class MainUI {
         }
     }
 
-    /** Wires up the mode bar (Photo / Panorama while taking photos, Video / Zeitlupe / Zeitraffer
-     *  while filming), the horizontal replacement for picking the mode out of the popup menu - see
-     *  docs/design-reference/pixel-camera-screenshots.md. Only modes the app actually implements
-     *  are offered here.
+    /** Wires up the mode carousel (the photo modes while taking photos, Video / Zeitlupe /
+     *  Zeitraffer while filming), the horizontal replacement for picking the mode out of the popup
+     *  menu - see docs/design-reference/pixel-camera-screenshots.md. Only modes the app actually
+     *  implements are offered here; a tap is handled by the bar itself (ModeBar.Listener), which
+     *  first slides the entry into the middle.
      */
     private void setupModeBar() {
+        ModeBar mode_bar = main_activity.findViewById(R.id.mode_bar);
+        mode_bar.setListener(new ModeBar.Listener() {
+            @Override
+            public void onEntryPicked(View entry) {
+                onModeBarEntryPicked(entry);
+            }
+        });
         // The bar only lists the sub-modes of whatever the PhotoVideoSwitch is set to, and
         // photo <-> video isn't switched here at all. While taking photos that is "Foto" (the
-        // ordinary photo) and "Panorama", as in the reference - Falk's decision (2026-09-17,
-        // revising audit step 1): a "Foto" entry is needed to get back out of Panorama, and out
-        // of whatever modes come later.
-        setModeBarEntry(R.id.mode_bar_photo, "preference_photo_mode_std");
-        setModeBarEntry(R.id.mode_bar_panorama, "preference_photo_mode_panorama");
+        // ordinary photo) and the photo modes that Schritt C left unreachable when it removed the
+        // popup - Falk's decision (2026-09-17, revising audit step 1, and 2026-09-22 for the
+        // order): "Foto" first, then the special modes. A "Foto" entry is needed to get back out
+        // of any of them. Serienbild stays out (Falk: holding the shutter is enough), the two
+        // bracketing modes live in the settings sheet, and since Schritt E so do HDR, DRO and
+        // Nachtsicht - Nachtsicht sits in the flash row of the photo sheet now, HDR/DRO in its
+        // Pro tab.
+        addPhotoModeEntry(R.id.mode_bar_photo, "preference_photo_mode_std");
+        addPhotoModeEntry(R.id.mode_bar_panorama, "preference_photo_mode_panorama");
+        addPhotoModeEntry(R.id.mode_bar_bokeh, "preference_photo_mode_x_bokeh");
         // While filming it is "Video" (the ordinary one, the way back out of the two special
         // modes), "Zeitlupe" and "Zeitraffer" (SPEC 4.6), in the order the reference lists them.
-        setVideoSpeedModeEntry(R.id.mode_bar_video, MyApplicationInterface.VIDEO_SPEED_OFF);
-        setVideoSpeedModeEntry(R.id.mode_bar_slow_motion, MyApplicationInterface.VIDEO_SPEED_SLOW);
-        setVideoSpeedModeEntry(R.id.mode_bar_timelapse, MyApplicationInterface.VIDEO_SPEED_LAPSE);
+        addVideoSpeedModeEntry(R.id.mode_bar_video, MyApplicationInterface.VIDEO_SPEED_OFF);
+        addVideoSpeedModeEntry(R.id.mode_bar_slow_motion, MyApplicationInterface.VIDEO_SPEED_SLOW);
+        addVideoSpeedModeEntry(R.id.mode_bar_timelapse, MyApplicationInterface.VIDEO_SPEED_LAPSE);
     }
 
-    private void setModeBarEntry(int view_id, final String photo_mode_preference_value) {
-        main_activity.findViewById(view_id).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                switchPhotoMode(photo_mode_preference_value);
-                updateModeBar();
-            }
-        });
+    /** What a tap on a mode bar entry does once the carousel has brought it into the middle: the
+     *  entry on its own says nothing, its id is what names the mode. */
+    private void onModeBarEntryPicked(View entry) {
+        String photo_mode = mode_bar_photo_modes.get(entry.getId());
+        if( photo_mode != null ) {
+            switchPhotoMode(photo_mode); // refreshes the bar itself
+            return;
+        }
+        String speed_mode = mode_bar_video_speeds.get(entry.getId());
+        if( speed_mode != null )
+            switchVideoSpeedMode(speed_mode);
     }
 
-    private void setVideoSpeedModeEntry(int view_id, final String speed_mode) {
-        main_activity.findViewById(view_id).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                switchVideoSpeedMode(speed_mode);
-            }
-        });
+    private void addPhotoModeEntry(int view_id, String photo_mode_preference_value) {
+        mode_bar_photo_modes.put(view_id, photo_mode_preference_value);
+    }
+
+    private void addVideoSpeedModeEntry(int view_id, String speed_mode) {
+        mode_bar_video_speeds.put(view_id, speed_mode);
     }
 
     /** Centre-to-centre distance between the shutter and the buttons flanking it (gallery,
@@ -1045,54 +1150,275 @@ public class MainUI {
     }
 
     /** Applies a new photo mode preference and refreshes everything that caches it - same steps
-     *  PopupView.changePhotoMode() takes when the mode is picked from the popup menu.
-     */
-    private void switchPhotoMode(String photo_mode_preference_value) {
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString(PreferenceKeys.PhotoModePreferenceKey, photo_mode_preference_value);
-        editor.apply();
-        main_activity.getApplicationInterface().getDrawPreview().updateSettings(); // because we cache the photomode
-        main_activity.updateForSettings(true, null, false, true);
+     *  PopupView.changePhotoMode() takes when the mode is picked from the popup menu. The photo
+     *  sheet calls this too (Schritt E): HDR and DRO are picked there now, and that needs the
+     *  camera to be rebuilt. A pick by hand also ends the night automation - whoever chooses a
+     *  mode wants that mode, not the one darkness would have picked.
+     *  HDR and DRO get the light cleared with it (Schritt F, Falk 2026-09-22): HDR cannot use a
+     *  real flash at all (the exposure bracket holds AE off), and neither of the two is offered a
+     *  night button - so they are entered with the light off, and DRO's own buttons can turn the
+     *  flash back on. */
+    public void switchPhotoMode(String photo_mode_preference_value) {
+        boolean clear_light = "preference_photo_mode_hdr".equals(photo_mode_preference_value)
+                || "preference_photo_mode_dro".equals(photo_mode_preference_value);
+        // The night belongs to Foto and Panorama alone (Schritt F): every other mode brings a
+        // session of its own (Porträt, the other extensions) or an exposure of its own (HDR, DRO),
+        // and a night left on from before would silently take it over - getPhotoMode() rates the
+        // mode higher than the light. So entering one puts the night off; Foto and Panorama keep
+        // it, and the light row turns it on there.
+        boolean keep_night = "preference_photo_mode_std".equals(photo_mode_preference_value)
+                || "preference_photo_mode_panorama".equals(photo_mode_preference_value);
+        applyLightSettings(photo_mode_preference_value, clear_light ? "flash_off" : null, false,
+                (clear_light || !keep_night) ? Boolean.FALSE : null);
     }
 
-    /** Shows the sub-modes of the current top-level mode and highlights the active one: Foto
-     *  and Panorama while taking photos (Panorama only where the camera supports it - not with
-     *  the selfie camera, see MainActivity.supportsPanorama()), Video, Zeitlupe and Zeitraffer
-     *  while filming. A mode the camera cannot do is left out rather than offered dead (a camera
-     *  without high speed video gets no Zeitlupe). The bar's own place is fixed (layoutUI()), so
-     *  an empty bar moves nothing.
+    /** The one place that writes the light of the photo sheet (Schritt E): which photo mode, which
+     *  flash value, and whether the night automation stays on. All of it ends in a camera rebuild,
+     *  so it is written together and rebuilt once.
+     *  @param flash_value the flash value to store, null to leave the flash as it is.
+     *  @param night_auto whether the night extension should keep switching itself by darkness.
+     *  @param night_on whether the night extension is on, null to leave it as it is (Schritt F:
+     *                  it is a light state, no longer a mode preference).
+     */
+    public void applyLightSettings(String photo_mode_preference_value, String flash_value, boolean night_auto, Boolean night_on) {
+        MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
+        // Blitz-Automatik und festes ISO schließen sich aus: mit abgeschalteter Belichtungsautomatik
+        // nimmt die Kamera das "flash_auto" aus ihren Werten (Preview.setupCameraParameters), der
+        // gespeicherte Wert liefe ins Leere und der Knopf im Blatt spränge zurück (Falk: "Auto Blitz
+        // lässt sich nicht auswählen", Schritt G Punkt 5). Wer die Automatik wählt, meint sie.
+        if( "flash_auto".equals(flash_value) ) {
+            applicationInterface.clearISOPref();
+            applicationInterface.clearExposureTimePref();
+        }
+        // Nacht und physisches Objektiv schließen sich aus: die Nacht-Erweiterung läuft auf der
+        // Hauptkamera, ein Weitwinkel-Nachtbild wäre still ein 1×-Bild (CameraController2 holt die
+        // Erweiterungs-Charakteristiken nur ohne festgelegtes physisches Objektiv, Zeile 1215).
+        // Wer die Nacht wählt, bekommt 1× - der Neuaufbau unten nimmt die zurückgenommene
+        // Festlegung mit (Schritt G, Punkt 8).
+        if( (night_on != null && night_on) || night_auto ) {
+            if( applicationInterface.getCameraIdSPhysicalPref() != null )
+                applicationInterface.setCameraIdPref(main_activity.getActualCameraId(), null);
+        }
+        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(main_activity).edit();
+        editor.putString(PreferenceKeys.PhotoModePreferenceKey, photo_mode_preference_value);
+        editor.putBoolean(PreferenceKeys.NightAutoPreferenceKey, night_auto);
+        if( night_on != null )
+            editor.putBoolean(PreferenceKeys.NightOnPreferenceKey, night_on);
+        editor.apply();
+        if( flash_value != null )
+            main_activity.getApplicationInterface().setFlashPref(flash_value);
+        main_activity.getApplicationInterface().getDrawPreview().updateSettings(); // because we cache the photomode
+        main_activity.updateForSettings(true, null, false, true);
+        updateModeBar();
+        updateNightAutoCheck();
+    }
+
+    /** Nimmt die Nacht zurück, ohne die Kamera neu aufzubauen: der Aufrufer baut sie danach selbst
+     *  auf und nimmt den neuen Zustand dabei mit (Objektivwechsel im Panorama, Schritt G Punkt 8).
+     *  Ohne das bliebe die Nacht-Automatik weiter angemeldet und schaltete die Nacht gleich wieder
+     *  ein. */
+    public void clearNightState() {
+        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(main_activity).edit();
+        editor.putBoolean(PreferenceKeys.NightAutoPreferenceKey, false);
+        editor.putBoolean(PreferenceKeys.NightOnPreferenceKey, false);
+        editor.apply();
+        main_activity.getApplicationInterface().getDrawPreview().updateSettings(); // der Photomodus ist gecacht
+        updateModeBar();
+        updateNightAutoCheck();
+    }
+
+    /** The same write from the light row of the sheet (Schritt F), which has no photo mode of its
+     *  own: the light buttons only set the light, the mode standing stays - that is what lets the
+     *  night run inside the panorama. */
+    public void lightSettings(String flash_value, boolean night_auto, Boolean night_on) {
+        applyLightSettings(
+                PreferenceManager.getDefaultSharedPreferences(main_activity)
+                        .getString(PreferenceKeys.PhotoModePreferenceKey, "preference_photo_mode_std"),
+                flash_value, night_auto, night_on);
+    }
+
+    // "Nacht auto" (Schritt E): while the button is picked, the night extension switches itself by
+    // how dark the scene is. The video torch reads the same ISO through a callback, but that
+    // callback is a single slot and belongs to the video flash - so this asks the camera directly,
+    // every couple of seconds, and only while the button is on.
+    /** How often the measured ISO is looked at. Reading it costs nothing: it is the value the
+     *  camera already reported for the last preview frame (CameraController.captureResultIso()). */
+    private static final long NIGHT_AUTO_CHECK_MS = 2000;
+    /** Every switch rebuilds the whole camera, so two of them never follow each other faster than
+     *  this - the measurement settles within a second, a rebuild takes longer. */
+    private static final long NIGHT_AUTO_MIN_DWELL_MS = 10000;
+    /** How many checks in a row have to say "bright" before the night extension goes off again:
+     *  the way back is the risky one, because the extension itself shoots with long exposures, so a
+     *  single low ISO right after the switch would not mean anything. Three checks are ~6 s. */
+    private static final int NIGHT_AUTO_BRIGHT_CHECKS = 3;
+
+    private final Handler night_auto_handler = new Handler();
+    private int night_auto_bright_checks;
+    private long night_auto_last_switch;
+    private final Runnable night_auto_runnable = new Runnable() {
+        @Override
+        public void run() {
+            checkNightAuto();
+            if( nightAutoWanted() )
+                night_auto_handler.postDelayed(this, NIGHT_AUTO_CHECK_MS);
+            else
+                night_auto_bright_checks = 0;
+        }
+    };
+
+    /** Whether the night extension should keep switching itself: only with the button picked, only
+     *  in photo mode (the night extension is a photo mode), and only where the camera has the
+     *  extension at all. */
+    private boolean nightAutoWanted() {
+        Preview preview = main_activity.getPreview();
+        if( preview == null || preview.isVideo() )
+            return false;
+        if( !preview.supportsCameraExtension(CameraExtensionCharacteristics.EXTENSION_NIGHT) )
+            return false;
+        return PreferenceManager.getDefaultSharedPreferences(main_activity)
+                .getBoolean(PreferenceKeys.NightAutoPreferenceKey, false);
+    }
+
+    /** Starts or stops the check above and treats the rebuild that just happened as the last
+     *  switch. Called when the light row writes its preferences; afterwards the check keeps itself
+     *  alive while the button is on, so nothing has to be hooked into the activity's lifecycle. */
+    private void updateNightAutoCheck() {
+        night_auto_handler.removeCallbacks(night_auto_runnable);
+        night_auto_bright_checks = 0;
+        night_auto_last_switch = SystemClock.uptimeMillis();
+        if( nightAutoWanted() )
+            night_auto_handler.postDelayed(night_auto_runnable, NIGHT_AUTO_CHECK_MS);
+    }
+
+    /** Asks the measured ISO whether the night extension should switch. Into the night as soon as
+     *  the scene is clearly dark - but only from a mode that offers the light (Foto and Panorama,
+     *  Schritt F): after HDR, DRO or Porträt the mode the user picked wins. Out of the night only
+     *  once the scene has been clearly bright for a stretch (see NIGHT_AUTO_BRIGHT_CHECKS).
+     *  It switches the night *state*, not the photo mode, so a panorama stays a panorama - but
+     *  never while one is recording: every switch rebuilds the camera (MainActivity), and that
+     *  would tear the running panorama apart.
+     *  ponytail: eine Szene, in der die Nacht-Erweiterung selbst mit langer Belichtung arbeitet,
+     *  kann dauerhaft unter AUTO_ISO_OFF messen - dann bleibt Nacht an, bis Falk sie abwaehlt.
+     */
+    private void checkNightAuto() {
+        if( !nightAutoWanted() )
+            return;
+        Preview preview = main_activity.getPreview();
+        // Die Nacht gibt es nur in Foto und Panorama (Schritt F): im Video antwortet
+        // getTopLevelPhotoMode() zwar Standard, die Erweiterung laeuft dort aber nicht
+        // (MyApplicationInterface.getPhotoMode()) - die Automatik baute die Kamera dort sonst neu
+        // auf, ohne dass sich etwas aendert (Schritt G).
+        if( preview.isVideo() )
+            return;
+        CameraController controller = preview.getCameraController();
+        if( controller == null || !controller.captureResultHasIso() )
+            return; // no camera open, or nothing measured yet
+        if( preview.isTakingPhoto() )
+            return; // never rebuild the camera under a running capture
+        MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
+        if( applicationInterface.getGyroSensor().isRecording() )
+            return; // ... and never under a running panorama either
+        int iso = controller.captureResultIso();
+        MyApplicationInterface.PhotoMode photo_mode = applicationInterface.getTopLevelPhotoMode();
+        boolean light_offered = photo_mode == MyApplicationInterface.PhotoMode.Standard ||
+                photo_mode == MyApplicationInterface.PhotoMode.Panorama;
+        boolean in_night = applicationInterface.isNightModeOn();
+        if( in_night ) {
+            if( !light_offered )
+                return;
+            if( iso < Preview.AUTO_ISO_OFF )
+                night_auto_bright_checks++;
+            else
+                night_auto_bright_checks = 0;
+            if( night_auto_bright_checks < NIGHT_AUTO_BRIGHT_CHECKS )
+                return;
+        }
+        else {
+            night_auto_bright_checks = 0;
+            if( !light_offered || !Preview.autoLightOn(false, iso) )
+                return;
+        }
+        if( SystemClock.uptimeMillis() < night_auto_last_switch + NIGHT_AUTO_MIN_DWELL_MS )
+            return;
+        if( MyDebug.LOG )
+            Log.d(TAG, "measured ISO " + iso + " -> night " + (in_night ? "off" : "on"));
+        // the mode stays what it is - only the light changes
+        applyLightSettings(
+                PreferenceManager.getDefaultSharedPreferences(main_activity)
+                        .getString(PreferenceKeys.PhotoModePreferenceKey, "preference_photo_mode_std"),
+                null, true, !in_night);
+    }
+
+    /** Shows the sub-modes of the current top-level mode, highlights the active one and puts it in
+     *  the middle of the carousel: Foto and the other photo modes while taking photos, Video,
+     *  Zeitlupe and Zeitraffer while filming. A mode the camera cannot do is left out rather than
+     *  offered dead (a camera without high speed video gets no Zeitlupe): Panorama not with the
+     *  selfie camera (MainActivity.supportsPanorama()), Porträt only where the camera reports the
+     *  extension. The bar's own place is fixed (layoutUI()), so an empty bar moves nothing.
      */
     public void updateModeBar() {
         boolean is_video = main_activity.getPreview().isVideo();
-        boolean offer_panorama = !is_video && main_activity.supportsPanorama();
-        boolean is_panorama = !is_video &&
-                main_activity.getApplicationInterface().getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama;
+        // the top-level mode: night counts as the plain photo mode there, it is a light state
+        // (Schritt F) - without this a night photo would leave the carousel unmarked
+        MyApplicationInterface.PhotoMode photo_mode = main_activity.getApplicationInterface().getTopLevelPhotoMode();
+
+        TextView[] photo_entries = {
+                main_activity.findViewById(R.id.mode_bar_photo),
+                main_activity.findViewById(R.id.mode_bar_panorama),
+                main_activity.findViewById(R.id.mode_bar_bokeh) };
+        boolean[] photo_offered = {
+                !is_video,
+                !is_video && main_activity.supportsPanorama(),
+                !is_video && main_activity.supportsCameraExtension(CameraExtensionCharacteristics.EXTENSION_BOKEH) };
+        MyApplicationInterface.PhotoMode[] photo_modes = {
+                MyApplicationInterface.PhotoMode.Standard,
+                MyApplicationInterface.PhotoMode.Panorama,
+                MyApplicationInterface.PhotoMode.X_Bokeh };
+        View selected_entry = null;
+        for(int i = 0; i < photo_entries.length; i++) {
+            // getPhotoMode() already answers Standard where the preference names a mode the camera
+            // cannot do, so an entry is only ever highlighted where it is offered
+            boolean selected = photo_offered[i] && photo_mode == photo_modes[i];
+            photo_entries[i].setVisibility(photo_offered[i] ? View.VISIBLE : View.GONE);
+            applyModeBarStyle(photo_entries[i], selected);
+            if( selected )
+                selected_entry = photo_entries[i];
+        }
+
         // The video sub-modes are for choosing a mode, not for use while filming: they hide for
         // the length of a recording, as in the reference (pixel-zeitraffer-zeitlupe-beschreibung
         // .md 5), which also keeps the rate - fixed when the file was opened - out of reach.
         boolean show_video_modes = is_video && !video_recording_ui
                 && !main_activity.getPreview().isVideoRecording();
-
-        TextView photo_entry = main_activity.findViewById(R.id.mode_bar_photo);
-        TextView panorama_entry = main_activity.findViewById(R.id.mode_bar_panorama);
-        photo_entry.setVisibility(is_video ? View.GONE : View.VISIBLE);
-        panorama_entry.setVisibility(offer_panorama ? View.VISIBLE : View.GONE);
-        applyModeBarStyle(photo_entry, !is_video && !is_panorama);
-        applyModeBarStyle(panorama_entry, is_panorama);
-
         String speed_mode = getVideoSpeedMode();
         boolean offer_slow = supportsVideoSpeedMode(MyApplicationInterface.VIDEO_SPEED_SLOW);
         boolean offer_lapse = supportsVideoSpeedMode(MyApplicationInterface.VIDEO_SPEED_LAPSE);
-        TextView video_entry = main_activity.findViewById(R.id.mode_bar_video);
-        TextView slow_entry = main_activity.findViewById(R.id.mode_bar_slow_motion);
-        TextView lapse_entry = main_activity.findViewById(R.id.mode_bar_timelapse);
-        video_entry.setVisibility(show_video_modes ? View.VISIBLE : View.GONE);
-        slow_entry.setVisibility(show_video_modes && offer_slow ? View.VISIBLE : View.GONE);
-        lapse_entry.setVisibility(show_video_modes && offer_lapse ? View.VISIBLE : View.GONE);
-        applyModeBarStyle(video_entry, MyApplicationInterface.VIDEO_SPEED_OFF.equals(speed_mode));
-        applyModeBarStyle(slow_entry, MyApplicationInterface.VIDEO_SPEED_SLOW.equals(speed_mode));
-        applyModeBarStyle(lapse_entry, MyApplicationInterface.VIDEO_SPEED_LAPSE.equals(speed_mode));
+        TextView[] video_entries = {
+                main_activity.findViewById(R.id.mode_bar_video),
+                main_activity.findViewById(R.id.mode_bar_slow_motion),
+                main_activity.findViewById(R.id.mode_bar_timelapse) };
+        boolean[] video_offered = {
+                show_video_modes,
+                show_video_modes && offer_slow,
+                show_video_modes && offer_lapse };
+        String[] speed_modes = {
+                MyApplicationInterface.VIDEO_SPEED_OFF,
+                MyApplicationInterface.VIDEO_SPEED_SLOW,
+                MyApplicationInterface.VIDEO_SPEED_LAPSE };
+        for(int i = 0; i < video_entries.length; i++) {
+            boolean selected = video_offered[i] && speed_modes[i].equals(speed_mode);
+            video_entries[i].setVisibility(video_offered[i] ? View.VISIBLE : View.GONE);
+            applyModeBarStyle(video_entries[i], selected);
+            if( selected )
+                selected_entry = video_entries[i];
+        }
+
+        if( selected_entry != null ) {
+            // ohne Animation: hier kommt die Leiste entweder gerade erst hoch (Start) oder der
+            // Eintrag steht schon in der Mitte (die Rast der Leiste hat ihn dorthin gebracht)
+            ModeBar mode_bar = main_activity.findViewById(R.id.mode_bar);
+            mode_bar.centerOn(selected_entry, false);
+        }
 
         updateVideoSpeedButton();
         if( !is_video || video_recording_ui )
@@ -1544,8 +1870,11 @@ public class MainUI {
                     Button panoramaLensWideButton = main_activity.findViewById(R.id.panorama_lens_wide);
                     boolean is_wide = main_activity.getApplicationInterface().getCameraIdSPhysicalPref() != null;
                     panoramaLensWideButton.setText(main_activity.getPanoramaWideLensLabel());
-                    panoramaLens1xButton.setAlpha(is_wide ? 0.5f : 1.0f);
-                    panoramaLensWideButton.setAlpha(is_wide ? 1.0f : 0.5f);
+                    panoramaLens1xButton.setText(main_activity.getResources().getString(R.string.panorama_lens_main));
+                    // dieselbe Auswahl wie in der Zoom-Pille statt der halbtransparenten Blase
+                    // (Schritt G, Punkt 10)
+                    ZoomStepper.applyPillStyle(main_activity, panoramaLensWideButton, is_wide);
+                    ZoomStepper.applyPillStyle(main_activity, panoramaLens1xButton, !is_wide);
                     panoramaLensRow.setVisibility(visibility);
                 }
                 else {
@@ -1560,7 +1889,7 @@ public class MainUI {
                 setHeaderVisibility(show_gui_video ? View.VISIBLE : View.GONE);
                 // zoom steps only make sense where zoom is allowed at all (e.g. not in panorama
                 // mode, see MyApplicationInterface.allowZoom()); they stay while recording
-                // video, so a lens can still be picked mid-recording (Falk, 2026-09-18)
+                // video, so a lens can still be picked mid-recording (Falk, 2026-09-18).
                 setZoomStepperVisibility(zoomStepper.hasSteps() ? visibility_video : View.GONE);
                 // Taking a photo leaves the mode bar and the photo/video switch alone (as the
                 // reference does); while recording a video or a panorama they're INVISIBLE -

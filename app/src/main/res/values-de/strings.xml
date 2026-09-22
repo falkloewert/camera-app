@@ -985,6 +985,13 @@
     <string name="settings_sheet_tab_more">Mehr</string>
     <string name="settings_sheet_more_light">Mehr Licht</string>
     <string name="settings_sheet_none">Keines</string>
+    <!-- Die fuenf Knoepfe der Lichtzeile (Schritt E), Falks Wortlaut vom 2026-09-22 -->
+    <string name="settings_sheet_flash_auto">Blitz auto</string>
+    <string name="settings_sheet_flash_on">Blitz an</string>
+    <string name="settings_sheet_night_auto">Nacht auto</string>
+    <string name="settings_sheet_night_on">Nacht an</string>
+    <string name="settings_sheet_photo_mode">HDR/DRO</string>
+    <string name="settings_sheet_normal">Normal</string>
     <string name="settings_sheet_auto">Automatisch</string>
     <string name="settings_sheet_manual">Manuell</string>
     <string name="settings_sheet_flash">Blitz</string>

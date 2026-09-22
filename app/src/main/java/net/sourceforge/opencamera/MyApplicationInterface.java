@@ -177,6 +177,7 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         }
         this.main_activity = main_activity;
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
+        migrateNightMode();
         this.locationSupplier = new LocationSupplier(main_activity);
         if( MyDebug.LOG )
             Log.d(TAG, "MyApplicationInterface: time after creating location supplier: " + (System.currentTimeMillis() - debug_time));
@@ -536,6 +537,50 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         return exposure;
     }
 
+    // Schritt F (Falk 2026-09-22): die Bildzahl ist wieder fest max_panorama_pics_c. Der Waechter
+    // aus Schritt E, der sie an den Heap anpasste, ist weg - er hat das Panorama nach 4-5 Bildern
+    // abgebrochen, obwohl Falk 10 wollte. An den Heap passt sich jetzt die Stich-Aufloesung an
+    // (ImageSaver, inSampleSize aus dem Heap), das kostet Bildschaerfe statt Panoramalaenge.
+
+    /** The size a panorama shoots at (Schritt E): the one the sheet's ratio and size rows stored,
+     *  as long as the camera still offers it - that is what makes 3840x2160 (4K) and 4032x2268
+     *  reachable. Without a stored choice (fresh install) or with one the camera no longer offers,
+     *  it falls back to choosePanoramaResolution(), i.e. to the largest 4:3 size up to 2080 px that
+     *  the mode used to be pinned to - never to the camera's own maximum, which is far beyond what
+     *  the stitcher can hold.
+     */
+    public static CameraController.Size panoramaResolution(CameraController.Size wanted, List<CameraController.Size> sizes) {
+        if( wanted != null ) {
+            for(CameraController.Size size : sizes) {
+                if( size.width == wanted.width && size.height == wanted.height )
+                    return size;
+            }
+            if( MyDebug.LOG )
+                Log.d(TAG, "stored panorama size " + wanted.width + "x" + wanted.height + " is not offered, falling back");
+            // Der Rückfall hält das Verhältnis der gespeicherten Größe (Schritt G, Punkt 12): in
+            // der Nacht-Sitzung stehen dort die Größen der Erweiterung, und mit festgelegtem
+            // physischem Objektiv liegt die gespeicherte Größe unter einem anderen
+            // Preferences-Schlüssel - beides Mal fiel das Panorama sonst auf das 4:3 von
+            // choosePanoramaResolution() zurück, obwohl 16:9 gewählt war.
+            CameraController.Size same_ratio = null;
+            double wanted_ratio = ((double)wanted.width) / (double)wanted.height;
+            double best_diff = 0.0;
+            for(CameraController.Size size : sizes) {
+                double diff = Math.abs(((double)size.width) / (double)size.height - wanted_ratio);
+                if( same_ratio == null || diff < best_diff || (diff == best_diff && size.width > same_ratio.width) ) {
+                    same_ratio = size;
+                    best_diff = diff;
+                }
+            }
+            if( same_ratio != null )
+                return same_ratio;
+        }
+        return choosePanoramaResolution(sizes);
+    }
+
+    /** The fallback for the panorama size: the largest 4:3 size up to 2080 px wide, or the largest
+     *  up to that width, or the smallest at all (see panoramaResolution() for the normal case).
+     */
     public static CameraController.Size choosePanoramaResolution(List<CameraController.Size> sizes) {
         // if we allow panorama with higher resolutions, review against memory requirements under MainActivity.supportsPanorama()
         // also may need to update the downscaling in the testing code
@@ -582,10 +627,6 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     @Override
     public Pair<Integer, Integer> getCameraResolutionPref(CameraResolutionConstraints constraints) {
         PhotoMode photo_mode = getPhotoMode();
-        if( photo_mode == PhotoMode.Panorama ) {
-            CameraController.Size best_size = choosePanoramaResolution(main_activity.getPreview().getSupportedPictureSizes(false));
-            return new Pair<>(best_size.width, best_size.height);
-        }
 
         String resolution_value = sharedPreferences.getString(PreferenceKeys.getResolutionPreferenceKey(cameraId, cameraIdSPhysical), "");
         if( MyDebug.LOG )
@@ -619,6 +660,15 @@ public class MyApplicationInterface extends BasicApplicationInterface {
                         Log.d(TAG, "resolution_value invalid format, can't parse w or h to int");
                 }
             }
+        }
+
+        if( photo_mode == PhotoMode.Panorama ) {
+            // Schritt E: Verhaeltnis und Groesse sind die zwei Zeilen des Foto-Blattes, das Panorama
+            // nimmt also, was dort steht - 4K eingeschlossen, das ist so gewollt (Falk will es
+            // testen). panoramaResolution() faengt nur den Fall ab, dass noch nichts gespeichert ist.
+            CameraController.Size wanted = result != null ? new CameraController.Size(result.first, result.second) : null;
+            CameraController.Size panorama_size = panoramaResolution(wanted, main_activity.getPreview().getSupportedPictureSizes(false));
+            return new Pair<>(panorama_size.width, panorama_size.height);
         }
 
         if( photo_mode == PhotoMode.NoiseReduction || photo_mode == PhotoMode.HDR ) {
@@ -1542,11 +1592,27 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         // even if the queue isn't full, we may apply additional limits
         int n_images_to_save = imageSaver.getNImagesToSave();
         PhotoMode photo_mode = getPhotoMode();
-        if( photo_mode == PhotoMode.FastBurst || photo_mode == PhotoMode.Panorama ) {
+        if( photo_mode == PhotoMode.FastBurst ) {
             // only allow one fast burst at a time, so require queue to be empty
             if( n_images_to_save > 0 ) {
                 if( MyDebug.LOG )
                     Log.d(TAG, "canTakeNewPhoto: no, as too many for fast burst");
+                return false;
+            }
+        }
+        if( photo_mode == PhotoMode.Panorama ) {
+            // Schritt E (Falk 2026-09-22): beim Rechnen eines Panoramas stand die App still. Der
+            // naechste Panorama-Start ist deshalb nicht mehr generell verboten - der Stapel des
+            // vorigen liegt schon in der Warteschlange, sein Platz im ImageSaver ist wieder frei
+            // (ImageSaver.finishImageBatch()), gestitcht wird auf dessen eigenem Thread. Verboten
+            // bleibt er nur, wenn die Bilder des naechsten Panoramas nicht mehr daneben passen:
+            // sonst haengt ImageSaver.addRequest() am vollen queue.put() und nimmt die Oberflaeche
+            // mit. Solange also Platz ist, darf fotografiert werden - auch ein einzelnes Foto im
+            // Foto-Modus waehrend der Stitch laeuft.
+            int panorama_cost = imageSaver.computeRequestCost(false, max_panorama_pics_c);
+            if( imageSaver.queueWouldBlock(panorama_cost) ) {
+                if( MyDebug.LOG )
+                    Log.d(TAG, "canTakeNewPhoto: no, as the next panorama would not fit the queue");
                 return false;
             }
         }
@@ -1730,9 +1796,47 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         return NRModePref.NRMODE_NORMAL;
     }
 
+    /** Nacht is no longer a photo mode but a state of the light (Schritt F, Falk 2026-09-22): the
+     *  only way night and panorama can exist together, because the preference holds one mode.
+     *  Whoever still has the old mode stored gets the state instead, and the mode back to the
+     *  ordinary photo - written once, on the first read after the update. */
+    private void migrateNightMode() {
+        String photo_mode_pref = sharedPreferences.getString(PreferenceKeys.PhotoModePreferenceKey, "preference_photo_mode_std");
+        if( photo_mode_pref.equals("preference_photo_mode_x_night") ) {
+            if( MyDebug.LOG )
+                Log.d(TAG, "migrate the night photo mode to the night light state");
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString(PreferenceKeys.PhotoModePreferenceKey, "preference_photo_mode_std");
+            editor.putBoolean(PreferenceKeys.NightOnPreferenceKey, true);
+            editor.apply();
+        }
+    }
+
+    /** Whether the night extension is on (Schritt F). This is the light, not the mode: with it on
+     *  in the plain photo mode the mode still answers X_Night (so the save path, the name and the
+     *  icon stay as they were), with it on in panorama the mode stays Panorama and only the camera
+     *  session becomes the night one. */
+    public boolean isNightModeOn() {
+        return sharedPreferences.getBoolean(PreferenceKeys.NightOnPreferenceKey, false);
+    }
+
+    public void setNightModeOn(boolean night_on) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "setNightModeOn: " + night_on);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putBoolean(PreferenceKeys.NightOnPreferenceKey, night_on);
+        editor.apply();
+    }
+
     @Override
     public boolean isCameraExtensionPref() {
+        // asked of the resolved photo mode rather than of the night state: with the night on, the
+        // mode underneath decides whether it may be an extension session at all - night in the
+        // panorama is one (Schritt F), night next to Porträt is not (getPhotoMode())
         PhotoMode photo_mode = getPhotoMode();
+        if( photo_mode == PhotoMode.Panorama ) {
+            return isNightModeOn();
+        }
         return photo_mode == PhotoMode.X_Auto || photo_mode == PhotoMode.X_HDR || photo_mode == PhotoMode.X_Night || photo_mode == PhotoMode.X_Bokeh || photo_mode == PhotoMode.X_Beauty;
     }
 
@@ -1740,6 +1844,11 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     @RequiresApi(api = Build.VERSION_CODES.S)
     public int getCameraExtensionPref() {
         PhotoMode photo_mode = getPhotoMode();
+        if( photo_mode == PhotoMode.Panorama ) {
+            // the night extension inside the panorama (Schritt F); without the night this is not an
+            // extension session, see isCameraExtensionPref()
+            return isNightModeOn() ? CameraExtensionCharacteristics.EXTENSION_NIGHT : 0;
+        }
         if( photo_mode == PhotoMode.X_Auto ) {
             return CameraExtensionCharacteristics.EXTENSION_AUTOMATIC;
         }
@@ -1879,16 +1988,32 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         boolean x_hdr = photo_mode_pref.equals("preference_photo_mode_x_hdr");
         if( x_hdr && !main_activity.getPreview().isVideo() && main_activity.supportsCameraExtension(CameraExtensionCharacteristics.EXTENSION_HDR) )
             return PhotoMode.X_HDR;
-        boolean x_night = photo_mode_pref.equals("preference_photo_mode_x_night");
-        if( x_night && !main_activity.getPreview().isVideo() && main_activity.supportsCameraExtension(CameraExtensionCharacteristics.EXTENSION_NIGHT) )
-            return PhotoMode.X_Night;
         boolean x_bokeh = photo_mode_pref.equals("preference_photo_mode_x_bokeh");
         if( x_bokeh && !main_activity.getPreview().isVideo() && main_activity.supportsCameraExtension(CameraExtensionCharacteristics.EXTENSION_BOKEH) )
             return PhotoMode.X_Bokeh;
         boolean x_beauty = photo_mode_pref.equals("preference_photo_mode_x_beauty");
         if( x_beauty && !main_activity.getPreview().isVideo() && main_activity.supportsCameraExtension(CameraExtensionCharacteristics.EXTENSION_BEAUTY) )
             return PhotoMode.X_Beauty;
+        // The night extension is a state of the light, not a mode (Schritt F), and it answers
+        // X_Night only where the light and the mode underneath can carry it: in the plain photo
+        // mode, so last. Everything above wins - Panorama (night in the panorama keeps answering
+        // Panorama, which leaves zoom lock, level line, batch process type and canTakeNewPhoto
+        // untouched there), and the modes that bring a session of their own (Porträt, the other
+        // extensions) or an exposure of their own (HDR, DRO): a night state left on from before
+        // must not silently hijack those. Switching the mode puts the light off for them anyway,
+        // MainUI.switchPhotoMode().
+        boolean x_night = isNightModeOn();
+        if( x_night && !main_activity.getPreview().isVideo() && main_activity.supportsCameraExtension(CameraExtensionCharacteristics.EXTENSION_NIGHT) )
+            return PhotoMode.X_Night;
         return PhotoMode.Standard;
+    }
+
+    /** The mode the mode bar and the sheet's rows are about: the night extension counts as the
+     *  plain photo mode there, because it is a light state and not a mode of its own (Schritt F).
+     *  Without this a night photo would leave the carousel and the NORM button unmarked. */
+    public PhotoMode getTopLevelPhotoMode() {
+        PhotoMode photo_mode = getPhotoMode();
+        return photo_mode == PhotoMode.X_Night ? PhotoMode.Standard : photo_mode;
     }
 
     @Override
@@ -3030,13 +3155,11 @@ public class MyApplicationInterface extends BasicApplicationInterface {
 
     @Override
     public void onExtensionProgress(int progress) {
-        String message = "";
-        if( getPhotoMode() == PhotoMode.X_Night ) {
-            message = getContext().getResources().getString(R.string.preference_nr_mode_low_light_message) + "\n";
-        }
-        // call with dont_clear==true, as on some devices (e.g., Galaxy S24+ in X-Night mode), there can be a pause long enough that
-        // the toast would clear, even when not at 100%
-        main_activity.getPreview().showToast(null, message + progress + "%", true, true);
+        // Schritt F (Falk 2026-09-22): statt des Prozent-Toasts zeigt der Sucher einen Ring, wie
+        // lange still zu halten ist - er sitzt dort, wo der Blick schon ist, und im Panorama
+        // blendet er waehrenddessen den blauen Zielpunkt aus (DrawPreview). Der Toast
+        // "Bitte Kamera still halten" aus onCaptureStarted bleibt als Hinweis.
+        drawPreview.setNightProgress(progress);
     }
 
     @Override

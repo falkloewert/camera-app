@@ -3,6 +3,7 @@ package net.sourceforge.opencamera.ui;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.content.SharedPreferences;
+import android.hardware.camera2.CameraExtensionCharacteristics;
 import android.media.CamcorderProfile;
 import android.content.res.ColorStateList;
 import android.graphics.Canvas;
@@ -773,6 +774,7 @@ public class SettingsSheet {
     private List<Row> photoGeneralRows(final List<CameraController.Size> sizes) {
         List<Row> rows = new ArrayList<>();
         Preview preview = main_activity.getPreview();
+        final MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
 
         // light: the front camera gets the selfie lighting instead of the flash, which does not
         // exist on it (Falk 2026-09-21)
@@ -780,34 +782,76 @@ public class SettingsSheet {
             rows.add(selfieLightRow());
         }
         else {
-            List<String> supported = preview.getSupportedFlashValues();
-            String [][] values = {
-                    {"flash_off"},
-                    {"flash_auto", "flash_frontscreen_auto"},
-                    {"flash_on", "flash_frontscreen_on"},
-            };
-            int [] labels = {R.string.settings_sheet_none, R.string.settings_sheet_auto, R.string.settings_sheet_flash};
-            int [] icons = {R.drawable.ms_block, R.drawable.ms_flash_auto, R.drawable.ms_flash_on};
+            // The light row (Falk's choice, Schritt E/F): Nachtsicht is no mode of its own, it is a
+            // state of the light, and the buttons are mutually exclusive - which the camera
+            // enforces anyway (a night extension session only allows flash_off,
+            // Preview.setupCamera()). "Nacht auto" hands the switch to the darkness of the scene:
+            // with it the night extension comes on by itself and goes off again in the light
+            // (MainUI.checkNightAuto()).
+            // Which buttons appear follows the mode (Schritt F): Foto and Panorama get all five,
+            // DRO only the flash ones (a real flash works there, the night extension would not),
+            // and HDR and Porträt get none - HDR because its exposure bracket holds AE off, so
+            // even the flash could not fire, and Porträt because it is an extension session of its
+            // own (only one at a time). A row with fewer than two options is dropped below.
+            // Their order is Falk's (Schritt G, Punkt 7): nichts · auto nacht · auto blitz ·
+            // nacht an · blitz an.
+            SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
+            MyApplicationInterface.PhotoMode photo_mode = applicationInterface.getTopLevelPhotoMode();
+            boolean night_offered = photo_mode == MyApplicationInterface.PhotoMode.Standard ||
+                    photo_mode == MyApplicationInterface.PhotoMode.Panorama;
+            boolean flash_offered = night_offered || photo_mode == MyApplicationInterface.PhotoMode.DRO;
+            // Die Nacht-Knöpfe fragen hier das Modell, nicht die laufende Sitzung: mit festgelegtem
+            // physischem Objektiv meldet die Kamera gar keine Erweiterung (CameraController2 holt
+            // die Charakteristiken nur ohne physisches Objektiv), und die Wahl der Nacht nimmt die
+            // Festlegung zurück (Kickoff Schritt G, Punkt 8)
+            boolean night_possible = main_activity.supportsCameraExtension(CameraExtensionCharacteristics.EXTENSION_NIGHT) ||
+                    applicationInterface.getCameraIdSPhysicalPref() != null;
+            boolean night_auto = night_offered && night_possible &&
+                    sharedPreferences.getBoolean(PreferenceKeys.NightAutoPreferenceKey, false);
+            boolean night_on = night_possible && applicationInterface.isNightModeOn();
             String current = preview.getCurrentFlashValue();
+            // Die Nacht hat Vorrang vor dem Blitz: eine Nacht-Sitzung lässt der Plattform wegen nur
+            // flash_off zu, der gemerkte Blitzwert kommt zurück, sobald die Nacht aus ist. Damit ist
+            // immer genau ein Knopf markiert (Kickoff Schritt G, Punkt 13).
+            boolean flash_auto = !night_auto && !night_on && "flash_auto".equals(current);
+            boolean flash_on = !night_auto && !night_on && "flash_on".equals(current);
             List<Option> options = new ArrayList<>();
-            for(int i=0;i<values.length;i++) {
-                final String value = firstSupported(supported, values[i]);
-                if( value == null )
-                    continue;
-                final boolean selected = value.equals(current);
-                options.add(new Option(getString(labels[i]), icons[i], null, null, 0.0f, selected,
+            options.add(lightOption(getString(R.string.settings_sheet_none), R.drawable.ms_block, null, null,
+                    "flash_off", false, Boolean.FALSE, !night_auto && !night_on && !flash_auto && !flash_on));
+            if( night_offered && night_possible ) {
+                options.add(new Option(getString(R.string.settings_sheet_night_auto), R.drawable.ms_night_sight_auto, null, null, 0.0f, night_auto,
                         new Runnable() {
                             @Override
                             public void run() {
-                                // quiet: the row marks the new value itself, and info toasts
-                                // aren't used (docs/SPEC.md 2.7)
-                                preview.updateFlashQuiet(value);
-                                refresh();
+                                // only the automation is switched here; whether the night itself
+                                // runs stays as it is, and so does the flash - the darkness decides
+                                main_activity.getMainUI().lightSettings(null, true, null);
                             }
                         }));
             }
+            // the flash buttons ask the hardware, not the session (Preview.hasFlashUnit()): with
+            // the night extension running the session allows nothing but flash_off, and asking it
+            // would take the buttons away with no way back to the flash (Falk 2026-09-22)
+            if( flash_offered && preview.hasFlashUnit() ) {
+                options.add(lightOption(getString(R.string.settings_sheet_flash_auto), R.drawable.ms_flash_auto, null, null,
+                        "flash_auto", false, Boolean.FALSE, flash_auto));
+            }
+            if( night_offered && night_possible ) {
+                // der Blitzwert bleibt gemerkt: diese Wahl rührt ihn nicht an (Schritt F)
+                options.add(lightOption(getString(R.string.settings_sheet_night_on), R.drawable.ms_dark_mode, null, null,
+                        null, false, Boolean.TRUE, night_on && !night_auto));
+            }
+            if( flash_offered && preview.hasFlashUnit() ) {
+                options.add(lightOption(getString(R.string.settings_sheet_flash_on), R.drawable.ms_flash_on, null, null,
+                        "flash_on", false, Boolean.FALSE, flash_on));
+            }
+            // Die Blitz-Knöpfe schalten die Nacht mit ab (night_on = FALSE oben): bliebe sie
+            // stehen, spränge die Markierung beim nächsten Aufbau zurück - genau das war Falks
+            // "Auto Blitz lässt sich nicht auswählen" (Schritt G, Punkt 5).
             if( options.size() >= 2 )
-                rows.add(new Row(getString(R.string.settings_sheet_more_light), selectedLabelOr(options, current), options));
+                // without a value line: five buttons are 240 dp of the row, and the marked button
+                // already says what is on (Schritt E, to be looked at on the device)
+                rows.add(new Row(getString(R.string.settings_sheet_more_light), "", options));
         }
 
         // timer - not in panorama mode (as in the popup)
@@ -838,8 +882,13 @@ public class SettingsSheet {
         // buttons of the manual lens selection now, and without that selection in video there is
         // none at all
 
-        // aspect ratio - not in panorama mode
-        if( main_activity.getApplicationInterface().getPhotoMode() != MyApplicationInterface.PhotoMode.Panorama ) {
+        // aspect ratio - in panorama mode too since Schritt E: the panorama used to be nailed to
+        // 4:3 (MyApplicationInterface.choosePanoramaResolution()), and with the ratio reachable
+        // the row can offer 16:9 there as well. Together with the resolution row's two classes
+        // that is the 4:3/16:9 x FHD/large choice Falk asked for; the panorama is a fixed 10
+        // frames since Schritt F, and its stitch resolution follows the heap
+        // (ImageSaver.computePanoramaSampleSize()).
+        {
             CameraController.Size current = preview.getCurrentPictureSize();
             if( current != null && sizes != null && !sizes.isEmpty() ) {
                 final float [] ratios = ASPECT_CLASSES;
@@ -873,10 +922,79 @@ public class SettingsSheet {
         return rows;
     }
 
+    /** One button of the light row. The light buttons do not choose the photo mode: they only set
+     *  the light, and the mode standing stays as it is (MainUI.lightSettings()). That is what lets
+     *  the night run inside the panorama (Schritt F).
+     *  @param flash_value the flash to store, null to leave it as it is (the night buttons).
+     *  @param night_on the night state to store, null to leave it as it is.
+     */
+    private Option lightOption(CharSequence label, int symbol, Glyph glyph, String text,
+                               String flash_value, boolean night_auto, Boolean night_on, boolean selected) {
+        return new Option(label, symbol, glyph, text, 0.0f, selected, new Runnable() {
+            @Override
+            public void run() {
+                main_activity.getMainUI().lightSettings(flash_value, night_auto, night_on);
+            }
+        });
+    }
+
+    /** One button of the HDR/DRO row: the photo mode it picks, written through the carousel's own
+     *  switch (MainUI.switchPhotoMode()), because that is what clears the cached mode and rebuilds
+     *  the camera. Picking by hand also ends the night automation - see MainUI. */
+    private Option modeOption(int label_id, String text, String photo_mode_value, boolean selected) {
+        return new Option(getString(label_id), 0, Glyph.MODE, text, 0.0f, selected,
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        main_activity.getMainUI().switchPhotoMode(photo_mode_value);
+                    }
+                });
+    }
+
+    /** The value line of the HDR/DRO row: the mode it holds, and nothing when the camera is in a
+     *  mode this row doesn't offer (Panorama, Porträt) - the carousel shows that one. */
+    private CharSequence modeLabel(MyApplicationInterface.PhotoMode photo_mode) {
+        switch( photo_mode ) {
+            case HDR:
+                return getString(R.string.settings_sheet_hdr);
+            case DRO:
+                return getString(R.string.settings_sheet_dro);
+            case Standard:
+                return getString(R.string.settings_sheet_normal);
+            default:
+                return "";
+        }
+    }
+
     private List<Row> photoProRows(final List<CameraController.Size> sizes) {
         List<Row> rows = new ArrayList<>();
         Preview preview = main_activity.getPreview();
         final MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
+
+        // HDR/DRO: no modes of the carousel any more (Falk 2026-09-22, Schritt E) - they are the
+        // three buttons of this row now, next to the resolution they change. Both are photo modes
+        // in the app's core (MyApplicationInterface.getPhotoMode()), so the choice still goes
+        // through the mode preference and the camera is rebuilt for it.
+        {
+            boolean hdr = main_activity.supportsHDR();
+            boolean dro = main_activity.supportsDRO();
+            if( hdr || dro ) {
+                // the top-level mode: with the night on, getPhotoMode() answers X_Night, which this
+                // row does not offer - the night is the light row's business, not the mode's
+                // (Schritt F)
+                MyApplicationInterface.PhotoMode photo_mode = applicationInterface.getTopLevelPhotoMode();
+                List<Option> options = new ArrayList<>();
+                options.add(modeOption(R.string.settings_sheet_normal, "NORM", "preference_photo_mode_std",
+                        photo_mode == MyApplicationInterface.PhotoMode.Standard));
+                if( hdr )
+                    options.add(modeOption(R.string.settings_sheet_hdr, "HDR", "preference_photo_mode_hdr",
+                            photo_mode == MyApplicationInterface.PhotoMode.HDR));
+                if( dro )
+                    options.add(modeOption(R.string.settings_sheet_dro, "DRO", "preference_photo_mode_dro",
+                            photo_mode == MyApplicationInterface.PhotoMode.DRO));
+                rows.add(new Row(getString(R.string.settings_sheet_photo_mode), modeLabel(photo_mode), options));
+            }
+        }
 
         // resolution: two sizes per aspect class - the camera's largest, and the space-saving one
         // Falk asked for (2026-09-21): its largest size that is still 1920 wide, the "FHD" he
@@ -966,6 +1084,11 @@ public class SettingsSheet {
         if( !frontCamera() ) {
             List<MainActivity.Lens> lenses = manualLenses();
             if( lenses != null ) {
+                // Im Panorama ist diese Zeile die Wahl der Panorama-Reihe selbst ("1×" oder
+                // "Weitwinkel"): dieselbe Festlegung des physischen Objektivs hieße hier sonst
+                // "Manuell", obwohl Falk nur die Panorama-Linse gewechselt hat (Schritt G,
+                // Punkt 9).
+                final boolean panorama = applicationInterface.getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama;
                 final boolean manual = applicationInterface.getCameraIdSPhysicalPref() != null;
                 List<Option> options = new ArrayList<>();
                 // "A" in a circle is the automatic lens choice, the aperture symbol the manual
@@ -974,21 +1097,30 @@ public class SettingsSheet {
                         new Runnable() {
                             @Override
                             public void run() {
-                                main_activity.switchToAutoLens();
+                                if( panorama )
+                                    main_activity.switchPanoramaLensFromSheet(false);
+                                else
+                                    main_activity.switchToAutoLens();
                                 refresh();
                             }
                         }));
-                options.add(new Option(getString(R.string.settings_sheet_manual), R.drawable.ms_camera, null, null, 0.0f, manual,
+                options.add(new Option(panorama ? main_activity.getPanoramaWideLensLabel() : getString(R.string.settings_sheet_manual),
+                        R.drawable.ms_camera, null, null, 0.0f, manual,
                         new Runnable() {
                             @Override
                             public void run() {
-                                // start on the main lens, see MainActivity.getMainLens()
-                                main_activity.switchToManualLens(main_activity.getMainLens());
+                                if( panorama )
+                                    main_activity.switchPanoramaLensFromSheet(true);
+                                else
+                                    // start on the main lens, see MainActivity.getMainLens()
+                                    main_activity.switchToManualLens(main_activity.getMainLens());
                                 refresh();
                             }
                         }));
-                rows.add(new Row(getString(R.string.settings_sheet_lens),
-                        getString(manual ? R.string.settings_sheet_manual : R.string.settings_sheet_auto), options));
+                String value = panorama ?
+                        (manual ? main_activity.getPanoramaWideLensLabel() : getString(R.string.settings_sheet_auto)) :
+                        getString(manual ? R.string.settings_sheet_manual : R.string.settings_sheet_auto);
+                rows.add(new Row(getString(R.string.settings_sheet_lens), value, options));
             }
         }
         else if( applicationInterface.getCameraIdSPhysicalPref() != null ) {
@@ -1063,10 +1195,14 @@ public class SettingsSheet {
         // flash: only the values that make sense while recording. The middle one is not a flash
         // mode of the camera but the torch by ambient light (Kickoff Video-Blatt Runde 2, item 2)
         else {
+            // Die drei Knöpfe fragen die Hardware, nicht die Werte der laufenden Sitzung: mit
+            // manuellem ISO streicht Preview.setupCameraParameters() das "flash_auto" aus der
+            // Liste, und der mittlere Knopf verschwand damit in jedem Video-Modus (Falk, Schritt G
+            // Punkt 1). Wer die Automatik wählt, bekommt dafür das feste ISO ausgeschaltet
+            // (MainUI.lightFlashSettings()).
             List<String> supported = new ArrayList<>();
-            List<String> all = preview.getSupportedFlashValues();
-            if( all != null ) {
-                for(String value : all) {
+            if( preview.hasFlashUnit() ) {
+                for(String value : new String[] {"flash_off", "flash_auto", "flash_torch"}) {
                     if( Preview.isFlashSupportedForVideo(value) )
                         supported.add(value);
                 }
@@ -1084,9 +1220,7 @@ public class SettingsSheet {
                         new Runnable() {
                             @Override
                             public void run() {
-                                // quiet, as in the photo flash row above
-                                main_activity.getPreview().updateFlashQuiet(value);
-                                refresh();
+                                setVideoFlash(value);
                             }
                         }));
             }
@@ -1295,6 +1429,23 @@ public class SettingsSheet {
         postUpdateForSettings();
     }
 
+    /** Ein Blitz-Knopf des Video-Blatts. Leise wie bisher (kein Toast), aber: mit festem ISO
+     *  streicht die Kamera das "flash_auto" aus ihren Werten (Preview.setupCameraParameters), und
+     *  die Automatik des Taschenlichts (Preview.updateTorchAuto) hängt an einem gemessenen ISO -
+     *  wer sie wählt, bekommt es darum abgeschaltet (Schritt G, Punkt 1). Die laufende Sitzung
+     *  liest das feste ISO erst beim nächsten Aufbau, deshalb wird der gleich angestoßen. */
+    private void setVideoFlash(String value) {
+        MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
+        if( "flash_auto".equals(value) ) {
+            applicationInterface.clearISOPref();
+            applicationInterface.clearExposureTimePref();
+        }
+        main_activity.getPreview().updateFlashQuiet(value);
+        // wie die Auflösungs- und die Qualitäts-Zeile: der Neuaufbau ist der Weg, auf dem ein
+        // zurückgenommenes ISO wieder bei der Kamera ankommt
+        postUpdateForSettings();
+    }
+
     private void setVideoQuality(String quality) {
         Preview preview = main_activity.getPreview();
         MyApplicationInterface applicationInterface = main_activity.getApplicationInterface();
@@ -1356,16 +1507,6 @@ public class SettingsSheet {
 
     private String getString(int resId, String arg1, String arg2) {
         return main_activity.getResources().getString(resId, arg1, arg2);
-    }
-
-    private static String firstSupported(List<String> supported, String [] values) {
-        if( supported == null )
-            return null;
-        for(String value : values) {
-            if( supported.contains(value) )
-                return value;
-        }
-        return null;
     }
 
     /** The label of the selected option, or the fallback when none of them is selected - which
@@ -1560,7 +1701,7 @@ public class SettingsSheet {
     /* ---- the self-drawn glyphs of the option buttons -------------------------------------- */
 
     /** The shapes of the option buttons that are not Material Symbols (Kickoff 2.4). */
-    private enum Glyph { ASPECT, MP, FPS, RAW, RAW_OFF, LENS_AUTO, TEXT }
+    private enum Glyph { ASPECT, MP, FPS, RAW, RAW_OFF, LENS_AUTO, TEXT, MODE }
 
     private class GlyphView extends View {
         private final Glyph glyph;
@@ -1693,6 +1834,15 @@ public class SettingsSheet {
                     paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
                     paint.setTextSize(sp(8.5f));
                     drawChip(canvas, w, h, new String [] { text }, dp(3.5f), dp(5.0f));
+                    break;
+                }
+                case MODE: {
+                    // the short name of a mode ("AUTO", "NORM", "HDR") on the chip - a size
+                    // smaller than TEXT's, four letters still fit the 24 dp the glyph gets
+                    paint.setStyle(Paint.Style.FILL);
+                    paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+                    paint.setTextSize(sp(7.0f));
+                    drawChip(canvas, w, h, new String [] { text }, dp(3.5f), dp(4.0f));
                     break;
                 }
                 default:

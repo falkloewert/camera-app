@@ -151,8 +151,6 @@
     <string name="preference_show_geo_direction_summary">Display the compass direction of the device on screen</string>
     <string name="preference_show_time">Show time</string>
     <string name="preference_show_time_summary">Display the current time on screen</string>
-    <string name="preference_show_battery">Show battery</string>
-    <string name="preference_show_battery_summary">Display the current battery level on screen</string>
     <string name="preference_grid">Show a grid</string>
     <string name="grid">Grid</string> <!-- short form of Show a grid -->
     <string name="preference_crop_guide">Show a crop guide</string>
@@ -1030,6 +1028,11 @@
     <string name="zoom_stepper">Zoom stepper</string>
     <string name="mode_bar">Mode selector</string>
     <string name="mode_bar_photo">Photo</string> <!-- mode bar entry for the ordinary photo mode, as the Pixel Camera labels it -->
+    <!-- Mode bar entry for the photo modes of the carousel (Kickoff Schritt D), worded as the
+         Pixel Camera does. Panorama uses photo_mode_panorama_full, which the bar already had.
+         HDR, DRO and Nachtsicht left the bar in Schritt E - Nachtsicht is a button of the flash
+         row, HDR/DRO are the three buttons of the photo sheet's Pro tab. -->
+    <string name="mode_bar_bokeh">Porträt</string>
     <!-- Mode bar entries for the video sub-modes of SPEC 4.6, worded as the Pixel Camera does -->
     <string name="mode_bar_video">Video</string>
     <string name="mode_bar_slow_motion">Zeitlupe</string>
@@ -1157,6 +1160,18 @@
     <string name="settings_sheet_tab_more">More</string>
     <string name="settings_sheet_more_light">More light</string>
     <string name="settings_sheet_none">None</string>
+    <!-- The five buttons of the light row (Schritt E): the flash and the night extension, which
+         exclude each other, in one row. "Night auto" hands the night extension to the darkness of
+         the scene. -->
+    <string name="settings_sheet_flash_auto">Flash auto</string>
+    <string name="settings_sheet_flash_on">Flash on</string>
+    <string name="settings_sheet_night_auto">Night auto</string>
+    <string name="settings_sheet_night_on">Night on</string>
+    <!-- The HDR/DRO row of the Pro tab (Schritt E): the two used to be carousel modes -->
+    <string name="settings_sheet_photo_mode">HDR/DRO</string>
+    <string name="settings_sheet_normal">Normal</string>
+    <string name="settings_sheet_hdr" translatable="false">HDR</string>
+    <string name="settings_sheet_dro" translatable="false">DRO</string>
     <string name="settings_sheet_auto">Automatic</string>
     <string name="settings_sheet_manual">Manual</string>
     <string name="settings_sheet_flash">Flash</string>

@@ -360,6 +360,14 @@ public class ZoomStepper implements ZoomWheel.Listener {
     }
 
     private void applyButtonStyle(Button button, boolean selected) {
+        applyPillStyle(main_activity, button, selected);
+    }
+
+    /** Der Stil der Pille: ausgewählt = helle Pille mit dunkler Schrift, sonst helle Schrift auf
+     *  dem dunklen Band. Die Panorama-Objektivreihe trägt denselben Stil (MainUI.showGUI), damit
+     *  beide gleich aussehen (Falk, Schritt G Punkt 10: "die blase ist bei panorama noch nicht im
+     *  gleichen stil wie sonnst"). */
+    static void applyPillStyle(MainActivity main_activity, Button button, boolean selected) {
         if( selected ) {
             button.setBackgroundResource(R.drawable.pill_selected_background);
             button.setTextColor(main_activity.getResources().getColor(R.color.md_dark_surface, null));

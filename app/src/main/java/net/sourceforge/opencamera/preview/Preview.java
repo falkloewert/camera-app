@@ -298,6 +298,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
     private float touch_orig_y;
 
     private List<String> supported_flash_values; // our "values" format
+private boolean has_flash_unit; // whether the camera has a flash, before any session filters it (see hasFlashUnit())
     private int current_flash_index = -1; // this is an index into the supported_flash_values array, or -1 if no flash modes available
 
     private boolean selfie_light_on; // whether the white areas beside the preview are shown (front camera, photo and video)
@@ -1755,6 +1756,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         supports_video_high_speed = false;
         video_quality_handler.resetCurrentQuality();
         supported_flash_values = null;
+        has_flash_unit = false;
         current_flash_index = -1;
         supported_focus_values = null;
         current_focus_index = -1;
@@ -2301,29 +2303,12 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
                         if( MyDebug.LOG )
                             Log.d(TAG, "current picture size doesn't support required burst and/or extension");
                         // set to next largest that supports what we need
-                        CameraController.Size new_size = null;
-                        for(int i=0;i<photo_sizes.size();i++) {
-                            CameraController.Size size = photo_sizes.get(i);
-                            if( size.supportsRequirements(is_burst, is_extension, extension) && size.width*size.height <= current_size.width*current_size.height ) {
-                                if( new_size == null || size.width*size.height > new_size.width*new_size.height ) {
-                                    current_size_index = i;
-                                    new_size = size;
-                                }
-                            }
-                        }
-                        if( new_size == null ) {
+                        current_size_index = pickSizeForRequirements(current_size, is_burst, is_extension, extension, true);
+                        if( current_size_index == -1 ) {
                             Log.e(TAG, "can't find supporting picture size smaller than the current picture size");
                             // just find largest that supports requirements
-                            for(int i=0;i<photo_sizes.size();i++) {
-                                CameraController.Size size = photo_sizes.get(i);
-                                if( size.supportsRequirements(is_burst, is_extension, extension) ) {
-                                    if( new_size == null || size.width*size.height > new_size.width*new_size.height ) {
-                                        current_size_index = i;
-                                        new_size = size;
-                                    }
-                                }
-                            }
-                            if( new_size == null ) {
+                            current_size_index = pickSizeForRequirements(current_size, is_burst, is_extension, extension, false);
+                            if( current_size_index == -1 ) {
                                 Log.e(TAG, "can't find supporting picture size");
                             }
                         }
@@ -2559,6 +2544,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
                     current_size.supports_burst = false;
             }
             supported_flash_values = camera_features.supported_flash_values;
+            has_flash_unit = camera_features.supported_flash_values != null;
             supported_focus_values = camera_features.supported_focus_values;
             this.max_num_focus_areas = camera_features.max_num_focus_areas;
             this.is_exposure_lock_supported = camera_features.is_exposure_lock_supported;
@@ -5258,13 +5244,15 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
                 flash_mode.equals("flash_torch") || flash_mode.equals("flash_frontscreen_torch") );
     }
 
-    /** Video flash mode "auto": the torch is driven by the ISO the camera measures for the scene in
-     *  front of the lens (Kickoff Video-Blatt Runde 2, item 2). Higher ISO means a darker scene, so
-     *  the torch comes on at or above TORCH_AUTO_ISO_ON and goes off below TORCH_AUTO_ISO_OFF - the
-     *  gap between the two is the hysteresis that stops the torch flickering on its own light.
-     *  If Falk wants the thresholds elsewhere, these are the two numbers to change. */
-    private static final int TORCH_AUTO_ISO_ON = 800; // scene this dark -> torch on
-    private static final int TORCH_AUTO_ISO_OFF = 200; // scene this bright -> torch off
+    /** An automatic light is driven by the ISO the camera measures for the scene in front of the
+     *  lens: a higher ISO means a darker scene. It comes on at or above AUTO_ISO_ON and goes off
+     *  below AUTO_ISO_OFF - the gap between the two is the hysteresis that stops a light flickering
+     *  on its own light. Two lights use the pair: the video flash "auto" torch (updateTorchAuto,
+     *  Kickoff Video-Blatt Runde 2, item 2) and the photo sheet's "Nacht auto", which switches the
+     *  night extension from here in the preview (MainUI.checkNightAuto). If Falk wants the
+     *  thresholds elsewhere, these are the two numbers to change. */
+    public static final int AUTO_ISO_ON = 800; // scene this dark -> light on
+    public static final int AUTO_ISO_OFF = 200; // scene this bright -> light off
 
     private boolean torch_auto_registered;
     private boolean torch_auto_on;
@@ -5306,11 +5294,11 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         }
     }
 
-    /** Whether the torch should be on for the measured ISO, given whether it is currently on. The
-     *  two thresholds above are the hysteresis: the torch only goes off again once the scene has
-     *  become clearly bright, so its own light does not make it switch itself off. */
-    public static boolean torchAutoOn(boolean currently_on, int iso) {
-        return currently_on ? iso >= TORCH_AUTO_ISO_OFF : iso >= TORCH_AUTO_ISO_ON;
+    /** Whether an automatic light should be on for the measured ISO, given whether it is currently
+     *  on. The two thresholds above are the hysteresis: the light only goes off again once the
+     *  scene has become clearly bright, so its own light does not make it switch itself off. */
+    public static boolean autoLightOn(boolean currently_on, int iso) {
+        return currently_on ? iso >= AUTO_ISO_OFF : iso >= AUTO_ISO_ON;
     }
 
     /** Turns the torch on or off according to the ISO the camera measured - only when it changes, so
@@ -5318,7 +5306,7 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
     private void setTorchForISO(int iso) {
         if( camera_controller == null )
             return;
-        boolean on = torchAutoOn(torch_auto_on, iso);
+        boolean on = autoLightOn(torch_auto_on, iso);
         if( on == torch_auto_on )
             return;
         if( MyDebug.LOG )
@@ -8104,6 +8092,45 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
         return this.photo_sizes;
     }
 
+    /** Die Bildgroesse, auf die ausgewichen wird, wenn die gewaehlte Groesse Blitzserie oder
+     *  Erweiterung nicht unterstuetzt (Schritt G, Punkt 12): unter den Groessen, die die
+     *  Anforderung erfuellen, gewinnt zuerst die groesste mit dem Verhaeltnis der gewaehlten
+     *  Groesse. Ohne diesen Durchgang fiel das Panorama in der Nacht auf 4:3 zurueck, obwohl 16:9
+     *  gewaehlt war: die Nacht-Erweiterung bietet 16:9 nur bis 2688x1512, und die groesste
+     *  passende Groesse ueberhaupt war 2560x1920 (4:3). Erst wenn keine Groesse das Verhaeltnis
+     *  haelt, gewinnt wie bisher die groesste ueberhaupt.
+     * @param limit_to_current wenn true, nur Groessen bis zur Flaeche der gewaehlten Groesse.
+     * @return Index in photo_sizes, oder -1, wenn keine Groesse die Anforderung erfuellt.
+     */
+    private int pickSizeForRequirements(CameraController.Size current_size, boolean is_burst, boolean is_extension, int extension, boolean limit_to_current) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "pickSizeForRequirements: limit_to_current? " + limit_to_current);
+        final double current_ratio = ((double)current_size.width) / (double)current_size.height;
+        for(int pass=0;pass<2;pass++) {
+            int best_index = -1;
+            CameraController.Size best_size = null;
+            for(int i=0;i<photo_sizes.size();i++) {
+                CameraController.Size size = photo_sizes.get(i);
+                if( !size.supportsRequirements(is_burst, is_extension, extension) )
+                    continue;
+                if( limit_to_current && size.width*size.height > current_size.width*current_size.height )
+                    continue;
+                if( pass == 0 && Math.abs(((double)size.width)/(double)size.height - current_ratio) > 0.02 )
+                    continue;
+                if( best_size == null || size.width*size.height > best_size.width*best_size.height ) {
+                    best_index = i;
+                    best_size = size;
+                }
+            }
+            if( best_size != null ) {
+                if( MyDebug.LOG )
+                    Log.d(TAG, "use picture size: " + best_size.width + " x " + best_size.height);
+                return best_index;
+            }
+        }
+        return -1;
+    }
+
     /*public int getCurrentPictureSizeIndex() {
 		if( MyDebug.LOG )
 			Log.d(TAG, "getCurrentPictureSizeIndex");
@@ -9433,6 +9460,17 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
      */
     public boolean supportsFlash() {
         return this.supported_flash_values != null;
+    }
+
+    /** Whether the camera has a flash unit at all, whatever the running session allows of it. The
+     *  difference matters for the light row (Schritt F): supportsFlash() answers for the *session*,
+     *  and an extension session (the night one) filters the flash list down to flash_off - so the
+     *  flash buttons would disappear as soon as night is on, with no way back. Falk: "man soll ja
+     *  wechseln können" - so the row asks the hardware instead, and the extension restriction only
+     *  means the flash does not fire while the night session runs.
+     */
+    public boolean hasFlashUnit() {
+        return this.has_flash_unit;
     }
 
     public boolean supportsExposureLock() {

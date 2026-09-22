@@ -320,17 +320,35 @@ Timer, Weißabgleich); Belichtungs-/Weißabgleich-Sperre, Blende und Rauschunter
 (Kickoff 3); die Fotomodi (DRO/HDR/Nacht) bleiben bis zum Karussell unerreichbar (Kickoff 3.6).
 Gemessene Werte und Abweichungen: `ui-spezifikation.md` 7.1 Punkt 4 + 7.2.
 
+**Schritte D, E, F, G (2026-09-22): gebaut, am Pixel 9 Pro getestet, Falks Abnahme offen.**
+D: Moduswahl als Karussell (`ui/ModeBar`, die zurückgestellten Fotomodi wieder drin).
+E/F: Foto-Blatt mit Licht-Zeile in Falks Reihenfolge `nichts · auto nacht · auto blitz · nacht an ·
+blitz an`, genau einer markiert, alle Schreibvorgänge über `MainUI.applyLightSettings()`; die Nacht
+ist ein **Zustand** statt eines Modus (nur Foto und Panorama, Automatik nach gemessenem ISO), und
+wer `auto blitz` wählt, verliert das manuelle ISO (es strich `flash_auto` aus den Kamerawerten –
+Falks Befunde 1 und 5 haben dieselbe Ursache). Video-Blitz `aus/auto/torch` in allen Video-Modi.
+Panorama: Objektivzeile „Automatisch/Weitwinkel" statt „Manuell", keine Zoom-Pille, Nacht und
+festes Objektiv schließen sich aus. G räumt Falks 14 Befunde ab (Kickoff
+`docs/kickoff/redesign-schritt-g-bugs-chips.md`): Akku-Anzeige und Sucher-Icon-Reihe entfallen,
+Chips im Kopfband (Modus links neben dem Auflösungs-Chip, Gesicht/Ausrichten/Ton aus/Timer rechts,
+Mond auf dem Blitz-Platz, Timer tippbar aus→3→5→10, im Video kein Mond), Nacht-Panorama behält das
+Verhältnis (`Preview.pickSizeForRequirements()`; die Nacht-Erweiterung kann 16:9 nur bis
+2688×1512, vorher wurde daraus 4:3). Nicht möglich: echte Nacht im Weitwinkel-Panorama – die
+Nacht-Erweiterung läuft nur auf der Hauptkamera, der Mond setzt das Objektiv deshalb auf 1×.
+
 **Offen:** Rest `ui-spezifikation.md` Abschnitt 7 (Punkt 3 Dock, Karussell 7.2, Sucher-Overlays
 7.1 Punkte 6–9, Farben/Blur/Schrift 7.3) und die Punkte 13/14 unten.
 
 **Am 2026-09-22 notiert, damit es nicht untergeht:**
-- **Abnahme von D, E und F:** Schritt D (Karussell) wurde **nicht einzeln** am Gerät getestet –
-  Falk nimmt D zusammen mit E und F in **einem** Durchgang ab (Entscheidung 2026-09-22).
-  Beim nächsten Mal prüfen, ob die Abnahme tatsächlich passiert ist; erst dann gilt SPEC 2.1 als
-  erfüllt und der Eintrag hier wird durch den Abschluss ersetzt.
+- **Abnahme von D, E, F und G:** Schritt D (Karussell) wurde **nicht einzeln** am Gerät getestet –
+  Falk nimmt D zusammen mit E, F und G in **einem** Durchgang ab (Entscheidung 2026-09-22); der
+  Gerätetest dieser Runde lief am Pixel 9 Pro bereits durch (alle 14 Befunde geprüft), Falks
+  eigenes Abnehmen steht aus. Erst danach gilt SPEC 2.1 als erfüllt und der Eintrag hier wird
+  durch den Abschluss ersetzt.
   Kickoffs: `docs/kickoff/redesign-moduswahl-karussell.md`,
   `docs/kickoff/redesign-schritt-e-blitz-modi-panorama.md`,
-  `docs/kickoff/redesign-schritt-f-licht-matrix.md`.
+  `docs/kickoff/redesign-schritt-f-licht-matrix.md`,
+  `docs/kickoff/redesign-schritt-g-bugs-chips.md`.
 - **Panorama-Bildzahl offen:** nach dem Gerätetest entscheiden, wie viele Einzelbilder ein
   Panorama wirklich braucht. Heute fest `max_panorama_pics_c = 10`
   (`MyApplicationInterface.java:101`). Die Zahl steuert die **Schwenkweite**, nicht die Schärfe;

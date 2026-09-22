@@ -45,7 +45,6 @@ import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.location.Location;
 import android.net.Uri;
-import android.os.BatteryManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.preference.PreferenceManager;
@@ -93,7 +92,6 @@ public class DrawPreview {
     private boolean show_iso_pref;
     private boolean show_video_max_amp_pref;
     private boolean show_zoom_pref;
-    private boolean show_battery_pref;
     private boolean show_angle_pref;
     private int angle_highlight_color_pref;
     private boolean show_geo_direction_pref;
@@ -231,11 +229,6 @@ public class DrawPreview {
     private boolean need_flash_indicator = false;
     private long last_need_flash_indicator_time;
 
-    private final IntentFilter battery_ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-    private boolean has_battery_frac;
-    private float battery_frac;
-    private long last_battery_time;
-
     private boolean has_video_max_amp;
     private int video_max_amp;
     private long last_video_max_amp_time;
@@ -296,6 +289,12 @@ public class DrawPreview {
 
     private boolean continuous_focus_moving;
     private long continuous_focus_moving_ms;
+
+    /** Fortschritt der laufenden Nacht-Aufnahme, 0..100 - -1 heisst: es laeuft keine (Schritt F).
+     *  Der Ring daraus sagt, wie lange still zu halten ist; im Panorama blendet er waehrenddessen
+     *  den blauen Zielpunkt aus, denn "noch nicht drehen" ist genau das, was er meint. */
+    private int night_progress = -1;
+    private final RectF night_progress_rect = new RectF();
 
     private boolean enable_gyro_target_spot;
     private final List<float []> gyro_directions = new ArrayList<>();
@@ -591,6 +590,7 @@ public class DrawPreview {
             taking_picture = false;
             front_screen_flash = false;
             capture_started = false;
+            clearNightProgress();
         }
     }
 
@@ -608,6 +608,23 @@ public class DrawPreview {
         if( MyDebug.LOG )
             Log.d(TAG, "onCaptureStarted");
         capture_started = true;
+        clearNightProgress(); // the ring of the previous night frame is done, this one has not started reporting
+    }
+
+    /** The progress of a night capture, 0..100, as the camera reports it
+     *  (MyApplicationInterface.onExtensionProgress()). Shows the ring while a night frame runs -
+     *  in the plain photo and in the panorama alike (Schritt F).
+     */
+    public void setNightProgress(int progress) {
+        this.night_progress = progress;
+    }
+
+    public void clearNightProgress() {
+        this.night_progress = -1;
+    }
+
+    private boolean isNightCaptureRunning() {
+        return night_progress >= 0;
     }
 
     public void onContinuousFocusMove(boolean start) {
@@ -678,7 +695,6 @@ public class DrawPreview {
         // off by default: the zoom steps pill (and the fine adjustment wheel) already show the
         // zoom, the reference has no extra text in the viewfinder; the option stays available
         show_zoom_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowZoomPreferenceKey, false);
-        show_battery_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowBatteryPreferenceKey, true);
 
         show_angle_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowAnglePreferenceKey, false);
         String angle_highlight_color = sharedPreferences.getString(PreferenceKeys.ShowAngleHighlightColorPreferenceKey, "#14e715");
@@ -1446,259 +1462,15 @@ public class DrawPreview {
         // padding to align with earlier text
         final int flash_padding = (int) (1 * scale_font + 0.5f); // convert dps to pixels
 
+        // Seit Schritt G zeichnet der Sucher diese Icon-Reihe nicht mehr (Falk: "verschiebe alle
+        // chips die daneben in der reihe angezeigt werden in die obere reihe nach re oder li
+        // jenachdem wo es passt"): GPS, RAW, Textstempel und der Blitz stehen als Zustandsanzeigen
+        // im Kopfband, Gesichtserkennung, Auto-Ausrichten, Ton aus und der Modus-Chip (DRO/HDR/…)
+        // sind dort dazugekommen, die Tempo-Symbole sind entfallen (Modusleiste und fps-Chip sagen
+        // dasselbe) und die Akku-Anzeige ist ganz weg. Die Zeile behält nur ihren Platz, damit das
+        // Histogramm und alles darunter nicht nach oben rutschen.
         if( camera_controller != null ) {
-            // draw info icons
-
-            int location_x2 = location_x - flash_padding;
             final int icon_size = (int) (16 * scale_dp + 0.5f); // convert dps to pixels
-            if( device_ui_rotation == 180 ) {
-                location_x2 = location_x - icon_size + flash_padding;
-            }
-
-            if( store_location_pref ) {
-                icon_dest.set(location_x2, location_y, location_x2 + icon_size, location_y + icon_size);
-                p.setStyle(Paint.Style.FILL);
-                p.setColor(Color.BLACK);
-                p.setAlpha(64);
-                canvas.drawRect(icon_dest, p);
-                p.setAlpha(255);
-
-                Location location = applicationInterface.getLocation(locationInfo);
-                if( location != null ) {
-                    canvas.drawBitmap(location_bitmap, null, icon_dest, p);
-                    int location_radius = icon_size / 10;
-                    int indicator_x = location_x2 + icon_size - (int)(location_radius*1.5);
-                    int indicator_y = location_y + (int)(location_radius*1.5);
-                    p.setColor(locationInfo.LocationWasCached() ? Color.rgb(127, 127, 127) :
-                            location.getAccuracy() < 25.01f ? Color.rgb(37, 155, 36) :
-                                    Color.rgb(255, 235, 59)); // Green 500 or Yellow 500
-                    canvas.drawCircle(indicator_x, indicator_y, location_radius, p);
-                }
-                else {
-                    canvas.drawBitmap(location_off_bitmap, null, icon_dest, p);
-                }
-
-                if( device_ui_rotation == 180 ) {
-                    location_x2 -= icon_size + flash_padding;
-                }
-                else {
-                    location_x2 += icon_size + flash_padding;
-                }
-            }
-
-            if(
-                    is_raw_pref &&
-                            preview.supportsRaw()
-                // RAW can be enabled, even if it isn't available for this camera (e.g., user enables RAW for back camera, but then
-                // switches to front camera which doesn't support it)
-            ) {
-                icon_dest.set(location_x2, location_y, location_x2 + icon_size, location_y + icon_size);
-                p.setStyle(Paint.Style.FILL);
-                p.setColor(Color.BLACK);
-                p.setAlpha(64);
-                canvas.drawRect(icon_dest, p);
-                p.setAlpha(255);
-                canvas.drawBitmap(is_raw_only_pref ? raw_only_bitmap : raw_jpeg_bitmap, null, icon_dest, p);
-
-                if( device_ui_rotation == 180 ) {
-                    location_x2 -= icon_size + flash_padding;
-                }
-                else {
-                    location_x2 += icon_size + flash_padding;
-                }
-            }
-
-            if( is_face_detection_pref && preview.supportsFaceDetection() ) {
-                icon_dest.set(location_x2, location_y, location_x2 + icon_size, location_y + icon_size);
-                p.setStyle(Paint.Style.FILL);
-                p.setColor(Color.BLACK);
-                p.setAlpha(64);
-                canvas.drawRect(icon_dest, p);
-                p.setAlpha(255);
-                canvas.drawBitmap(face_detection_bitmap, null, icon_dest, p);
-
-                if( device_ui_rotation == 180 ) {
-                    location_x2 -= icon_size + flash_padding;
-                }
-                else {
-                    location_x2 += icon_size + flash_padding;
-                }
-            }
-
-            if( auto_stabilise_pref && preview.hasLevelAngleStable() ) { // auto-level is supported for photos taken in video mode
-                icon_dest.set(location_x2, location_y, location_x2 + icon_size, location_y + icon_size);
-                p.setStyle(Paint.Style.FILL);
-                p.setColor(Color.BLACK);
-                p.setAlpha(64);
-                canvas.drawRect(icon_dest, p);
-                p.setAlpha(255);
-                canvas.drawBitmap(auto_stabilise_bitmap, null, icon_dest, p);
-
-                if( device_ui_rotation == 180 ) {
-                    location_x2 -= icon_size + flash_padding;
-                }
-                else {
-                    location_x2 += icon_size + flash_padding;
-                }
-            }
-
-            if( (
-                    photoMode == MyApplicationInterface.PhotoMode.DRO ||
-                            photoMode == MyApplicationInterface.PhotoMode.HDR ||
-                            photoMode == MyApplicationInterface.PhotoMode.Panorama ||
-                            photoMode == MyApplicationInterface.PhotoMode.ExpoBracketing ||
-                            //photoMode == MyApplicationInterface.PhotoMode.FocusBracketing ||
-                            photoMode == MyApplicationInterface.PhotoMode.FastBurst ||
-                            photoMode == MyApplicationInterface.PhotoMode.NoiseReduction ||
-                            photoMode == MyApplicationInterface.PhotoMode.X_Night ||
-                            photoMode == MyApplicationInterface.PhotoMode.X_Bokeh ||
-                            photoMode == MyApplicationInterface.PhotoMode.X_Beauty
-            ) &&
-                    !applicationInterface.isVideoPref() ) { // these photo modes not supported for video mode
-                icon_dest.set(location_x2, location_y, location_x2 + icon_size, location_y + icon_size);
-                p.setStyle(Paint.Style.FILL);
-                p.setColor(Color.BLACK);
-                p.setAlpha(64);
-                canvas.drawRect(icon_dest, p);
-                p.setAlpha(255);
-                Bitmap bitmap = photoMode == MyApplicationInterface.PhotoMode.DRO ? dro_bitmap :
-                        photoMode == MyApplicationInterface.PhotoMode.HDR ? hdr_bitmap :
-                                photoMode == MyApplicationInterface.PhotoMode.Panorama ? panorama_bitmap :
-                                    photoMode == MyApplicationInterface.PhotoMode.ExpoBracketing ? expo_bitmap :
-                                            //photoMode == MyApplicationInterface.PhotoMode.FocusBracketing ? focus_bracket_bitmap :
-                                                    photoMode == MyApplicationInterface.PhotoMode.FastBurst ? burst_bitmap :
-                                                            photoMode == MyApplicationInterface.PhotoMode.NoiseReduction ? nr_bitmap :
-                                                                    photoMode == MyApplicationInterface.PhotoMode.X_Night ? x_night_bitmap :
-                                                                        photoMode == MyApplicationInterface.PhotoMode.X_Bokeh ? x_bokeh_bitmap :
-                                                                                photoMode == MyApplicationInterface.PhotoMode.X_Beauty ? x_beauty_bitmap :
-                                                                    null;
-                if( bitmap != null ) {
-                    if( photoMode == MyApplicationInterface.PhotoMode.NoiseReduction && applicationInterface.getNRModePref() == ApplicationInterface.NRModePref.NRMODE_LOW_LIGHT ) {
-                        p.setColorFilter(new PorterDuffColorFilter(Color.rgb(255, 235, 59), PorterDuff.Mode.SRC_IN)); // Yellow 500
-                    }
-                    canvas.drawBitmap(bitmap, null, icon_dest, p);
-                    p.setColorFilter(null);
-
-                    if( device_ui_rotation == 180 ) {
-                        location_x2 -= icon_size + flash_padding;
-                    }
-                    else {
-                        location_x2 += icon_size + flash_padding;
-                    }
-                }
-            }
-
-
-            // photo-stamp is supported for photos taken in video mode
-            // but it isn't supported in RAW-only mode
-            if( has_stamp_pref && !( is_raw_only_pref && preview.supportsRaw() ) ) {
-                icon_dest.set(location_x2, location_y, location_x2 + icon_size, location_y + icon_size);
-                p.setStyle(Paint.Style.FILL);
-                p.setColor(Color.BLACK);
-                p.setAlpha(64);
-                canvas.drawRect(icon_dest, p);
-                p.setAlpha(255);
-                canvas.drawBitmap(photostamp_bitmap, null, icon_dest, p);
-
-                if( device_ui_rotation == 180 ) {
-                    location_x2 -= icon_size + flash_padding;
-                }
-                else {
-                    location_x2 += icon_size + flash_padding;
-                }
-            }
-
-            if( !is_audio_enabled_pref && applicationInterface.isVideoPref() ) {
-                icon_dest.set(location_x2, location_y, location_x2 + icon_size, location_y + icon_size);
-                p.setStyle(Paint.Style.FILL);
-                p.setColor(Color.BLACK);
-                p.setAlpha(64);
-                canvas.drawRect(icon_dest, p);
-                p.setAlpha(255);
-                canvas.drawBitmap(audio_disabled_bitmap, null, icon_dest, p);
-
-                if( device_ui_rotation == 180 ) {
-                    location_x2 -= icon_size + flash_padding;
-                }
-                else {
-                    location_x2 += icon_size + flash_padding;
-                }
-            }
-
-            // icons for slow motion, time lapse or high speed video
-            if( Math.abs(capture_rate_factor - 1.0f) > 1.0e-5 && applicationInterface.isVideoPref() ) {
-                icon_dest.set(location_x2, location_y, location_x2 + icon_size, location_y + icon_size);
-                p.setStyle(Paint.Style.FILL);
-                p.setColor(Color.BLACK);
-                p.setAlpha(64);
-                canvas.drawRect(icon_dest, p);
-                p.setAlpha(255);
-                canvas.drawBitmap(capture_rate_factor < 1.0f ? slow_motion_bitmap : time_lapse_bitmap, null, icon_dest, p);
-
-                if( device_ui_rotation == 180 ) {
-                    location_x2 -= icon_size + flash_padding;
-                }
-                else {
-                    location_x2 += icon_size + flash_padding;
-                }
-            }
-            else if( is_high_speed && applicationInterface.isVideoPref() ) {
-                icon_dest.set(location_x2, location_y, location_x2 + icon_size, location_y + icon_size);
-                p.setStyle(Paint.Style.FILL);
-                p.setColor(Color.BLACK);
-                p.setAlpha(64);
-                canvas.drawRect(icon_dest, p);
-                p.setAlpha(255);
-                canvas.drawBitmap(high_speed_fps_bitmap, null, icon_dest, p);
-
-                if( device_ui_rotation == 180 ) {
-                    location_x2 -= icon_size + flash_padding;
-                }
-                else {
-                    location_x2 += icon_size + flash_padding;
-                }
-            }
-
-            if( time_ms > last_need_flash_indicator_time + 100 ) {
-                need_flash_indicator = false;
-                String flash_value = preview.getCurrentFlashValue();
-                // note, flash_frontscreen_auto not yet support for the flash symbol (as camera_controller.needsFlash() only returns info on the built-in actual flash, not frontscreen flash)
-                if( flash_value != null &&
-                        ( flash_value.equals("flash_on")
-                                || ( (flash_value.equals("flash_auto") || flash_value.equals("flash_red_eye")) && camera_controller.needsFlash() )
-                                || camera_controller.needsFrontScreenFlash() ) &&
-                        !applicationInterface.isVideoPref() ) { // flash-indicator not supported for photos taken in video mode
-                    need_flash_indicator = true;
-                }
-
-                last_need_flash_indicator_time = time_ms;
-            }
-            if( need_flash_indicator ) {
-                if( needs_flash_time != -1 ) {
-                    final long fade_ms = 500;
-                    float alpha = (time_ms - needs_flash_time)/(float)fade_ms;
-                    if( time_ms - needs_flash_time >= fade_ms )
-                        alpha = 1.0f;
-                    icon_dest.set(location_x2, location_y, location_x2 + icon_size, location_y + icon_size);
-
-					/*if( MyDebug.LOG )
-						Log.d(TAG, "alpha: " + alpha);*/
-                    p.setStyle(Paint.Style.FILL);
-                    p.setColor(Color.BLACK);
-                    p.setAlpha((int)(64*alpha));
-                    canvas.drawRect(icon_dest, p);
-                    p.setAlpha((int)(255*alpha));
-                    canvas.drawBitmap(flash_bitmap, null, icon_dest, p);
-                    p.setAlpha(255);
-                }
-                else {
-                    needs_flash_time = time_ms;
-                }
-            }
-            else {
-                needs_flash_time = -1;
-            }
-
             if( device_ui_rotation == 90 ) {
                 location_y -= icon_gap_y;
             }
@@ -2324,48 +2096,9 @@ public class DrawPreview {
             }
         }
 
-        int battery_x = top_x;
-        int battery_y = top_y + (int) (5 * scale_dp + 0.5f);
-        int battery_width = (int) (5 * scale_dp + 0.5f); // convert dps to pixels
-        int battery_height = 4*battery_width;
-        if( device_ui_rotation == 90 ) {
-            battery_y = canvas.getHeight() - battery_y - battery_height;
-        }
-        if( device_ui_rotation == 180 ) {
-            battery_x = canvas.getWidth() - battery_x - battery_width;
-        }
-        if( show_battery_pref ) {
-            if( !this.has_battery_frac || time_ms > this.last_battery_time + 60000 ) {
-                // only check periodically - unclear if checking is costly in any way
-                // note that it's fine to call registerReceiver repeatedly - we pass a null receiver, so this is fine as a "one shot" use
-                Intent batteryStatus = main_activity.registerReceiver(null, battery_ifilter);
-                int battery_level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-                int battery_scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-                has_battery_frac = true;
-                battery_frac = battery_level/(float)battery_scale;
-                last_battery_time = time_ms;
-                if( MyDebug.LOG )
-                    Log.d(TAG, "Battery status is " + battery_level + " / " + battery_scale + " : " + battery_frac);
-            }
-            //battery_frac = 0.2999f; // test
-            boolean draw_battery = true;
-            if( battery_frac <= 0.05f ) {
-                // flash icon at this low level
-                draw_battery = ((( time_ms / 1000 )) % 2) == 0;
-            }
-            if( draw_battery ) {
-                p.setColor(battery_frac > 0.15f ? Color.rgb(37, 155, 36) : Color.rgb(244, 67, 54)); // Green 500 or Red 500
-                p.setStyle(Paint.Style.FILL);
-                canvas.drawRect(battery_x, battery_y+(1.0f-battery_frac)*(battery_height-2), battery_x+battery_width, battery_y+battery_height, p);
-                if( battery_frac < 1.0f ) {
-                    p.setColor(Color.BLACK);
-                    p.setAlpha(64);
-                    canvas.drawRect(battery_x, battery_y, battery_x + battery_width, battery_y + (1.0f - battery_frac) * (battery_height - 2), p);
-                    p.setAlpha(255);
-                }
-            }
-            top_x += (int) (10 * scale_dp + 0.5f); // convert dps to pixels
-        }
+        // keine Akku-Anzeige mehr (Falk, Schritt G Punkt 2: "bitte entferne die akku anzeige auf
+        // dem bildschirm die brauche ich nicht") - samt ihrer Preference in den Einstellungen.
+        // Damit fällt auch der 10-dp-Versatz weg, um den die Info-Zeilen daneben rückten.
 
         if( preview.isVideoRecording() && !preview.isPreviewPaused()
                 && ( !preview.isVideoRecordingPaused() || ((int)(time_ms / 500)) % 2 == 0 ) ) { // if video is paused, then flash the video time
@@ -2746,6 +2479,30 @@ public class DrawPreview {
         }
     }
 
+    /** The ring of a running night capture (Schritt F): a faint full circle as the track, the bright
+     *  arc up to the reported progress on top of it, centred on the preview like the white panorama
+     *  circle. Its whole point is "hold still until the ring is closed" - in the panorama that means
+     *  not turning to the next target while it runs (see the blue spot above).
+     */
+    private void drawNightProgress(Canvas canvas) {
+        if( !isNightCaptureRunning() )
+            return;
+        float cx = canvas.getWidth()/2.0f;
+        float cy = canvas.getHeight()/2.0f;
+        float radius = (68 * scale_dp + 0.5f); // convert dps to pixels, outside the white and blue gyro spots
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(Color.WHITE);
+        p.setStrokeWidth(stroke_width);
+        p.setAlpha(64);
+        canvas.drawCircle(cx, cy, radius, p);
+        p.setAlpha(255);
+        p.setStrokeWidth(stroke_width * 2.0f);
+        night_progress_rect.set(cx - radius, cy - radius, cx + radius, cy + radius);
+        // from the top, clockwise, as the progress the camera reports
+        canvas.drawArc(night_progress_rect, -90.0f, 3.6f * night_progress, false, p);
+        p.setStyle(Paint.Style.FILL); // reset
+    }
+
     private void doFocusAnimation(Canvas canvas, long time_ms) {
         Preview preview = main_activity.getPreview();
         CameraController camera_controller = preview.getCameraController();
@@ -3090,6 +2847,8 @@ public class DrawPreview {
 
         doFocusAnimation(canvas, time_ms);
 
+        drawNightProgress(canvas);
+
         CameraController.Face [] faces_detected = preview.getFacesDetected();
         if( faces_detected != null ) {
             p.setColor(Color.rgb(255, 235, 59)); // Yellow 500
@@ -3144,10 +2903,14 @@ public class DrawPreview {
                         float distance_y = angle_scale_y * (float) Math.tan(angle_y); // angle_scale is already in pixels rather than dps
                         p.setColor(Color.WHITE);
                         drawGyroSpot(canvas, 0.0f, 0.0f, -1.0f, 0.0f, 48, true); // draw spot for the centre of the screen, to help the user orient the device
-                        p.setColor(Color.BLUE);
-                        float dir_x = -transformed_gyro_direction_up[1];
-                        float dir_y = -transformed_gyro_direction_up[0];
-                        drawGyroSpot(canvas, distance_x, distance_y, dir_x, dir_y, 45, false);
+                        if( !isNightCaptureRunning() ) {
+                            // the blue target says "turn to here" - while a night frame runs the
+                            // ring says "hold still", so the target stays away until it is done
+                            p.setColor(Color.BLUE);
+                            float dir_x = -transformed_gyro_direction_up[1];
+                            float dir_y = -transformed_gyro_direction_up[0];
+                            drawGyroSpot(canvas, distance_x, distance_y, dir_x, dir_y, 45, false);
+                        }
 					/*{
 						// for debug only, draw the gyro spot that isn't calibrated with the accelerometer
 						gyroSensor.getRelativeInverseVectorGyroOnly(transformed_gyro_direction, gyro_direction);

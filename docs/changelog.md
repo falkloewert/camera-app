@@ -469,6 +469,20 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   immer an, wenn das Gerät einen Blitz hat (Schalter `preference_show_cycle_flash` entfällt); kein
   Makro-Symbol. Am Pixel 9 Pro abgenommen. Offen: 7.1 Punkte 6–9 + 7.3, PM-Punkte 13/14.
 
+- **2026-09-22 (Feature-Chat, Schritte D/E/F/G):** Moduswahl als Karussell (D), Foto-Blatt mit
+  **Licht-Zeile** und Video-Blitz (E/F): die Reihenfolge `nichts · auto nacht · auto blitz ·
+  nacht an · blitz an` ist die einzige Schreibstelle der Lichtzustände (`MainUI.applyLightSettings`),
+  genau einer ist markiert, die Nacht ist ein **Zustand** statt eines Fotomodus (nur Foto und
+  Panorama, mit Nacht-Automatik nach gemessenem ISO), und wer `auto blitz` wählt, verliert das
+  manuelle ISO (es strich `flash_auto` aus den Kamerawerten – Falks Befund 5/1). Panorama:
+  Objektivzeile „Automatisch/Weitwinkel" in Pille statt „Manuell", keine Zoom-Pille, Nacht und
+  festes Weitwinkel schließen sich aus. Schritt G räumt Falks 14 Befunde ab: Akku-Anzeige und die
+  Sucher-Icon-Reihe entfallen, Gesicht/Ausrichten/Ton aus/Modus/Timer stehen als Chips im Kopfband
+  (Timer tippbar aus→3→5→10), der Mond sitzt auf dem Blitz-Platz. Nacht-Panorama behält das
+  Verhältnis: `Preview.pickSizeForRequirements()` hält beim Ausweichen auf Erweiterungs- oder
+  Seriengrößen das Verhältnis (die Nacht-Erweiterung kann 16:9 nur bis 2688×1512, vorher wurde
+  daraus 4:3). Am Pixel 9 Pro getestet; Falks eigene Abnahme von D–G offen.
+
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 
 **Recherche-Ergebnis (2026-09-14, Researcher-Agent):**

@@ -86,6 +86,26 @@
         app:layout_constraintTop_toTopOf="parent"
         />
 
+    <!-- Der Modus-Chip: das Symbol des Foto-Modus (DRO, HDR, Expo, Burst, NR), das bis Schritt G
+         in der Icon-Reihe des Suchers stand. Er sitzt links im Band direkt neben dem
+         Auflösungs-Chip, in derselben Lücke, in der im Video der Bildraten-Chip steht - die
+         beiden schließen sich aus (eine Rate gibt es nur im Video, diese Foto-Modi nur im Foto).
+         Seine Größe setzt MainUI.layoutHeader() wie bei den beiden anderen Chips. -->
+    <ImageButton
+        android:id="@+id/header_mode"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:padding="8dp"
+        android:scaleType="fitCenter"
+        android:clickable="false"
+        android:focusable="false"
+        app:srcCompat="@drawable/dro_icon"
+        android:background="@null"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        />
+
     <!-- Die Zustandsanzeigen der Kopfzeile: Blitz, RAW, GPS, Ausrichtungssperre, Textstempel.
          Sie sind das, was von der alten Icon-Leiste geblieben ist (SPEC 4.5, Schritt C) - die
          uebrigen Icons waren entweder doppelt oder gehoeren in die Einstellungen. Die Reihe sitzt
@@ -112,19 +132,6 @@
             android:background="@null"
             android:visibility="gone"
             android:onClick="clickedCycleRaw"
-            />
-
-        <ImageButton
-            android:id="@+id/cycle_flash"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:padding="8dp"
-            android:scaleType="fitCenter"
-            android:contentDescription="@string/cycle_flash"
-            app:srcCompat="@drawable/flash_off"
-            android:background="@null"
-            android:visibility="gone"
-            android:onClick="clickedCycleFlash"
             />
 
         <ImageButton
@@ -164,6 +171,80 @@
             android:background="@null"
             android:visibility="gone"
             android:onClick="clickedTextStamp"
+            />
+
+        <!-- Gesichtserkennung, Auto-Ausrichten und "Ton aus": die drei reinen Zustandsanzeigen,
+             die bis Schritt G in der Icon-Reihe des Suchers standen und mit ihr ins Band gezogen
+             sind (Falk: "verschiebe alle chips die daneben in der reihe angezeigt werden in die
+             obere reihe"). Sie zeigen nur an - geschaltet wird in den Einstellungen bzw. im
+             Blatt. -->
+
+        <ImageButton
+            android:id="@+id/face_detection"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/preference_face_detection"
+            app:srcCompat="@drawable/ic_face_white_48dp"
+            android:background="@null"
+            android:visibility="gone"
+            />
+
+        <ImageButton
+            android:id="@+id/auto_stabilise"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/preference_auto_stabilise"
+            app:srcCompat="@drawable/auto_stabilise_icon"
+            android:background="@null"
+            android:visibility="gone"
+            />
+
+        <ImageButton
+            android:id="@+id/audio_disabled"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/preference_record_audio"
+            app:srcCompat="@drawable/ic_mic_off_white_48dp"
+            android:background="@null"
+            android:visibility="gone"
+            />
+
+        <!-- Der Timer-Chip: der einzige Chip im Band, der etwas schaltet - er tippt den Timer
+             durch (aus -> 3 -> 5 -> 10). Sein Symbol setzt OnScreenIcons.updateCycleTimerIcon(),
+             er ist deshalb auch in der Sichtbarkeit kein reiner Zustand (Falk, Schritt G Punkt 6). -->
+        <ImageButton
+            android:id="@+id/cycle_timer"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/settings_sheet_timer"
+            app:srcCompat="@drawable/ms_timer_off"
+            android:background="@null"
+            android:visibility="gone"
+            android:onClick="clickedCycleTimer"
+            />
+
+        <!-- Blitz-Zustandsanzeige, zuletzt und damit am rechten Rand des Bandes (Falk will sie
+             dort oben rechts): sie zeigt den Blitzwert, gewaehlt wird er in der Lichtzeile des
+             Foto-Blattes (Schritt E) - der Klickpfad ist deshalb entfernt. Bei Nacht traegt sie
+             den Mond der Lichtzeile (Schritt G Punkt 4). -->
+        <ImageButton
+            android:id="@+id/cycle_flash"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/cycle_flash"
+            app:srcCompat="@drawable/flash_off"
+            android:background="@null"
+            android:visibility="gone"
             />
     </LinearLayout>
 
@@ -237,60 +318,55 @@
          MyApplicationInterface.allowZoom()). The two buttons are grouped in one LinearLayout so
          they can be positioned as a single centred unit (see MainUI.java) - centering two
          independent siblings on a third view isn't straightforward, but a wrapping
-         LinearLayout sidesteps that. The gap between the two buttons is a divider
-         (panorama_lens_gap.xml). The buttons zero their padding and minimum size because under
+         LinearLayout sidesteps that. The buttons zero their padding and minimum size because under
          the Material 3 theme a <Button> inflates as a MaterialButton with 24dp side padding,
-         which wrapped "1x" onto two lines inside the 60dp circle (same fix as in
-         ZoomStepper.createStepButton()). -->
+         which wrapped "1x" onto two lines (same fix as in ZoomStepper.createStepButton()).
+         Seit Schritt G trägt die Reihe denselben Stil wie die Zoom-Pille (Falk: "die blase ist bei
+         panorama noch nicht im gleichen stil wie sonnst"): dieselbe dunkle Pille, dieselbe Größe
+         und dieselbe Auswahl (helle Pille mit dunkler Schrift, gesetzt in MainUI.showGUI über
+         R.drawable.pill_selected_background)). -->
     <LinearLayout
         android:id="@+id/panorama_lens_row"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:divider="@drawable/panorama_lens_gap"
-        android:showDividers="middle"
+        android:background="@drawable/pill_background"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <Button
             android:id="@+id/panorama_lens_wide"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
+            android:layout_width="@dimen/zoom_step_size"
+            android:layout_height="@dimen/zoom_step_size"
+            android:layout_margin="@dimen/zoom_step_margin"
             android:padding="0dp"
             android:minWidth="0dp"
             android:minHeight="0dp"
-            android:textColor="@android:color/white"
+            android:textColor="@color/md_dark_on_surface"
             android:textAllCaps="false"
-            android:textSize="15sp"
-            android:textStyle="bold"
+            android:textSize="13sp"
             android:contentDescription="@string/panorama_lens_wide"
             android:text="@string/panorama_lens_wide"
             android:onClick="clickedPanoramaLensWide"
             android:stateListAnimator="@animator/button_animation"
-            android:background="@drawable/circle_background"
-            android:backgroundTint="@color/icons_background_tint"
-            android:backgroundTintMode="src_in"
             />
 
         <Button
             android:id="@+id/panorama_lens_1x"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
+            android:layout_width="@dimen/zoom_step_size"
+            android:layout_height="@dimen/zoom_step_size"
+            android:layout_margin="@dimen/zoom_step_margin"
             android:padding="0dp"
             android:minWidth="0dp"
             android:minHeight="0dp"
-            android:textColor="@android:color/white"
+            android:textColor="@color/md_dark_on_surface"
             android:textAllCaps="false"
-            android:textSize="15sp"
-            android:textStyle="bold"
+            android:textSize="13sp"
             android:contentDescription="@string/panorama_lens_main"
             android:text="@string/panorama_lens_main"
             android:onClick="clickedPanoramaLens1x"
             android:stateListAnimator="@animator/button_animation"
-            android:background="@drawable/circle_background"
-            android:backgroundTint="@color/icons_background_tint"
-            android:backgroundTintMode="src_in"
             />
     </LinearLayout>
 
@@ -988,91 +1064,116 @@
         app:layout_constraintBottom_toBottomOf="parent"
         />
 
-    <LinearLayout
+    <!-- Das Modus-Karussell (Kickoff Schritt D). Der Sucher ist das Karussell selbst: es scrollt
+         waagerecht, laesst den aktiven Eintrag einrasten und blendet die Raender aus (die
+         Alpha-Maske zeichnet ModeBar). Die Eintraege stehen im inneren LinearLayout - eine
+         HorizontalScrollView nimmt genau ein Kind. Sichtbarkeit und Hervorhebung setzt
+         MainUI.updateModeBar(), die Eintraege tragen 32 dp Pille (ui-spezifikation.md 7.2). -->
+    <net.sourceforge.opencamera.ui.ModeBar
         android:id="@+id/mode_bar"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:divider="@drawable/mode_bar_gap"
-        android:showDividers="middle"
+        android:scrollbars="none"
+        android:overScrollMode="never"
         android:contentDescription="@string/mode_bar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginBottom="16dp">
 
-        <TextView
-            android:id="@+id/mode_bar_photo"
+        <LinearLayout
+            android:id="@+id/mode_bar_entries"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:textColor="@color/md_dark_on_surface"
-            android:textSize="14sp"
-            android:text="@string/mode_bar_photo"
-            />
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:divider="@drawable/mode_bar_gap"
+            android:showDividers="middle">
 
-        <TextView
-            android:id="@+id/mode_bar_panorama"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:textColor="@color/md_dark_on_surface"
-            android:textSize="14sp"
-            android:text="@string/photo_mode_panorama_full"
-            />
+            <TextView
+                android:id="@+id/mode_bar_photo"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:gravity="center"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/md_dark_on_surface"
+                android:textSize="14sp"
+                android:text="@string/mode_bar_photo"
+                />
 
-        <!-- Die Video-Untermodi (SPEC 4.6). Sichtbarkeit und Hervorhebung setzt
-             MainUI.updateModeBar(); im Fotomodus sind sie GONE. -->
-        <TextView
-            android:id="@+id/mode_bar_video"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:textColor="@color/md_dark_on_surface"
-            android:textSize="14sp"
-            android:visibility="gone"
-            android:text="@string/mode_bar_video"
-            />
+            <TextView
+                android:id="@+id/mode_bar_panorama"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:gravity="center"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/md_dark_on_surface"
+                android:textSize="14sp"
+                android:text="@string/photo_mode_panorama_full"
+                />
 
-        <TextView
-            android:id="@+id/mode_bar_slow_motion"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:textColor="@color/md_dark_on_surface"
-            android:textSize="14sp"
-            android:visibility="gone"
-            android:text="@string/mode_bar_slow_motion"
-            />
+            <!-- Portraet ist eine Kamera-Erweiterung und erscheint nur, wo die Kamera sie meldet
+                 (MainUI.updateModeBar()). HDR, DRO und Nachtsicht stehen seit Schritt E nicht mehr
+                 hier: Nachtsicht ist ein Knopf in der Blitz-Zeile des Foto-Blattes, HDR und DRO
+                 sind die drei Knoepfe Normal/HDR/DRO im Pro-Reiter. -->
+            <TextView
+                android:id="@+id/mode_bar_bokeh"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:gravity="center"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/md_dark_on_surface"
+                android:textSize="14sp"
+                android:visibility="gone"
+                android:text="@string/mode_bar_bokeh"
+                />
 
-        <TextView
-            android:id="@+id/mode_bar_timelapse"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:textColor="@color/md_dark_on_surface"
-            android:textSize="14sp"
-            android:visibility="gone"
-            android:text="@string/mode_bar_timelapse"
-            />
+            <!-- Die Video-Untermodi (SPEC 4.6); im Fotomodus sind sie GONE. -->
+            <TextView
+                android:id="@+id/mode_bar_video"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:gravity="center"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/md_dark_on_surface"
+                android:textSize="14sp"
+                android:visibility="gone"
+                android:text="@string/mode_bar_video"
+                />
 
-    </LinearLayout>
+            <TextView
+                android:id="@+id/mode_bar_slow_motion"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:gravity="center"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/md_dark_on_surface"
+                android:textSize="14sp"
+                android:visibility="gone"
+                android:text="@string/mode_bar_slow_motion"
+                />
+
+            <TextView
+                android:id="@+id/mode_bar_timelapse"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:gravity="center"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:textColor="@color/md_dark_on_surface"
+                android:textSize="14sp"
+                android:visibility="gone"
+                android:text="@string/mode_bar_timelapse"
+                />
+
+        </LinearLayout>
+
+    </net.sourceforge.opencamera.ui.ModeBar>
 
     <!-- Einstellungen-Blatt (Kickoff 3.2). Letztes Kind des Root-Layouts, damit es ueber allem
          liegt. settings_sheet ist der bildschirmfuellende Faenger: ein Tipp daneben schliesst

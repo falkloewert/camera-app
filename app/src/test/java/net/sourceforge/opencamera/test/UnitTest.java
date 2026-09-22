@@ -513,6 +513,28 @@ public class UnitTest {
             CameraController.Size chosen_size = MyApplicationInterface.choosePanoramaResolution(sizes);
             assertEquals(chosen_size, new CameraController.Size(3456, 3456));
         }
+        // Schritt E: was im Blatt gewaehlt wurde, schiesst das Panorama auch - 4K eingeschlossen
+        {
+            List<CameraController.Size> sizes = new ArrayList<>();
+            sizes.add(new CameraController.Size(4640, 3480));
+            sizes.add(new CameraController.Size(3840, 2160));
+            sizes.add(new CameraController.Size(3456, 3456));
+            sizes.add(new CameraController.Size(1920, 1080));
+            sizes.add(new CameraController.Size(1440, 1080));
+
+            assertEquals(new CameraController.Size(3840, 2160), MyApplicationInterface.panoramaResolution(
+                    new CameraController.Size(3840, 2160), sizes));
+            assertEquals(new CameraController.Size(1440, 1080), MyApplicationInterface.panoramaResolution(
+                    new CameraController.Size(1440, 1080), sizes));
+            // 16:9 stays 16:9, 4:3 stays 4:3 - die zwei Zeilen sind unabhaengig
+            assertEquals(new CameraController.Size(1920, 1080), MyApplicationInterface.panoramaResolution(
+                    new CameraController.Size(1920, 1080), sizes));
+            // eine Groesse, die die Kamera nicht (mehr) anbietet, faellt auf die alte Regel zurueck
+            assertEquals(new CameraController.Size(1440, 1080), MyApplicationInterface.panoramaResolution(
+                    new CameraController.Size(2000, 1500), sizes));
+            // ohne gespeicherte Wahl ebenso
+            assertEquals(new CameraController.Size(1440, 1080), MyApplicationInterface.panoramaResolution(null, sizes));
+        }
     }
 
 	/*@Test
@@ -537,19 +559,20 @@ public class UnitTest {
     }
 
     @Test
-    public void testTorchAutoHysteresis() {
-        Log.d(TAG, "testTorchAutoHysteresis");
+    public void testAutoLightHysteresis() {
+        Log.d(TAG, "testAutoLightHysteresis");
 
-        // threshold values are TORCH_AUTO_ISO_ON / TORCH_AUTO_ISO_OFF in Preview - the two numbers to change there
-        // while off, the torch comes on once the scene gets dark enough
-        assertFalse(Preview.torchAutoOn(false, 0));
-        assertFalse(Preview.torchAutoOn(false, 799));
-        assertTrue(Preview.torchAutoOn(false, 800));
-        assertTrue(Preview.torchAutoOn(false, 6400));
+        // threshold values are AUTO_ISO_ON / AUTO_ISO_OFF in Preview - the two numbers to change
+        // there; the video torch and the "Nacht auto" of the photo sheet both read them
+        // while off, the light comes on once the scene gets dark enough
+        assertFalse(Preview.autoLightOn(false, 0));
+        assertFalse(Preview.autoLightOn(false, 799));
+        assertTrue(Preview.autoLightOn(false, 800));
+        assertTrue(Preview.autoLightOn(false, 6400));
         // while on, it only goes off again once the scene is clearly bright (hysteresis against its own light)
-        assertTrue(Preview.torchAutoOn(true, 200));
-        assertTrue(Preview.torchAutoOn(true, 1600));
-        assertFalse(Preview.torchAutoOn(true, 199));
+        assertTrue(Preview.autoLightOn(true, 200));
+        assertTrue(Preview.autoLightOn(true, 1600));
+        assertFalse(Preview.autoLightOn(true, 199));
     }
 
     @Test

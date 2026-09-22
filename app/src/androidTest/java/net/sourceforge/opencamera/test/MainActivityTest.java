@@ -2850,7 +2850,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
 
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(mActivity);
         SharedPreferences.Editor editor = settings.edit();
-        editor.putBoolean(PreferenceKeys.ShowCycleFlashPreferenceKey, true);
         editor.putBoolean(PreferenceKeys.ShowCycleRawPreferenceKey, true);
         if( mActivity.isMultiCamEnabled() ) {
             editor.putBoolean(PreferenceKeys.MultiCamButtonPreferenceKey, false);
@@ -2877,11 +2876,12 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         assertTrue(mPreview.isVideo());
         assertTrue(mPreview.isPreviewStarted());
 
-        // test flash and RAW icons now gone
+        // test RAW icon now gone; the flash state icon stays in video mode (Schritt C/E: it is a
+        // pure state indicator now, so it follows only whether the camera has a flash)
         View cycleFlashButton = mActivity.findViewById(net.sourceforge.opencamera.R.id.cycle_flash);
         View cycleRawButton = mActivity.findViewById(net.sourceforge.opencamera.R.id.cycle_raw);
 
-        assertEquals(View.GONE, cycleFlashButton.getVisibility());
+        assertEquals(mPreview.supportsFlash() ? View.VISIBLE : View.GONE, cycleFlashButton.getVisibility());
         assertEquals(View.GONE, cycleRawButton.getVisibility());
     }
 

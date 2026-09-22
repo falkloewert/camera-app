@@ -1883,16 +1883,17 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         this.mainUI.getOnScreenIcons().clickedTextStamp();
     }
 
-    public void clickedCycleFlash(View view) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "clickedCycleFlash");
-        this.mainUI.getOnScreenIcons().clickedCycleFlash();
-    }
-
     public void clickedCycleLockOrientation(View view) {
         if( MyDebug.LOG )
             Log.d(TAG, "clickedCycleLockOrientation");
         this.mainUI.getOnScreenIcons().clickedCycleLockOrientation();
+    }
+
+    /** Der Timer-Chip im Kopfband (Schritt G Punkt 6). */
+    public void clickedCycleTimer(View view) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "clickedCycleTimer");
+        this.mainUI.getOnScreenIcons().clickedCycleTimer();
     }
 
     /* Returns the cameraId that the "Switch camera" button will switch to.
@@ -2339,8 +2340,23 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         boolean already_selected = curr_physical_camera_id == null ? target_physical_id == null : curr_physical_camera_id.equals(target_physical_id);
         if( already_selected )
             return;
+        // Nacht und festgelegtes Objektiv schließen sich aus: die Nacht-Erweiterung läuft auf der
+        // Hauptkamera, ein Weitwinkel-Nachtbild wäre still ein 1×-Bild (CameraController2 holt die
+        // Erweiterungs-Charakteristiken nur ohne physisches Objektiv). Hier gewinnt das Weitwinkel,
+        // die Nacht geht aus; der gemerkte Blitzwert bleibt. Kein eigener Neuaufbau - der Wechsel
+        // unten baut die Kamera ohnehin auf (Schritt G, Punkt 8).
+        if( target_physical_id != null && applicationInterface.isNightModeOn() )
+            mainUI.clearNightState();
         int curr_camera_id = getActualCameraId();
         userSwitchToCamera(curr_camera_id, target_physical_id);
+    }
+
+    /** Die Objektivwahl des Panorama aus dem Foto-Blatt heraus (Schritt G, Punkt 9): dieselben zwei
+     *  Ziele wie die Panorama-Reihe auf dem Sucher, nur ohne deren Knöpfe. */
+    public void switchPanoramaLensFromSheet(boolean wide) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "switchPanoramaLensFromSheet: " + wide);
+        switchPanoramaLens(wide ? getPanoramaWidestPhysicalCameraId() : null);
     }
 
     /** One lens button of the manual lens selection, for the settings sheet (Kickoff 3.3/3.4) and
@@ -2832,7 +2848,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                 case "preference_angle_highlight_color":
                     //case "preference_show_geo_direction": // don't whitelist these, as if enabled we need to call checkMagneticAccuracy()
                     //case "preference_show_geo_direction_lines": // as above
-                case "preference_show_battery":
                 case "preference_show_time":
                 case "preference_free_memory":
                 case "preference_show_iso":

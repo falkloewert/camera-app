@@ -1658,7 +1658,26 @@ public class ImageSaver extends Thread {
             // need all to be mutable - n.b., in practice setting to -1
             // doesn't cause a problem on some devices e.g. Galaxy S24+ because the bitmaps may be made
             // mutable in rotateForExif, but this can be reproduced on on emulator at least
-            List<Bitmap> bitmaps = ImageUtils.loadBitmaps(request.jpeg_images, -2, 1);
+            List<Bitmap> bitmaps = null;
+            Bitmap panorama;
+            try {
+                // Schritt F: the panorama is a fixed 10 frames now, so its size is the thing that
+                // adapts - at 50 MP the ten frames in ARGB_8888 would not fit the heap.
+                final int inSampleSize = computePanoramaSampleSize(request.jpeg_images);
+                if( MyDebug.LOG )
+                    Log.d(TAG, "panorama inSampleSize: " + inSampleSize);
+                bitmaps = ImageUtils.loadBitmaps(request.jpeg_images, -2, inSampleSize);
+            }
+            catch(OutOfMemoryError e) {
+                // Schritt E: das Panorama darf so gross sein, wie Falk es waehlt (4K-Test) - reicht
+                // der Heap dann nicht, ist dieses eine Bild verloren, aber die App laeuft weiter:
+                // die Bilder aus dem Speicher werfen, sagen warum, und ohne Absturz zurueck.
+                MyDebug.logStackTrace(TAG, "out of memory loading the panorama frames", e);
+                main_activity.getPreview().showToast(null, R.string.failed_to_process_panorama);
+                System.gc();
+                main_activity.savingImage(false);
+                return false;
+            }
             if( bitmaps == null ) {
                 if( MyDebug.LOG )
                     Log.e(TAG, "failed to load bitmaps");
@@ -1679,9 +1698,18 @@ public class ImageSaver extends Thread {
                 Log.d(TAG, "panorama performance: time after rotating for exif: " + (System.currentTimeMillis() - time_s));
             }
 
-            Bitmap panorama;
             try {
                 panorama = panoramaProcessor.panorama(bitmaps, MyApplicationInterface.getPanoramaPicsPerScreen(), request.camera_view_angle_y, request.panorama_crop);
+            }
+            catch(OutOfMemoryError e) {
+                // Schritt E: der Stitcher braucht neben den Bildern noch seine eigenen Puffer - wird
+                // es zu eng, geht dieses Panorama verloren, aber nicht die App (siehe oben).
+                MyDebug.logStackTrace(TAG, "out of memory stitching the panorama", e);
+                main_activity.getPreview().showToast(null, R.string.failed_to_process_panorama);
+                bitmaps.clear();
+                System.gc();
+                main_activity.savingImage(false);
+                return false;
             }
             catch(PanoramaProcessorException e) {
                 MyDebug.logStackTrace(TAG, "PanoramaProcessorException from panorama", e);
@@ -1780,6 +1808,16 @@ public class ImageSaver extends Thread {
             if( request.process_type == Request.ProcessType.X_NIGHT ) {
                 filename_suffix = "_Night" + filename_suffix;
             }
+            // The night in the panorama: the process type is PANORAMA there (a stitched picture is
+            // not a night picture), and yet it should carry the same name - otherwise the two kinds
+            // of night picture sit apart in the gallery. Read live rather than carried in the
+            // request, whose constructor and copies take a dozen positional arguments.
+            // ponytail: the state is read at save time, not at capture time - changing the light
+            // during the stitch can lose the suffix on one picture. Nothing is lost but the name.
+            else if( request.process_type == Request.ProcessType.PANORAMA &&
+                    main_activity.getApplicationInterface().isNightModeOn() ) {
+                filename_suffix = "_Night" + filename_suffix;
+            }
             boolean share_image = share && (i == mid_image);
             if( !saveSingleImageNow(request, image, null, filename_suffix, update_thumbnail, share_image, false, false) ) {
                 if( MyDebug.LOG )
@@ -1790,6 +1828,40 @@ public class ImageSaver extends Thread {
                 break; // only requested the first
         }
         return success;
+    }
+
+    /** How much the panorama frames may be shrunk when they are loaded (Schritt F). The stitcher
+     *  holds every frame in ARGB_8888 until it is done, so ten frames of a 4K or 50 MP size would
+     *  not fit the heap; rather than taking fewer frames (Schritt E did that, and Falk wants the
+     *  full panorama), the stitch runs at a resolution the heap can carry. Half of the app's heap
+     *  is the frames' budget - the other half is what the stitcher needs for the result and the
+     *  copies it makes on the way.
+     *  @return a power of two, 1 (full resolution) when everything fits.
+     */
+    private int computePanoramaSampleSize(List<byte []> jpeg_images) {
+        final int frames = jpeg_images.size();
+        if( frames == 0 )
+            return 1;
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        byte [] first = jpeg_images.get(0);
+        BitmapFactory.decodeByteArray(first, 0, first.length, bounds);
+        if( bounds.outWidth <= 0 || bounds.outHeight <= 0 )
+            return 1; // no header read - load them full and let the OutOfMemoryError catch decide
+        final long budget = Runtime.getRuntime().maxMemory() / 2;
+        final long needed = (long)bounds.outWidth * bounds.outHeight * 4 * frames;
+        int sample_size = 1;
+        // inSampleSize works in powers of two and divides each side by it, so the memory by its
+        // square. Capped at 16 (a 4K frame is then 240x135): below that a stitched panorama would
+        // not be worth keeping, and running out of heap is the honest answer.
+        while( sample_size < 16 && needed / ((long)sample_size * sample_size) > budget ) {
+            sample_size *= 2;
+        }
+        if( sample_size > 1 && MyDebug.LOG ) {
+            Log.d(TAG, "panorama frames: " + frames + " at " + bounds.outWidth + "x" + bounds.outHeight
+                    + ", budget " + budget + ", needed " + needed + " - sample size " + sample_size);
+        }
+        return sample_size;
     }
 
     /** Saves all the images in request.jpeg_images, depending on the save_base option.
