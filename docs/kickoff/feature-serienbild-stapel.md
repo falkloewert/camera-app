@@ -1,10 +1,9 @@
 # Kickoff: Feature 9 – Serienbilder als Stapel in der Galerie
 
-**Dieser Chat ist der erste Parallelversuch**: er läuft in einem **eigenen Worktree** auf
-Branch `feature/serienbild-stapel`, während der Chat für Schritt C parallel auf `master`
-arbeitet. Zweck ist auch, den Worktree-Betrieb selbst zu erproben – wenn die Trennung
-irgendwo hakt, das im Abschluss melden statt dagegen anzukämpfen. Session-Titel:
-`camera-app – Feature 9 Serienbild-Stapel`.
+Läuft wie gewohnt auf `master` und **nacheinander** mit den Redesign-Schritten – der
+Parallelbetrieb über Worktrees wurde am 2026-09-22 zurückgestellt (Begründung: die Features
+überschneiden sich in denselben Dateien, und getestet wird ohnehin eins nach dem anderen).
+Session-Titel: `camera-app – Feature 9 Serienbild-Stapel`.
 
 ## 1. Ziel
 
@@ -52,22 +51,18 @@ Erst nach 2–4. Vorhandene Bauteile nutzen, keine neue Bibliothek ohne Rückfra
 Die Anzahl der Serienbilder („unendlich, solange gedrückt") ist **nicht** Teil dieses Chats –
 die Einstellung zieht Schritt C ins Einstellungen-Blatt um.
 
-## 6. Spielregeln für den Parallelbetrieb
+## 6. Falls dieser Chat später doch parallel laufen soll
 
-- **Nur in diesem Worktree arbeiten**, nie im Hauptordner `/home/falk/Projects/camera-app`.
-- Schritt C fasst parallel an: `MainUI.java`, `MainActivity.java`, `PopupView.java`,
-  `SettingsSheet.java`, `OnScreenIcons.java`, `activity_main.xml`. **Diese Dateien nicht
-  anfassen.**
-- Berührungspunkte, wenn unvermeidbar: `MyApplicationInterface.java` (hier **nur** der
-  Bildspeicher-Teil, nicht die Popup-Zeilen um 2148/2166/2497/2952) und `strings.xml`
-  (nur eigene, neue Einträge anhängen, nichts umsortieren).
-- Vor dem Abschluss `git fetch origin && git rebase origin/master`; Konflikte selbst lösen.
-- Commit mit expliziten Dateipfaden, Push auf `feature/serienbild-stapel`.
+Dann in einem eigenen Worktree mit eigenem Branch, nie im selben Ordner wie der andere Chat.
+Tabu sind in dem Fall die Redesign-Dateien des anderen Chats: `MainUI.java`,
+`MainActivity.java`, `PopupView.java`, `SettingsSheet.java`, `OnScreenIcons.java`,
+`activity_main.xml`. Berührungspunkte, wenn unvermeidbar: `MyApplicationInterface.java`
+(hier **nur** der Bildspeicher-Teil, nicht die Popup-Zeilen um 2148/2166/2497/2952) und
+`strings.xml` (nur eigene Einträge anhängen, nichts umsortieren). Vor dem Abschluss
+`git fetch origin && git rebase origin/master`. Commit mit expliziten Dateipfaden.
 
 ## 7. Abschluss (erst nach Falks Gerätetest)
 
 `docs/SPEC.md` Übersicht 3 (Feature 9 auf Fertig) + neuer Abschnitt **4.7**,
 `docs/changelog.md` ≤ 10 Zeilen mit Recherche- und Messergebnis, `graphify update .`,
-Commit + Push, drei Zeilen für den PM-Chat – darunter **eine Zeile dazu, wie sich der
-Parallelbetrieb angefühlt hat** (Konflikte, Reibung, Zeitgewinn). Kein nächstes Thema
-anfangen.
+Commit + Push, drei Zeilen für den PM-Chat. Kein nächstes Thema anfangen.
