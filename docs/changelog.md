@@ -458,6 +458,17 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   Abschluss-Commit dieser Runde (Auslöser-Symbole, Zoom-Blase, automatische
   Auflösung/Bildrate), von Falk am Gerät abgenommen.
 
+- **2026-09-22 (Feature-Chat, Schritt C Kopfzeile):** Kopfband gebaut (70,7 dp, links der
+  Auflösungs-Chip, im Video 4 dp daneben die Bildrate, rechts die fünf Zustandsanzeigen) und die
+  alte Icon-Leiste samt Popup entfernt (`ui/PopupView.java` gelöscht, 17 Einträge – 12 davon ohne
+  Blattzeile); Verteilung nach Kickoff §2/§3: Doppeltes weg, was in der vollen
+  Einstellungen-Aktivität steht, bleibt dort, das Übrige in Blätter bzw. Pro-Panel;
+  Belichtungs-/Weißabgleich-Sperre, Blende und Rauschunterdrückung gestrichen, die Fotomodi
+  bleiben bis zum Karussell unerreichbar (3.6). Neu: `header_fps` zeigt die Aufnahmerate aus
+  `Preview.getVideoProfile()` (Zeitlupe 60/120 statt der 30 des Films, im Foto leer); Blitz-Anzeige
+  immer an, wenn das Gerät einen Blitz hat (Schalter `preference_show_cycle_flash` entfällt); kein
+  Makro-Symbol. Am Pixel 9 Pro abgenommen. Offen: 7.1 Punkte 6–9 + 7.3, PM-Punkte 13/14.
+
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 
 **Recherche-Ergebnis (2026-09-14, Researcher-Agent):**

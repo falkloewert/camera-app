@@ -455,15 +455,19 @@ Soll-Werte aus der Detail-Spec, außer wo die Screenshot-Spec etwas anderes sagt
    zweites Blatt); Maße aus dem Screenrecord: Regler 288 × 48 dp, Radius 24 dp, Tab-Kachel
    56 × 56 dp, Abstand 20 dp, aktiver Kreis ⌀ 55 dp
    (`docs/design-reference/pixel-pro-panel-beschreibung.md`).
-4. **Kopfzeile (Abschnitt 1, Punkt 1).** Fehlt. Stattdessen läuft die alte Icon-Leiste
-   (`settings`, `popup`, `exposure`, `exposure_lock` …, je `onscreen_button_size` = 60 dp,
-   `MainUI.layoutUI()` L537–650) samt `PopupView` (Drei-Punkte-Menü). Soll: 56–64 dp hoch,
-   blickdicht Schwarz; links Chips (Screenshot: „12 MP" + Makro-Chip; Detail-Spec:
-   RAW-/50-MP- bzw. FHD-/4K-Badge, Radius 6 dp, 1 dp Kontur 40 % Weiß, Monospace –
-   Konflikt K6); rechts `?` 24 dp, Strich 2 dp, Weiß; Icons klein, links/rechts
-   gruppiert. Beim Bau mitbedenken: das `DrawPreview`-Info-Overlay oben links
-   (Batterie/Blitz, Abschnitt 8) und wohin die Funktionen der alten Icons (Belichtung,
-   Lock, Popup-Optionen) wandern – in das Blatt aus Punkt 2.
+4. ~~**Kopfzeile (Abschnitt 1, Punkt 1).**~~ **Erledigt (2026-09-22, Schritt C, am Pixel 9 Pro
+   abgenommen)** – siehe Abschnitt 6 und 7.2. Die alte Icon-Leiste (`settings`, `popup`,
+   `exposure`, `exposure_lock`, `focus_peaking`, die Zustands-Icons, `trash`/`share`/
+   `kraken_icon`) und `PopupView` sind entfernt. Gebaut in `ui/MainUI.layoutHeader()`:
+   Band **70,7 dp** hoch (nicht 56–64), blickdicht Schwarz, kein Verlauf/Scrim; links der
+   Auflösungs-Chip auf der gemessenen Achse (Mitte 38,0 | 42,9 dp), Maße wie in 7.2, im Video
+   4 dp daneben der Bildraten-Chip; rechts auf derselben Achse die fünf Zustandsanzeigen.
+   **Korrigierte Messwerte gegenüber der Detail-Spec:** Radius **2 dp** (nicht 6), **keine**
+   1-dp-Kontur, **keine** Monospace-Schrift, Band 70,7 dp (nicht 56–64); das „?“ entfällt
+   (Falk 2026-09-21); das Makro-Symbol der Referenz gibt es nicht, weil Makro hier eine Linse
+   ist und kein Zustand (Falk 2026-09-22). Die Funktionen der alten Icons sitzen in den
+   Blättern (Punkt 2), im Pro-Panel oder – wo sie schon dort standen – in der vollen
+   Einstellungen-Aktivität.
 5. ~~**Galerie-Miniatur auf der Auslöser-Zeile.**~~ **Erledigt (Audit-Schritt 1)**, mit
    gemessenen Werten statt der Detail-Spec: Radius 12 dp (nicht 22), Zentrum 124 dp (nicht
    64 – das wäre im Ring), 2-dp-Rahmen. Bounce/Cross-Fade bewusst weggelassen (Abschnitt 8).
@@ -507,6 +511,28 @@ Soll-Werte aus der Detail-Spec, außer wo die Screenshot-Spec etwas anderes sagt
 Gemessen statt Detail-Spec: Kern 74 dp / Ring 6 dp / außen 86 dp (nicht 72 / 8 / 88);
 Ring ist Schwarz 60 %, keine weiße Kontur (K10). Die alten Drawables
 `take_photo_*.xml` / `take_video_*.xml` sind gelöscht, den Kern zeichnet `ui/ShutterButton`.
+
+**Kopfzeile** (`header_bar`, `header_chip`, `header_fps`, `ui/MainUI.layoutHeader()`) –
+**erledigt (2026-09-22, Schritt C)**, siehe 7.1 Punkt 4.
+- Ist: 70,7 dp hohes schwarzes Band über dem Sucher, links der Auflösungs-Chip, rechts die
+  Zustandsanzeigen. Soll: 56–64 dp (Screenshot-Spec) – **gemessene 70,7 dp gelten** (159 px
+  im Screenrecord), kein Verlauf, kein Scrim.
+- Chip: „FHD“ 21,3 × 16,0 dp, „4K“/„12 MP“ 17,8 × 17,8 dp, Schrift 9 dp, zweizeilig mit
+  `lineSpacing(0, 0.7)`, Füllung `#FFFFFF`, Text `#000000`, Achse Mitte 38,0 | 42,9 dp.
+  Detail-Spec wollte ein RAW-/50-MP- bzw. FHD-/4K-Badge mit Radius 6 dp, 1 dp Kontur 40 %
+  Weiß und Monospace (Konflikt K6) – **gemessen: Radius 2 dp, keine Kontur, keine Monospace**.
+- **Bildraten-Chip** (`header_fps`): zweiter Chip, nur im Video, 4 dp rechts neben dem
+  Auflösungs-Chip auf derselben Achse; Zahl ist die **Aufnahmerate** (`Preview.getVideoProfile()`,
+  bei Zeitlupe 60/120 statt der 30 des fertigen Films). In der Referenz gibt es ihn nicht.
+- Statt des Makro-Symbols (Referenz) und des „?“ (Google-Hilfe, Falk 2026-09-21) gibt es
+  nichts: Makro ist in dieser App eine Linse, kein Zustand.
+- Rechte Gruppe: fünf Zustandsanzeigen (Blitz, RAW, GPS, Ausrichtungssperre, Textstempel),
+  16-dp-Glyphen in 32-dp-Trefferlächen, rechts 16 dp vom Rand, auf der Chip-Achse. Die
+  Blitz-Anzeige ist als einzige **immer** an, sobald das Gerät einen Blitz hat (rein visuell,
+  keine Modus-/Preference-Sperre); die übrigen vier hängen an ihren Preferences.
+- `trash`/`share`/`kraken_icon` sind entfällt (Löschen/Teilen nur noch auf dem pausierten
+  Standbild, wie schon vor Schritt C); `audio_control` (Rausch-Auslöser) bleibt nur über die
+  Preference in der vollen Einstellungen-Aktivität erreichbar.
 
 **Kamera-Wechsel** – **erledigt (Audit-Schritt 1)**, siehe Abschnitt 6. Gemessen statt
 Detail-Spec: Hintergrund Schwarz 60 % (nicht `rgba(255,255,255,0.12)` – der Button ist in

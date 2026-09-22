@@ -70,7 +70,7 @@ zu können (`git fetch upstream`).
 | 7 | Zeitraffer & Zeitlupe (Video-Modi wie in der Pixel-App, siehe 4.6) | **Fertig** (2026-09-21) | Mittel |
 | 8 | Doppeltippen auf den Sucher wechselt die Kamera (Selfie ↔ hinten) | Idee (2026-09-21) | Niedrig |
 | 9 | Serienbilder als Stapel in der Galerie statt einzelner Bilder | Idee (2026-09-21, Recherche nötig) | Mittel |
-| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile, Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen, Datei-Prüfung abgeschlossen) und **Feinjustier-Rad** (Stand 2026-09-18) gebaut; offen: siehe `ui-spezifikation.md` Abschnitt 7 (Audit 2026-09-17) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
+| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile, Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen, Datei-Prüfung abgeschlossen), **Feinjustier-Rad** (2026-09-18), Einstellungen-Blätter + Pro-Panel (2026-09-21) und **Kopfzeile; alte Icon-Leiste + Drei-Punkte-Popup entfernt** (Schritt C, 2026-09-22) gebaut; offen: Rest `ui-spezifikation.md` Abschnitt 7 (Punkt 3 Dock, Karussell, Sucher-Overlays, Farben/Blur/Schrift) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
 
 ### 3.1 Vereinbarte Reihenfolge (aktualisiert 2026-09-14: Material-3-Redesign vor Feature 5 vorgezogen)
 
@@ -300,8 +300,28 @@ Qualität `3K` (3264x1836) statt `6MP`. Video-Blitz „Autom." hängt am gemesse
 (`ui/ProPanel`, `ui/RulerSlider`) – Regler für Belichtung, Weißabgleich, Fokus, ISO und
 Verschlusszeit, je Reiter Automatik/Zurücksetzen, Fokus-Peaking; Maße aus dem Screenrecord
 in `docs/design-reference/pixel-pro-panel-beschreibung.md`.
-**Offen:** Schritt C (Kopfzeile, dann Icon-Leiste + Popup weg); Rest `ui-spezifikation.md`
-Abschnitt 7 (Karussell → Sucher-Overlays → Farben/Blur/Schrift).
+**Schritt C – Kopfzeile, alte Icon-Leiste und Popup (2026-09-22): Erledigt, am Pixel 9 Pro
+abgenommen** (Kickoff `docs/kickoff/redesign-kopfzeile.md`). Kopfzeile: schwarzes Band 70,7 dp
+über dem Sucher; darin links der Auflösungs-Chip auf der gemessenen Achse (Mitte 38,0 | 42,9 dp;
+„FHD“ 21,3 × 16,0 dp, „4K“/„12 MP“ 17,8 × 17,8 dp, Radius 2 dp, Schrift 9 dp), im Video 4 dp
+daneben der Bildraten-Chip, rechts auf derselben Achse die fünf Zustandsanzeigen (Blitz, RAW,
+GPS, Ausrichtungssperre, Textstempel). Das „?“ entfällt; das Makro-Symbol der Referenz ebenfalls
+– Makro ist hier eine Linse, kein Zustand (Falk 2026-09-22: „lieber gar keins“), seinen Platz
+nimmt der Bildraten-Chip. Die Blitz-Anzeige steht immer, sobald das Gerät einen Blitz hat (keine
+Modus- oder Preference-Sperre mehr, der Schalter „Blitz-Symbol anzeigen“ ist entfallen), die
+übrigen vier bleiben Preference-gesteuert. Der Bildraten-Chip zeigt die **Aufnahmerate** (Zeitlupe
+60/120 statt der 30 des fertigen Films, Quelle `Preview.getVideoProfile()`). Während einer
+Aufnahme ist die ganze Zeile aus. Die alte Icon-Leiste und `ui/PopupView.java` (17 Einträge,
+12 davon ohne Blattzeile) sind entfernt, die Funktionen nach Falks Regel verteilt: Doppeltes weg;
+was in der vollen Einstellungen-Aktivität steht, bleibt dort (Raster, Szenen-Modus, Farb-Effekt,
+Serienbild-Modus, Gesichtserkennung, Auto-Ausrichtung, Audio-Steuerung, Vorschau-Größe); das
+Übrige in den Blättern bzw. im Pro-Panel (Blitz, Fokus-Modus, Auflösung, Video-Qualität, fps,
+Timer, Weißabgleich); Belichtungs-/Weißabgleich-Sperre, Blende und Rauschunterdrückung gestrichen
+(Kickoff 3); die Fotomodi (DRO/HDR/Nacht) bleiben bis zum Karussell unerreichbar (Kickoff 3.6).
+Gemessene Werte und Abweichungen: `ui-spezifikation.md` 7.1 Punkt 4 + 7.2.
+
+**Offen:** Rest `ui-spezifikation.md` Abschnitt 7 (Punkt 3 Dock, Karussell 7.2, Sucher-Overlays
+7.1 Punkte 6–9, Farben/Blur/Schrift 7.3) und die Punkte 13/14 unten.
 **Feste Entscheidungen:** Screenshot-Spec schlägt Detail-Spec, gemessene Werte (2,25 px/dp)
 schlagen beide; keine Animationen außer Auslöser, Glyph-Drehung, Rad-Morph, Blatt-Gleiten;
 Roboto Flex; Konflikte K1–K13 in `ui-spezifikation.md` 9; was die App nicht kann: 4b dort.
@@ -334,11 +354,26 @@ Verlauf und Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
     (Falk: ausgiebig getestet, Thema abgeschlossen); Branch `bench/blatt-deepseek-flash-2`
     per Fast-Forward nach `master` gemergt (`ca3a8f3d`), Verlierer-Branch
     `bench/blatt-deepseek-flash` gelöscht. **Rechter Dock-Button gebaut und am 2026-09-21
-    abgenommen** (`ui/ProPanel`); offen bleibt nur noch C.
+    abgenommen** (`ui/ProPanel`). **C gebaut und am 2026-09-22 am Pixel 9 Pro abgenommen**
+    (Kopfzeile, Icon-Leiste + Popup entfernt) – der Schnitt A → B → C ist damit durch.
 11. **Selbstauslöser-Countdown dreht noch mit** (`DrawPreview`); Videozeit ist fest.
     Konsistenz offen, vermutlich auch fest.
 12. **Rad-Optik gewählt, nicht gemessen** (kein Screenshot mit offenem Rad); bei Bedarf
     über `ui/ZoomWheel`-Konstanten nachziehen.
+13. **Serienbild- und Fokus-Bracketing-Anzahl ohne Bedienung** (Fund beim Abriss von C,
+    2026-09-22): `preference_fast_burst_n_images` (Vorgabe 5), `preference_focus_bracketing_n_images`
+    (3), `focus_bracketing_add_infinity` und `focus_bracketing_auto_source_distance` standen
+    nur im Drei-Punkte-Popup und waren nie in der vollen Einstellungen-Aktivität. Die App liest
+    sie weiter (`MyApplicationInterface`), sie sind aber nicht mehr einstellbar. Kickoff 3.4
+    hatte sie ins Einstellungen-Blatt gelegt. Entscheidung nötig: Blatt-Zeilen nachziehen
+    (Serienbild-Anzahl wäre mit Kickoff 3.5 „unbegrenzt, solange gehalten" zu verbinden),
+    streichen oder bewusst so lassen. Fokus-Bracketing selbst ist ohnehin ein Fotomodus und
+    damit bis zum Karussell unerreichbar.
+14. **`./gradlew build` bricht beim Konfigurieren ab** (2026-09-22): `Could not create task
+    ':app:testDebugUnitTest' … Type T not present` – Gradle 8.13/AGP 8.13.2 gegen JDK 25.0.3.
+    `assembleDebug`, `assembleDebugAndroidTest` und `compileDebugUnitTestJavaWithJavac` laufen;
+    nur die Test-Tasks lassen sich nicht anlegen. Entscheidung nötig: Wrapper auf Gradle 9
+    hochziehen oder ein JDK 21 für Gradle setzen.
 
 ---
 
