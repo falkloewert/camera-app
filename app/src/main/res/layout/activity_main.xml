@@ -991,10 +991,11 @@
         app:layout_constraintBottom_toBottomOf="parent"
         />
 
-    <!-- Der Stärke-Knopf im Zeitraffer/Zeitlupe (SPEC 4.6): belegt im Video den Platz des
-         Pro-Panel-Knopfes (der dort aus ist) und zeigt Symbol und aktuellen Wert - wie in der
-         Referenz (docs/design-reference/pixel-zeitraffer-zeitlupe-beschreibung.md 4). Die Chips
-         baut MainUI, weil sie von der Kamera abhängen. -->
+    <!-- Der Stärke-Knopf im Zeitraffer/Zeitlupe (SPEC 4.6): steht links neben dem Pro-Knopf und
+         zeigt Symbol und aktuellen Wert - wie in der Referenz
+         (docs/design-reference/pixel-zeitraffer-zeitlupe-beschreibung.md 4). Die Position setzt
+         MainUI.layoutUI() (Versatz 72 dp, damit der Pro-Knopf daneben Platz hat, Schritt K). Die
+         Chips baut MainUI, weil sie von der Kamera abhängen. -->
     <LinearLayout
         android:id="@+id/video_speed_button"
         android:layout_width="wrap_content"

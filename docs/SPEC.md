@@ -390,7 +390,9 @@ Nacht-Erweiterung läuft nur auf der Hauptkamera, der Mond setzt das Objektiv de
   unsichtbar** (y-nach-oben-Vektoren ohne `translateY`; jetzt im Blatt und im Chip zu sehen).
   **RAW fehlt auch im Pro-Reiter des Blattes**, wo es nichts bewirkt (Panorama/Porträt), und
   `res/drawable/header_chip_background_icon.xml` ist **gelöscht** (Falks Antwort auf die offene
-  Frage aus Schritt I). Kickoff: `docs/kickoff/redesign-schritt-k-j-befunde.md`.
+  Frage aus Schritt I). Nachgezogen: **Stärke-Pille und Pro-Knopf lagen in Zeitlupe/Zeitraffer
+  übereinander** (Falk: „der pro einstellungsbutton ist noch kaputt") – die Pille rückt 72 dp
+  nach links und zeigt ihren Wert. Kickoff: `docs/kickoff/redesign-schritt-k-j-befunde.md`.
 **Feste Entscheidungen:** Screenshot-Spec schlägt Detail-Spec, gemessene Werte (2,25 px/dp)
 schlagen beide; keine Animationen außer Auslöser, Glyph-Drehung, Rad-Morph, Blatt-Gleiten;
 Roboto Flex; Konflikte K1–K13 in `ui-spezifikation.md` 9; was die App nicht kann: 4b dort.

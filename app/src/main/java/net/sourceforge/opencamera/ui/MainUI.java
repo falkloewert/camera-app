@@ -733,17 +733,19 @@ public class MainUI {
             cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, (int) (16 * scale + 0.5f));
             pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f));
 
-            // Der Staerke-Knopf von Zeitraffer/Zeitlupe nimmt denselben Platz ein wie der
-            // Pro-Knopf: die beiden loesen einander ab (Google-Modell, Falk 2026-09-22 "bei
-            // zeitraffer und zeitlupe sind die knöpfe sehr gequetscht"). Nebeneinander - wie in
-            // Schritt H - waren sie in derselben Ecke gedraengt. Welcher von beiden zu sehen ist,
-            // entscheidet updateVideoSpeedButton() gegen proPanelIsOpen(). Die Reihe der Staerken
-            // nimmt weiterhin den Platz der Zoom-Pille ein - seit Schritt J oeffnet sie sich im
+            // Der Staerke-Knopf von Zeitraffer/Zeitlupe steht LINKS NEBEN dem Pro-Knopf, nicht
+            // auf ihm: beide waren an derselben Kante ausgerichtet und lagen uebereinander, dabei
+            // verschwand der Wert der Pille hinter dem Pro-Knopf und sein Zeichen war
+            // abgeschnitten (Falk 2026-09-22: "bei zeitraffer ist der pro einstellungsbutton noch
+            // kaputt"). Der Versatz ist die Dock-Kante (16 dp) + der Pro-Knopf (48 dp) + eine
+            // Luecke (8 dp) - so bleibt die Ecke in jedem Zustand gleich, auch wenn der Pro-Knopf
+            // gerade weg ist (Panel offen, updateVideoSpeedButton()). Die Reihe der Staerken nimmt
+            // weiterhin den Platz der Zoom-Pille ein - seit Schritt J oeffnet sie sich im
             // Pro-Panel auf dessen Reiter "Geschwindigkeit" und liegt ueber dem Auslöser.
             view = main_activity.findViewById(R.id.video_speed_button);
             view_id = view.getId();
             resetView(cs, view);
-            cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, (int) (16 * scale + 0.5f));
+            cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, (int) (72 * scale + 0.5f));
             pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f));
 
             view = main_activity.findViewById(R.id.video_speed_bar);
@@ -2007,9 +2009,9 @@ public class MainUI {
                 // Belichtung und Weissabgleich, ProPanel.tabOffered()) - der Knopf bleibt also
                 // stehen wie die uebrigen Dock-Knoepfe. Ein offenes Panel wird nicht mehr
                 // geschlossen, es zeigt im Video von selbst die kuerzere Reiter-Reihe.
-                // In Zeitraffer/Zeitlupe traegt die Ecke stattdessen der Staerke-Knopf; der fuehrt
-                // seit Schritt J in dasselbe Panel (Reiter "Geschwindigkeit", s.
-                // updateVideoSpeedButton()) - die Zeile unten bleibt, wie sie ist.
+                // In Zeitraffer/Zeitlupe steht links daneben der Staerke-Knopf; er fuehrt seit
+                // Schritt J in dasselbe Panel (Reiter "Geschwindigkeit", s.
+                // updateVideoSpeedButton()) - der Pro-Knopf bleibt daneben stehen (Schritt K).
                 main_activity.findViewById(R.id.pro_panel_button).setVisibility(mode_visibility);
                 updateModeBar();
 

@@ -849,6 +849,11 @@ Falks Befunde zu Schritt J, noch am selben Tag am Gerät geprüft.
   Porträt): dieselbe Frage wie in den vollen Einstellungen
   (`isRawAllowed(getTopLevelPhotoMode())`).
 - **`res/drawable/header_chip_background_icon.xml` gelöscht** (seit Schritt I unbenutzt).
+- **Stärke-Pille und Pro-Knopf stehen nebeneinander** („bei zeitraffer ist der pro
+  einstellungsbutton noch kaputt"): seit Schritt J waren beide an derselben Kante ausgerichtet
+  und lagen übereinander – der Wert der Pille verschwand hinter dem Pro-Knopf, sein Zeichen war
+  abgeschnitten. Die Pille rückt um Dock-Kante + Pro-Knopf + Lücke nach links (72 dp,
+  `MainUI.layoutUI()`); der Pro-Knopf bleibt dort und öffnet weiter sein Panel.
 
 ### Beim Orientierungs-Umbau (2026-09-17) festgestellt, nicht orientierungsbedingt
 

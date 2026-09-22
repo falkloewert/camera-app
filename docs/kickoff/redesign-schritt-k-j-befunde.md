@@ -35,13 +35,24 @@ bei fotos"*. `R.id.pro_panel_auto` ist wieder ein `ImageButton` mit `ms_restart_
 Zeichen wie der Reiter „Alle zurücksetzen"), wie vor Schritt C. Die Begründung von damals („zwei
 gleiche Zeichen im selben Panel") ist damit aufgehoben – Falk hat entschieden.
 
-## E – Löschen
+## E – Pro-Knopf in Zeitraffer „kaputt"
+
+Falk beim Abnehmen: *„bei zeitraffer ist der pro einstellungsbutton noch kaputt"*. Beide Knöpfe
+der Ecke waren seit Schritt J an derselben Kante ausgerichtet (16 dp) und lagen damit
+übereinander: die Stärke-Pille deckte den Pro-Knopf, ihr Wert („5×", „1/4×") verschwand hinter
+ihm, und sein Zeichen war abgeschnitten. Fix: die Pille rückt um Dock-Kante + Pro-Knopf + Lücke
+nach links (72 dp, `MainUI.layoutUI()`), der Pro-Knopf bleibt und öffnet weiter sein Panel. Am
+Gerät: Zeitlupe `[◉ 1/4×] [≠]`, Zeitraffer `[▶▶ 5×] [≠]`, beide ohne Überdeckung.
+
+## F – Löschen
 
 `res/drawable/header_chip_background_icon.xml` ist gelöscht (seit Schritt I unbenutzt) – Antwort
 auf die offene Frage aus Schritt I/J.
 
-## F – Prüfen am Gerät (Falk)
+## G – Prüfen am Gerät (Falk)
 
 Zeitlupe **und** Zeitraffer: Reiter-Reihe wie oben, Zurück-Pfeil rechts neben der Pille; im
 Video-Blatt „Taschenlampe" mit beiden Zeichen, der Chip im Band wechselt mit. Panorama →
-Pro-Reiter ohne RAW, Standard-Foto mit RAW. Nichts verschwindet mehr beim Schließen.
+Pro-Reiter ohne RAW, Standard-Foto mit RAW. Ecke in Zeitlupe/Zeitraffer: Stärke-Pille mit Wert
+und Pro-Knopf nebeneinander, beide öffnen das Panel (Pille auf „Geschwindigkeit"). Nichts
+verschwindet mehr beim Schließen.

@@ -524,8 +524,10 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   (`SettingsSheet.photoProRows()`, dieselbe Frage `isRawAllowed(getTopLevelPhotoMode())`).
   **„Alle zurücksetzen" gilt jetzt im Video** (`ProPanel.tabOffered()`, Zeitlupe/Zeitraffer).
   **Der Knopf je Reiter zeigt den Zurück-Pfeil statt „Auto"** (`ms_restart_alt`, ersetzt die
-  Beschriftung aus Schritt C). `res/drawable/header_chip_background_icon.xml` **gelöscht**.
-  Kickoff: `docs/kickoff/redesign-schritt-k-j-befunde.md`.
+  Beschriftung aus Schritt C). Nachgezogen: **Stärke-Pille und Pro-Knopf lagen in Zeitlupe/
+  Zeitraffer übereinander** (Falk: „der pro einstellungsbutton ist noch kaputt"), die Pille rückt
+  jetzt 72 dp nach links (`MainUI.layoutUI()`) und zeigt ihren Wert. `header_chip_background_icon.xml`
+  **gelöscht**. Kickoff: `docs/kickoff/redesign-schritt-k-j-befunde.md`.
 
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 
