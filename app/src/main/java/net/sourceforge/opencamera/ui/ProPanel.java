@@ -1,5 +1,6 @@
 package net.sourceforge.opencamera.ui;
 
+import android.content.res.TypedArray;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.os.Looper;
@@ -149,6 +150,8 @@ public class ProPanel {
      *  Naheinstellgrenze her: die nahen Entfernungen sind die, die man einstellt. */
     private static final int FOCUS_LABEL_STEPS = 3;
     private static final float HANDLE_HEIGHT = 3.0f;  // wie das Griffstueck des Einstellungen-Blatts
+    private static final float FOCUS_MODE_SIZE = 42.0f;  // Kachel eines Fokus-Modus
+    private static final float FOCUS_MODE_GAP = 6.0f;
     private static final float CLOSE_SWIPE = 16.0f;   // so weit nach unten wischen schliesst
 
     private final MainActivity main_activity;
@@ -157,11 +160,14 @@ public class ProPanel {
     private final ImageView end_minus_icon, end_plus_icon;
     private final View end_minus, end_plus;
     private final FrameLayout slider_holder;
-    private final ImageButton auto_button;
+    private final TextView auto_button; // beschriftet ("Auto"), kein Symbol - siehe activity_main.xml
     private final TextView badge;
     private final View sheet, handle;
     private final HorizontalScrollView tabs_scroll;
     private final LinearLayout tabs_row;
+    /** Die Fokus-Modi als Knopfreihe - nur im Reiter "Fokus" sichtbar (Falk 2026-09-21). */
+    private final HorizontalScrollView focus_modes_scroll;
+    private final LinearLayout focus_modes_row;
 
     /** Das Massband unter dem Regler (zeichnen tut es, bedient wird der SeekBar darueber). */
     private final RulerSlider ruler;
@@ -260,6 +266,8 @@ public class ProPanel {
         this.handle = main_activity.findViewById(R.id.pro_panel_handle);
         this.tabs_scroll = main_activity.findViewById(R.id.pro_panel_tabs_scroll);
         this.tabs_row = main_activity.findViewById(R.id.pro_panel_tabs);
+        this.focus_modes_scroll = main_activity.findViewById(R.id.pro_panel_focus_modes_scroll);
+        this.focus_modes_row = main_activity.findViewById(R.id.pro_panel_focus_modes);
 
         // das Massband liegt unter dem Regler; der Regler selbst ist der SeekBar der App, der
         // beim Reiterwechsel hier hineinwandert (showSlider)
@@ -428,8 +436,9 @@ public class ProPanel {
             return;
         }
         if( tab == TAB_PEAKING ) {
-            // derselbe Weg wie der Fokus-Peaking-Knopf der Icon-Leiste
-            main_activity.clickedFocusPeaking(null);
+            // Seit Schritt C gibt es den Fokus-Peaking-Knopf der Icon-Leiste nicht mehr; der
+            // Pro-Panel-Reiter ist der einzige Ort, an dem sich das Peaking noch umschalten lässt.
+            main_activity.getMainUI().getOnScreenIcons().clickedFocusPeaking();
             markTabs();
             return;
         }
@@ -442,6 +451,12 @@ public class ProPanel {
         markTabs();
         updateAutoButton();
         updateBadge();
+        if( tab == TAB_FOCUS ) {
+            // welcher Modus gerade laeuft, steht sonst nirgends ausgeschrieben
+            String current = main_activity.getPreview().getCurrentFocusValue();
+            if( current != null )
+                main_activity.getPreview().showToast(null, focusModeLabel(current), 0, true);
+        }
     }
 
     /** Setzt die Reiter-Kacheln: weisser Kreis = aktiver Reiter; das Fokus-Peaking zeigt seinen
@@ -473,6 +488,94 @@ public class ProPanel {
                     R.color.settings_sheet_button_glyph_selected : R.color.settings_sheet_button_glyph));
             label.setTextColor(ContextCompat.getColor(main_activity, R.color.settings_sheet_tab_inactive_text));
         }
+        updateFocusModes();
+    }
+
+    /* ---- Fokus-Modi ----------------------------------------------------------------------- */
+
+    /** Die Fokus-Modi als Knopfreihe ueber der Reiter-Reihe, nur im Reiter "Fokus" (Falk
+     *  2026-09-21). Die alte Icon-Leiste hatte fuer sie keinen Platz mehr, und im
+     *  Einstellungen-Blatt laegen sie drei Tipps tief - der Reiter ist der Ort, an dem sie
+     *  hingehoeren, weil er den Fokus ohnehin schon zeigt.
+     *
+     *  <p>Gezeigt wird nur, was die Kamera hergibt ({@link Preview#getSupportedFocusValues()});
+     *  die Beschriftungen kommen aus denselben Arrays wie frueher der Popup-Eintrag.</p> */
+    private void updateFocusModes() {
+        focus_modes_scroll.setVisibility(open && selected_tab == TAB_FOCUS ? View.VISIBLE : View.GONE);
+        if( !open || selected_tab != TAB_FOCUS )
+            return;
+        Preview preview = main_activity.getPreview();
+        List<String> supported = preview != null ? preview.getSupportedFocusValues() : null;
+        if( supported == null ) {
+            focus_modes_row.removeAllViews();
+            return;
+        }
+        String [] values = main_activity.getResources().getStringArray(R.array.focus_mode_values);
+        String [] labels = main_activity.getResources().getStringArray(R.array.focus_mode_entries);
+        TypedArray icons = main_activity.getResources().obtainTypedArray(R.array.focus_mode_icons);
+        String current = preview.getCurrentFocusValue();
+        focus_modes_row.removeAllViews();
+        int size = dp(FOCUS_MODE_SIZE);
+        int pad = (size - dp(TAB_ICON_SIZE)) / 2;
+        for(int i = 0; i < values.length; i++) {
+            if( !supported.contains(values[i]) )
+                continue;
+            final String value = values[i];
+            boolean selected = value.equals(current);
+            ImageView chip = new ImageView(main_activity);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
+            lp.setMarginEnd(dp(FOCUS_MODE_GAP));
+            chip.setLayoutParams(lp);
+            chip.setPadding(pad, pad, pad, pad);
+            chip.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            chip.setImageResource(icons.getResourceId(i, 0));
+            chip.setContentDescription(labels[i]);
+            GradientDrawable background = new GradientDrawable();
+            background.setShape(GradientDrawable.OVAL);
+            background.setColor(ContextCompat.getColor(main_activity, selected ?
+                    R.color.settings_sheet_button_selected : R.color.settings_sheet_button));
+            chip.setBackground(background);
+            chip.setColorFilter(ContextCompat.getColor(main_activity, selected ?
+                    R.color.settings_sheet_button_glyph_selected : R.color.settings_sheet_button_glyph));
+            chip.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    clickedFocusMode(value);
+                }
+            });
+            focus_modes_row.addView(chip);
+        }
+        icons.recycle();
+    }
+
+    /** Einen Fokus-Modus waehlen. Der manuelle Modus stellt noch nichts ein: seinen Wert gibt das
+     *  Band vor, das gleich darauf uebernimmt ({@link #focus_manual_pending}). */
+    private void clickedFocusMode(String value) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "clickedFocusMode: " + value);
+        Preview preview = main_activity.getPreview();
+        if( preview == null )
+            return;
+        focus_manual_pending = FOCUS_MANUAL.equals(value);
+        main_activity.getApplicationInterface().setFocusPref(value, preview.isVideo());
+        main_activity.updateForSettings(true, "");
+        setFocusSeekbarProgress();
+        markTabs();
+        // Die Knoepfe der Reihe tragen nur Symbole - der Name des Modus wird eingeblendet
+        // (Falk 2026-09-22: "ich weiss nicht wie die heissen").
+        preview.showToast(null, focusModeLabel(value), 0, true);
+    }
+
+    /** Der ausgeschriebene Name eines Fokus-Modus ("Automatisch", "Makro", ...). Die beiden
+     *  Listen des Einstellungen-Blattes liegen in derselben Reihenfolge. */
+    private String focusModeLabel(String value) {
+        String [] values = main_activity.getResources().getStringArray(R.array.focus_mode_values);
+        String [] labels = main_activity.getResources().getStringArray(R.array.focus_mode_entries);
+        for(int i = 0; i < values.length; i++) {
+            if( values[i].equals(value) )
+                return labels[i];
+        }
+        return value;
     }
 
     /* ---- Regler --------------------------------------------------------------------------- */
@@ -1520,7 +1623,6 @@ public class ProPanel {
             return;
         if( preview.isVideo() )
             return; // das Panel gibt es nur im Foto-Modus (MainUI.layoutUI() blendet den Knopf aus)
-        main_activity.closePopup();
         if( main_activity.settingsSheetIsOpen() )
             main_activity.getSettingsSheet().close();
         // die alte Belichtungs-UI der Icon-Leiste hat hier nichts mehr zu suchen - ihre Regler
@@ -1563,6 +1665,7 @@ public class ProPanel {
         pill.setVisibility(View.GONE);
         badge.setVisibility(View.GONE);
         tabs_scroll.setVisibility(View.GONE);
+        focus_modes_scroll.setVisibility(View.GONE);
         sheet.setVisibility(View.GONE);
         handle.setVisibility(View.GONE);
         ruler.setVisibility(View.GONE);

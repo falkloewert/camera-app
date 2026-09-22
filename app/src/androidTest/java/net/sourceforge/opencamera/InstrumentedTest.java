@@ -2,9 +2,6 @@ package net.sourceforge.opencamera;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.assertion.ViewAssertions.matches;
-import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
-import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.endsWith;
@@ -35,7 +32,6 @@ import net.sourceforge.opencamera.cameracontroller.CameraController;
 import net.sourceforge.opencamera.cameracontroller.CameraController2;
 import net.sourceforge.opencamera.preview.Preview;
 import net.sourceforge.opencamera.ui.DrawPreview;
-import net.sourceforge.opencamera.ui.PopupView;
 
 import org.junit.After;
 import org.junit.Before;
@@ -262,21 +258,6 @@ public class InstrumentedTest {
         assertTrue(view.performClick());
     }
 
-    private void openPopupMenu() {
-        Log.d(TAG, "openPopupMenu");
-        assertFalse( getActivityValue(MainActivity::popupIsOpen) );
-        onView(withId(R.id.popup)).check(matches(isDisplayed()));
-        onView(withId(R.id.popup)).perform(click());
-
-        Log.d(TAG, "wait for popup to open");
-
-        boolean done = false;
-        while( !done ) {
-            done = getActivityValue(MainActivity::popupIsOpen);
-        }
-        Log.d(TAG, "popup is now open");
-    }
-
     private void switchToFlashValue(String required_flash_value) {
         Log.d(TAG, "switchToFlashValue: "+ required_flash_value);
         boolean supports_flash = getActivityValue(activity -> activity.getPreview().supportsFlash());
@@ -285,18 +266,10 @@ public class InstrumentedTest {
             Log.d(TAG, "start flash_value: "+ flash_value);
             if( !flash_value.equals(required_flash_value) ) {
 
-                openPopupMenu();
-
-                String flash_value_f = flash_value;
-                mActivityRule.getScenario().onActivity(activity -> {
-                    View currentFlashButton = activity.getUIButton("TEST_FLASH_" + flash_value_f);
-                    assertNotNull(currentFlashButton);
-                    assertEquals(currentFlashButton.getAlpha(), PopupView.ALPHA_BUTTON_SELECTED, 1.0e-5);
-                    View flashButton = activity.getUIButton("TEST_FLASH_" + required_flash_value);
-                    assertNotNull(flashButton);
-                    assertEquals(flashButton.getAlpha(), PopupView.ALPHA_BUTTON, 1.0e-5);
-                    clickView(flashButton);
-                });
+                // Schritt C: den Blitz-Knopf im Popup gibt es nicht mehr - der Blitz sitzt jetzt im
+                // Einstellungen-Blatt, also wird die Einstellung hier direkt gesetzt.
+                mActivityRule.getScenario().onActivity(activity -> activity.getApplicationInterface().setFlashPref(required_flash_value));
+                updateForSettings();
 
                 flash_value = getActivityValue(activity -> activity.getPreview().getCurrentFlashValue());
                 Log.d(TAG, "changed flash_value to: "+ flash_value);
@@ -323,13 +296,10 @@ public class InstrumentedTest {
             Log.d(TAG, "start focus_value: "+ focus_value);
             if( !focus_value.equals(required_focus_value) ) {
 
-                openPopupMenu();
-
-                mActivityRule.getScenario().onActivity(activity -> {
-                    View focusButton = activity.getUIButton("TEST_FOCUS_" + required_focus_value);
-                    assertNotNull(focusButton);
-                    clickView(focusButton);
-                });
+                // Schritt C: die Fokus-Modi sitzen jetzt im Pro-Panel, nicht mehr im Popup.
+                boolean is_video = getActivityValue(activity -> activity.getPreview().isVideo());
+                mActivityRule.getScenario().onActivity(activity -> activity.getApplicationInterface().setFocusPref(required_focus_value, is_video));
+                updateForSettings();
 
                 focus_value = getActivityValue(activity -> activity.getPreview().getCurrentFocusValue());
                 Log.d(TAG, "changed focus_value to: "+ focus_value);
@@ -352,34 +322,12 @@ public class InstrumentedTest {
         int iso = getActivityValue(activity -> activity.getPreview().getCameraController().getISO());
         Log.d(TAG, "start iso: "+ iso);
         if( iso != required_iso ) {
-            mActivityRule.getScenario().onActivity(activity -> {
-                View exposureButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure);
-                View exposureContainer = activity.findViewById(net.sourceforge.opencamera.R.id.exposure_container);
-                assertEquals(exposureContainer.getVisibility(), View.GONE);
-                clickView(exposureButton);
-            });
-            mActivityRule.getScenario().onActivity(activity -> {
-                View exposureContainer = activity.findViewById(net.sourceforge.opencamera.R.id.exposure_container);
-                assertEquals(exposureContainer.getVisibility(), View.VISIBLE);
-                View isoButton = activity.getUIButton("TEST_ISO_" + required_iso);
-                assertNotNull(isoButton);
-                clickView(isoButton);
-            });
-            try {
-                Thread.sleep(DrawPreview.dim_effect_time_c+50); // wait for updateForSettings
-                //this.getInstrumentation().waitForIdleSync();
-            }
-            catch(InterruptedException e) {
-                Log.e(TAG, "InterruptedException from sleep", e);
-            }
+            // Schritt C: die ISO-Knoepfe im Popup gibt es nicht mehr - das Belichtungs-Panel wird
+            // jetzt aus dem Pro-Panel geoeffnet, also wird der ISO-Wert hier direkt gesetzt.
+            mActivityRule.getScenario().onActivity(activity -> activity.getApplicationInterface().setISOPref("" + required_iso));
+            updateForSettings();
             iso = getActivityValue(activity -> activity.getPreview().getCameraController().getISO());
             Log.d(TAG, "changed iso to: "+ iso);
-            mActivityRule.getScenario().onActivity(activity -> {
-                View exposureButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure);
-                View exposureContainer = activity.findViewById(net.sourceforge.opencamera.R.id.exposure_container);
-                clickView(exposureButton);
-                assertEquals(exposureContainer.getVisibility(), View.GONE);
-            });
         }
         assertEquals(iso, required_iso);
     }
@@ -8901,22 +8849,13 @@ public class InstrumentedTest {
             activity.getPreview().getCameraController().test_force_run_post_capture = true;
         });
 
-        mActivityRule.getScenario().onActivity(activity -> {
-            // open exposure UI
-            View exposureButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure);
-            View exposureContainer = activity.findViewById(net.sourceforge.opencamera.R.id.manual_exposure_container);
-            assertEquals(exposureButton.getVisibility(), View.VISIBLE);
-            assertEquals(exposureContainer.getVisibility(), View.GONE);
-
-            clickView(exposureButton);
-        });
+        // Schritt C: die Belichtungs-UI wird nicht mehr ueber einen eigenen Knopf geoeffnet/geschlossen
+        // (SPEC 4.5) - der Container ist nach switchToISO(100) bereits sichtbar.
         AtomicReference<Long> chosen_exposureRef = new AtomicReference<>();
         mActivityRule.getScenario().onActivity(activity -> {
-            View exposureButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure);
             View exposureContainer = activity.findViewById(net.sourceforge.opencamera.R.id.manual_exposure_container);
             SeekBar isoSeekBar = activity.findViewById(net.sourceforge.opencamera.R.id.iso_seekbar);
             SeekBar exposureTimeSeekBar = activity.findViewById(net.sourceforge.opencamera.R.id.exposure_time_seekbar);
-            assertEquals(exposureButton.getVisibility(), View.VISIBLE);
             assertEquals(exposureContainer.getVisibility(), View.VISIBLE);
             assertEquals(isoSeekBar.getVisibility(), View.VISIBLE);
             assertEquals(exposureTimeSeekBar.getVisibility(), (activity.getPreview().supportsExposureTime() ? View.VISIBLE : View.GONE));
@@ -8936,16 +8875,6 @@ public class InstrumentedTest {
         mActivityRule.getScenario().onActivity(activity -> {
             assertEquals(activity.getPreview().getCameraController().getISO(), 100);
             assertEquals(activity.getPreview().getCameraController().getExposureTime(), chosen_exposure);
-
-            // close the exposure UI
-            View exposureButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure);
-            clickView(exposureButton);
-        });
-        mActivityRule.getScenario().onActivity(activity -> {
-            View exposureButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure);
-            View exposureContainer = activity.findViewById(net.sourceforge.opencamera.R.id.manual_exposure_container);
-            assertEquals(exposureButton.getVisibility(), View.VISIBLE);
-            assertEquals(exposureContainer.getVisibility(), View.GONE);
         });
 
         subTestTakePhoto(false, false, true, true, false, false, false, false);
@@ -9047,8 +8976,8 @@ public class InstrumentedTest {
         // go to settings
         assertFalse(getActivityValue(activity -> activity.isCameraInBackground()));
         mActivityRule.getScenario().onActivity(activity -> {
-            View settingsButton = activity.findViewById(net.sourceforge.opencamera.R.id.settings);
-            clickView(settingsButton);
+            // Schritt C: den Zahnrad-Knopf in der Icon-Leiste gibt es nicht mehr (SPEC 4.5)
+            activity.openSettings();
         });
         assertTrue(getActivityValue(activity -> activity.isCameraInBackground()));
 
@@ -9108,14 +9037,10 @@ public class InstrumentedTest {
         Log.d(TAG, "n_files at start: " + n_files);
 
         // store status to compare with later
-        int exposureVisibility = getActivityValue(activity -> {
-            View exposureButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure);
-            return exposureButton.getVisibility();
-        });
-        int exposureLockVisibility = getActivityValue(activity -> {
-            View exposureLockButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure_lock);
-            return exposureLockButton.getVisibility();
-        });
+        // Schritt C: Belichtungs-Knopf und Belichtungssperre-Knopf gibt es nicht mehr (SPEC 4.5) -
+        // die Werte werden nur noch an die (inzwischen ungenutzten) TestUtils-Parameter durchgereicht.
+        int exposureVisibility = View.GONE;
+        int exposureLockVisibility = View.GONE;
 
         mActivityRule.getScenario().onActivity(activity -> {
             Log.d(TAG, "about to click take video");
@@ -9187,20 +9112,8 @@ public class InstrumentedTest {
                     Log.d(TAG, "done touch to focus");
                 }
 
-                if( test_exposure_lock ) {
-                    mActivityRule.getScenario().onActivity(activity -> {
-                        Log.d(TAG, "test exposure lock");
-                        assertFalse(activity.getPreview().getCameraController().getAutoExposureLock());
-                        View exposureLockButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure_lock);
-                        clickView(exposureLockButton);
-                    });
-                    getInstrumentation().waitForIdleSync();
-                    Log.d(TAG, "after idle sync");
-                    mActivityRule.getScenario().onActivity(activity -> {
-                        assertTrue( activity.getPreview().getCameraController().getAutoExposureLock() );
-                    });
-                    Thread.sleep(2000);
-                }
+                // Schritt C: den Belichtungssperre-Knopf gibt es nicht mehr (SPEC 4.5), damit auch
+                // keinen Weg mehr, die Sperre aus dem Test heraus auszuloesen - der Block entfaellt.
 
                 mActivityRule.getScenario().onActivity(activity -> {
                     TestUtils.takeVideoRecordingChecks(activity, immersive_mode, exposureVisibility, exposureLockVisibility);

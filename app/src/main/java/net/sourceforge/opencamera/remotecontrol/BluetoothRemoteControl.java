@@ -166,8 +166,8 @@ public class BluetoothRemoteControl {
                     case BluetoothLeService.COMMAND_MODE:
                         // "Mode" key :either toggles photo/video mode, or
                         // closes the settings screen that is currently open
-                        if( mainUI.popupIsOpen() ) {
-                            mainUI.togglePopupSettings();
+                        if( main_activity.settingsSheetIsOpen() ) {
+                            main_activity.getSettingsSheet().close();
                         }
                         else if( mainUI.isExposureUIOpen() ) {
                             mainUI.toggleExposureUI();
@@ -180,16 +180,11 @@ public class BluetoothRemoteControl {
                         // Open the exposure UI (ISO/Exposure) or
                         // select the current line on an open UI or
                         // select the current option on a button on a selected line
-                        if( !mainUI.popupIsOpen() ) {
-                            if( !mainUI.isExposureUIOpen() ) {
-                                mainUI.toggleExposureUI();
-                            }
-                            else {
-                                mainUI.commandMenuExposure();
-                            }
+                        if( !mainUI.isExposureUIOpen() ) {
+                            mainUI.toggleExposureUI();
                         }
                         else {
-                            mainUI.commandMenuPopup();
+                            mainUI.commandMenuExposure();
                         }
                         break;
                     case BluetoothLeService.COMMAND_UP:
@@ -218,12 +213,9 @@ public class BluetoothRemoteControl {
                         }
                         break;
                     case BluetoothLeService.COMMAND_AFMF:
-                        // Open the camera settings popup menu (not the app settings)
-                        // or selects the current line/icon in the popup menu, and finally
-                        // clicks the icon
-                        //if( !mainUI.popupIsOpen() ) {
-                        mainUI.togglePopupSettings();
-                        //}
+                        // Open the camera settings sheet (not the app settings); the sheet
+                        // replaces the old popup menu (SPEC 4.5, Schritt C)
+                        main_activity.clickedSettingsSheet(null);
                         break;
                     default:
                         break;

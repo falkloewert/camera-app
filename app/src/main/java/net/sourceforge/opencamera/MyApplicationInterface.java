@@ -2244,7 +2244,6 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     @Override
     public void touchEvent(MotionEvent event) {
         main_activity.getMainUI().closeExposureUI();
-        main_activity.getMainUI().closePopup();
         if( main_activity.usingKitKatImmersiveMode() ) {
             main_activity.setImmersiveMode(false);
         }
@@ -2266,7 +2265,6 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         // für die Dauer der Aufnahme - hier gemeldet, weil Preview.isVideoRecording() jetzt noch
         // falsch ist; stoppedVideo() meldet das Ende.
         main_activity.getMainUI().setVideoRecordingForUI(true);
-        main_activity.getMainUI().destroyPopup(); // as the available popup options change while recording video
     }
 
     private void startVideoSubtitlesTask(final VideoMethod video_method) {
@@ -2598,7 +2596,6 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         takePhotoVideoButton.setVisibility(View.GONE);
         main_activity.getMainUI().setPauseVideoContentDescription(); // just to be safe
         main_activity.getMainUI().setVideoRecordingForUI(false); // die Modusleiste hat ihre Video-Einträge zurück (SPEC 4.6)
-        main_activity.getMainUI().destroyPopup(); // as the available popup options change while recording video
         if( main_activity.getMainUI().isExposureUIOpen() ) {
             if( MyDebug.LOG )
                 Log.d(TAG, "need to update exposure UI for stop video recording");
@@ -2935,18 +2932,13 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     public void hasPausedPreview(boolean paused) {
         if( MyDebug.LOG )
             Log.d(TAG, "hasPausedPreview: " + paused);
-        View shareButton = main_activity.findViewById(R.id.share);
-        View trashButton = main_activity.findViewById(R.id.trash);
         if( paused ) {
-            // we don't show the share/trash buttons here, as image is saved on background thread, and need to wait until it's saved -
-            // so instead we show them from MainActivity.imageQueueChanged() once saved
-            //shareButton.setVisibility(View.VISIBLE);
-            //trashButton.setVisibility(View.VISIBLE);
+            // Seit Schritt C gibt es die Teilen- und Wegwerfen-Knoepfe unter der pausierten
+            // Vorschau nicht mehr (Redesign Kopfzeile + Icon-Leiste). Ein pausiertes Bild bleibt
+            // damit liegen, bis die Vorschau wieder anlaeuft - der Zurueck-Knopf tut das.
             main_activity.enablePausePreviewOnBackPressedCallback(true); // so that pressing back button instead unpauses the preview
         }
         else {
-            shareButton.setVisibility(View.GONE);
-            trashButton.setVisibility(View.GONE);
             this.clearLastImages();
             main_activity.enablePausePreviewOnBackPressedCallback(false); // reenable standard back button behaviour
         }
@@ -3053,7 +3045,6 @@ public class MyApplicationInterface extends BasicApplicationInterface {
             Log.d(TAG, "cameraClosed");
         this.stopPanorama(true);
         main_activity.getMainUI().closeExposureUI();
-        main_activity.getMainUI().destroyPopup(); // need to close popup - and when camera reopened, it may have different settings
         drawPreview.clearContinuousFocusMove();
     }
 

@@ -144,9 +144,6 @@ public class SettingsSheet {
         Preview preview = main_activity.getPreview();
         if( preview == null )
             return;
-        // the sheet and the popup are never open at the same time (Kickoff 3.2) - the other
-        // direction is in MainUI.togglePopupSettings()
-        main_activity.closePopup();
         open = true;
         // the sheet always opens on the left tab (Kickoff 2.2)
         selected_tab = 0;
@@ -654,10 +651,6 @@ public class SettingsSheet {
                     for(int j=0;j<buttons.size();j++)
                         markOptionButton(buttons.get(j), j == index);
                     option.action.run();
-                    // the old popup caches its views, and updateForSettings() is called with
-                    // keep_popup, so without this it would still show the values from before the
-                    // sheet changed them (Kickoff: destroy the popup after every change)
-                    main_activity.getMainUI().destroyPopup();
                 }
             });
         }
@@ -809,9 +802,6 @@ public class SettingsSheet {
                                 // quiet: the row marks the new value itself, and info toasts
                                 // aren't used (docs/SPEC.md 2.7)
                                 preview.updateFlashQuiet(value);
-                                MainUI mainUI = main_activity.getMainUI();
-                                mainUI.setPopupIcon();
-                                mainUI.destroyPopup();
                                 refresh();
                             }
                         }));
@@ -1096,9 +1086,6 @@ public class SettingsSheet {
                             public void run() {
                                 // quiet, as in the photo flash row above
                                 main_activity.getPreview().updateFlashQuiet(value);
-                                MainUI mainUI = main_activity.getMainUI();
-                                mainUI.setPopupIcon();
-                                mainUI.destroyPopup();
                                 refresh();
                             }
                         }));

@@ -772,12 +772,6 @@ public class TestUtils {
         View switchVideoButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_video);
         //View flashButton = activity.findViewById(net.sourceforge.opencamera.R.id.flash);
         //View focusButton = activity.findViewById(net.sourceforge.opencamera.R.id.focus_mode);
-        View exposureButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure);
-        View exposureLockButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure_lock);
-        View audioControlButton = activity.findViewById(net.sourceforge.opencamera.R.id.audio_control);
-        View popupButton = activity.findViewById(net.sourceforge.opencamera.R.id.popup);
-        View trashButton = activity.findViewById(net.sourceforge.opencamera.R.id.trash);
-        View shareButton = activity.findViewById(net.sourceforge.opencamera.R.id.share);
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity);
         boolean is_focus_bracketing = activity.supportsFocusBracketing() && sharedPreferences.getString(PreferenceKeys.PhotoModePreferenceKey, "preference_photo_mode_std").equals("preference_photo_mode_focus_bracketing");
         boolean is_panorama = activity.supportsPanorama() && sharedPreferences.getString(PreferenceKeys.PhotoModePreferenceKey, "preference_photo_mode_std").equals("preference_photo_mode_panorama");
@@ -792,12 +786,6 @@ public class TestUtils {
         assertTrue(!preview.isTakingPhoto() || switchVideoButton.getVisibility() == View.GONE);
         //assertTrue(!preview.isTakingPhoto() || flashButton.getVisibility() == View.GONE);
         //assertTrue(!preview.isTakingPhoto() || focusButton.getVisibility() == View.GONE);
-        assertTrue(!preview.isTakingPhoto() || exposureButton.getVisibility() == View.GONE);
-        assertTrue(!preview.isTakingPhoto() || exposureLockButton.getVisibility() == View.GONE);
-        assertTrue(!preview.isTakingPhoto() || audioControlButton.getVisibility() == View.GONE);
-        assertTrue(!preview.isTakingPhoto() || popupButton.getVisibility() == View.GONE);
-        assertTrue(!preview.isTakingPhoto() || trashButton.getVisibility() == View.GONE);
-        assertTrue(!preview.isTakingPhoto() || shareButton.getVisibility() == View.GONE);
     }
 
     private static void checkFocusInitial(MainActivity activity, final String focus_value, final String focus_value_ui) {
@@ -1250,45 +1238,26 @@ public class TestUtils {
     public static void postTakePhotoChecks(MainActivity activity, final boolean immersive_mode, final int exposureVisibility, final int exposureLockVisibility) {
         Preview preview = activity.getPreview();
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity);
-        boolean has_audio_control_button = !sharedPreferences.getString(PreferenceKeys.AudioControlPreferenceKey, "none").equals("none");
 
         View switchCameraButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_camera);
         View switchMultiCameraButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_multi_camera);
         View switchVideoButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_video);
-        View exposureButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure);
-        View exposureLockButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure_lock);
-        View audioControlButton = activity.findViewById(net.sourceforge.opencamera.R.id.audio_control);
-        View popupButton = activity.findViewById(net.sourceforge.opencamera.R.id.popup);
-        View trashButton = activity.findViewById(net.sourceforge.opencamera.R.id.trash);
-        View shareButton = activity.findViewById(net.sourceforge.opencamera.R.id.share);
 
-        // trash/share only shown when preview is paused after taking a photo
         boolean pause_preview =  sharedPreferences.getBoolean(PreferenceKeys.PausePreviewPreferenceKey, false);
         if( pause_preview ) {
             assertFalse(preview.isPreviewStarted());
             assertEquals(switchCameraButton.getVisibility(), View.GONE);
             assertEquals(switchMultiCameraButton.getVisibility(), View.GONE);
             assertEquals(switchVideoButton.getVisibility(), View.GONE);
-            assertEquals(exposureButton.getVisibility(), View.GONE);
-            assertEquals(exposureLockButton.getVisibility(), View.GONE);
-            assertEquals(audioControlButton.getVisibility(), View.GONE);
-            assertEquals(popupButton.getVisibility(), View.GONE);
-            assertEquals(trashButton.getVisibility(), View.VISIBLE);
-            assertEquals(shareButton.getVisibility(), View.VISIBLE);
         }
         else {
             assertTrue(preview.isPreviewStarted()); // check preview restarted
             assertEquals(switchCameraButton.getVisibility(), (preview.getCameraControllerManager().getNumberOfCameras() > 1 ? View.VISIBLE : View.GONE));
             assertEquals(switchMultiCameraButton.getVisibility(), (activity.showSwitchMultiCamIcon() ? View.VISIBLE : View.GONE));
-            assertEquals(switchVideoButton.getVisibility(), View.VISIBLE);
-            if( !immersive_mode ) {
-                assertEquals(exposureButton.getVisibility(), exposureVisibility);
-                assertEquals(exposureLockButton.getVisibility(), exposureLockVisibility);
-            }
-            assertEquals(audioControlButton.getVisibility(), (has_audio_control_button ? View.VISIBLE : View.GONE));
-            assertEquals(popupButton.getVisibility(), View.VISIBLE);
-            assertEquals(trashButton.getVisibility(), View.GONE);
-            assertEquals(shareButton.getVisibility(), View.GONE);
+            // Schritt C/Redesign: der Foto/Video-Knopf ist seit dem Audit-Schritt 1 unsichtbar
+            // (umbenannt: der Platz links vom Auslöser gehört der Galerie, umgeschaltet wird über
+            // die Moduswahl-Leiste). Er bleibt nur im Layout, damit dieser Test ihn findet.
+            assertEquals(switchVideoButton.getVisibility(), View.GONE);
         }
     }
 
@@ -1319,28 +1288,14 @@ public class TestUtils {
         info.is_nr = activity.supportsNoiseReduction() && sharedPreferences.getString(PreferenceKeys.PhotoModePreferenceKey, "preference_photo_mode_std").equals("preference_photo_mode_noise_reduction");
         info.is_expo = activity.supportsExpoBracketing() && sharedPreferences.getString(PreferenceKeys.PhotoModePreferenceKey, "preference_photo_mode_std").equals("preference_photo_mode_expo_bracketing");
 
-        boolean has_audio_control_button = !sharedPreferences.getString(PreferenceKeys.AudioControlPreferenceKey, "none").equals("none");
-
         View switchCameraButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_camera);
         View switchMultiCameraButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_multi_camera);
         View switchVideoButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_video);
         //View flashButton = activity.findViewById(net.sourceforge.opencamera.R.id.flash);
         //View focusButton = activity.findViewById(net.sourceforge.opencamera.R.id.focus_mode);
-        View exposureButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure);
-        View exposureLockButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure_lock);
-        View audioControlButton = activity.findViewById(net.sourceforge.opencamera.R.id.audio_control);
-        View popupButton = activity.findViewById(net.sourceforge.opencamera.R.id.popup);
-        View trashButton = activity.findViewById(net.sourceforge.opencamera.R.id.trash);
-        View shareButton = activity.findViewById(net.sourceforge.opencamera.R.id.share);
         assertEquals(switchCameraButton.getVisibility(), (immersive_mode ? View.GONE : (activity.getPreview().getCameraControllerManager().getNumberOfCameras() > 1 ? View.VISIBLE : View.GONE)));
         assertEquals(switchMultiCameraButton.getVisibility(), (immersive_mode ? View.GONE : (activity.showSwitchMultiCamIcon() ? View.VISIBLE : View.GONE)));
-        assertEquals(switchVideoButton.getVisibility(), (immersive_mode ? View.GONE : View.VISIBLE));
-        info.exposureVisibility = exposureButton.getVisibility();
-        info.exposureLockVisibility = exposureLockButton.getVisibility();
-        assertEquals(audioControlButton.getVisibility(), ((has_audio_control_button && !immersive_mode) ? View.VISIBLE : View.GONE));
-        assertEquals(popupButton.getVisibility(), (immersive_mode ? View.GONE : View.VISIBLE));
-        assertEquals(trashButton.getVisibility(), View.GONE);
-        assertEquals(shareButton.getVisibility(), View.GONE);
+        assertEquals(switchVideoButton.getVisibility(), View.GONE); // Schritt C: unsichtbar, siehe postTakePhotoChecks
 
         info.focus_value = activity.getPreview().getCameraController().getFocusValue();
         info.focus_value_ui = activity.getPreview().getCurrentFocusValue();
@@ -1544,19 +1499,12 @@ public class TestUtils {
             assertEquals(preview.getCurrentPreviewSize().height, preview.getCameraController().test_texture_view_buffer_h);
         }
 
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity);
-        boolean has_audio_control_button = !sharedPreferences.getString(PreferenceKeys.AudioControlPreferenceKey, "none").equals("none");
-
         View takePhotoButton = activity.findViewById(net.sourceforge.opencamera.R.id.take_photo);
         View pauseVideoButton = activity.findViewById(net.sourceforge.opencamera.R.id.pause_video);
         View takePhotoVideoButton = activity.findViewById(net.sourceforge.opencamera.R.id.take_photo_when_video_recording);
         View switchVideoButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_video);
         View switchCameraButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_camera);
         View switchMultiCameraButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_multi_camera);
-        View audioControlButton = activity.findViewById(net.sourceforge.opencamera.R.id.audio_control);
-        View popupButton = activity.findViewById(net.sourceforge.opencamera.R.id.popup);
-        View trashButton = activity.findViewById(net.sourceforge.opencamera.R.id.trash);
-        View shareButton = activity.findViewById(net.sourceforge.opencamera.R.id.share);
 
         if( preview.isVideo() ) {
             assertEquals((int) (Integer) switchVideoButton.getTag(), net.sourceforge.opencamera.R.drawable.ic_photo_camera_white_48dp);
@@ -1575,11 +1523,7 @@ public class TestUtils {
 
         assertEquals(switchCameraButton.getVisibility(), (immersive_mode ? View.GONE : (preview.getCameraControllerManager().getNumberOfCameras() > 1 ? View.VISIBLE : View.GONE)));
         assertEquals(switchMultiCameraButton.getVisibility(), (immersive_mode ? View.GONE : (activity.showSwitchMultiCamIcon() ? View.VISIBLE : View.GONE)));
-        assertEquals(switchVideoButton.getVisibility(), (immersive_mode ? View.GONE : View.VISIBLE));
-        assertEquals(audioControlButton.getVisibility(), ((has_audio_control_button && !immersive_mode) ? View.VISIBLE : View.GONE));
-        assertEquals(popupButton.getVisibility(), (immersive_mode ? View.GONE : View.VISIBLE));
-        assertEquals(trashButton.getVisibility(), View.GONE);
-        assertEquals(shareButton.getVisibility(), View.GONE);
+        assertEquals(switchVideoButton.getVisibility(), View.GONE); // Schritt C: unsichtbar, siehe postTakePhotoChecks
 
         checkZoomSticky(preview, true);
     }
@@ -1593,12 +1537,6 @@ public class TestUtils {
         View switchVideoButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_video);
         View switchCameraButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_camera);
         View switchMultiCameraButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_multi_camera);
-        View exposureButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure);
-        View exposureLockButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure_lock);
-        View audioControlButton = activity.findViewById(net.sourceforge.opencamera.R.id.audio_control);
-        View popupButton = activity.findViewById(net.sourceforge.opencamera.R.id.popup);
-        View trashButton = activity.findViewById(net.sourceforge.opencamera.R.id.trash);
-        View shareButton = activity.findViewById(net.sourceforge.opencamera.R.id.share);
 
         assertEquals((int) (Integer) switchVideoButton.getTag(), net.sourceforge.opencamera.R.drawable.ic_photo_camera_white_48dp);
         assertEquals(takePhotoButton.getContentDescription(), activity.getResources().getString(net.sourceforge.opencamera.R.string.stop_video));
@@ -1615,12 +1553,6 @@ public class TestUtils {
         assertEquals(switchMultiCameraButton.getVisibility(), View.GONE);
         //assertTrue(switchVideoButton.getVisibility() == (immersive_mode ? View.GONE : View.VISIBLE));
         assertEquals(switchVideoButton.getVisibility(), View.GONE);
-        assertEquals(audioControlButton.getVisibility(), View.GONE);
-        assertEquals(popupButton.getVisibility(), (!immersive_mode && preview.supportsFlash() ? View.VISIBLE : View.GONE)); // popup button only visible when recording video if flash supported
-        assertEquals(exposureButton.getVisibility(), exposureVisibility);
-        assertEquals(exposureLockButton.getVisibility(), exposureLockVisibility);
-        assertEquals(trashButton.getVisibility(), View.GONE);
-        assertEquals(shareButton.getVisibility(), View.GONE);
 
         checkZoomSticky(preview, false);
     }
@@ -1663,36 +1595,20 @@ public class TestUtils {
             assertEquals(preview.getCurrentPreviewSize().height, preview.getCameraController().test_texture_view_buffer_h);
         }
 
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(activity);
-        boolean has_audio_control_button = !sharedPreferences.getString(PreferenceKeys.AudioControlPreferenceKey, "none").equals("none");
-
         View takePhotoButton = activity.findViewById(net.sourceforge.opencamera.R.id.take_photo);
         View pauseVideoButton = activity.findViewById(net.sourceforge.opencamera.R.id.pause_video);
         View takePhotoVideoButton = activity.findViewById(net.sourceforge.opencamera.R.id.take_photo_when_video_recording);
         View switchVideoButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_video);
         View switchCameraButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_camera);
         View switchMultiCameraButton = activity.findViewById(net.sourceforge.opencamera.R.id.switch_multi_camera);
-        View exposureButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure);
-        View exposureLockButton = activity.findViewById(net.sourceforge.opencamera.R.id.exposure_lock);
-        View audioControlButton = activity.findViewById(net.sourceforge.opencamera.R.id.audio_control);
-        View popupButton = activity.findViewById(net.sourceforge.opencamera.R.id.popup);
-        View trashButton = activity.findViewById(net.sourceforge.opencamera.R.id.trash);
-        View shareButton = activity.findViewById(net.sourceforge.opencamera.R.id.share);
 
         if( !max_filesize ) {
             // if doing restart on max filesize, we may have already restarted by now (on Camera2 API at least)
             Log.d(TAG, "switchCameraButton.getVisibility(): " + switchCameraButton.getVisibility());
             assertEquals(switchCameraButton.getVisibility(), (immersive_mode ? View.GONE : (preview.getCameraControllerManager().getNumberOfCameras() > 1 ? View.VISIBLE : View.GONE)));
             assertEquals(switchMultiCameraButton.getVisibility(), (immersive_mode ? View.GONE : (activity.showSwitchMultiCamIcon() ? View.VISIBLE : View.GONE)));
-            assertEquals(audioControlButton.getVisibility(), ((has_audio_control_button && !immersive_mode) ? View.VISIBLE : View.GONE));
         }
-        assertEquals(switchVideoButton.getVisibility(), (immersive_mode ? View.GONE : View.VISIBLE));
-        assertEquals(exposureButton.getVisibility(), exposureVisibility);
-        assertEquals(exposureLockButton.getVisibility(), exposureLockVisibility);
-        assertEquals(popupButton.getVisibility(), (immersive_mode ? View.GONE : View.VISIBLE));
-        // trash/share only shown when preview is paused after taking a photo
-        assertEquals(trashButton.getVisibility(), View.GONE);
-        assertEquals(shareButton.getVisibility(), View.GONE);
+        assertEquals(switchVideoButton.getVisibility(), View.GONE); // Schritt C: unsichtbar, siehe postTakePhotoChecks
 
         assertFalse( preview.isVideoRecording() );
         assertEquals((int) (Integer) switchVideoButton.getTag(), net.sourceforge.opencamera.R.drawable.ic_photo_camera_white_48dp);

@@ -410,8 +410,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         final int n_cameras = preview.getCameraControllerManager().getNumberOfCameras();
         switchCameraButton.setVisibility(n_cameras > 1 ? View.VISIBLE : View.GONE);
         // switchMultiCameraButton visibility updated below in mainUI.updateOnScreenIcons(), as it also depends on user preference
-        View speechRecognizerButton = findViewById(R.id.audio_control);
-        speechRecognizerButton.setVisibility(View.GONE); // disabled by default, until the speech recognizer is created
         if( MyDebug.LOG )
             Log.d(TAG, "onCreate: time after setting button visibility: " + (System.currentTimeMillis() - debug_time));
         View pauseVideoButton = findViewById(R.id.pause_video);
@@ -650,8 +648,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         }).start();
 
         // handle on back behaviour
-        popupOnBackPressedCallback = new PopupOnBackPressedCallback(false);
-        this.getOnBackPressedDispatcher().addCallback(this, popupOnBackPressedCallback);
         pausePreviewOnBackPressedCallback = new PausePreviewOnBackPressedCallback(false);
         this.getOnBackPressedDispatcher().addCallback(this, pausePreviewOnBackPressedCallback);
         screenLockOnBackPressedCallback = new ScreenLockOnBackPressedCallback(false);
@@ -1135,9 +1131,9 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     void audioTrigger() {
         if( MyDebug.LOG )
             Log.d(TAG, "audioTrigger");
-        if( popupIsOpen() ) {
+        if( settingsSheetIsOpen() ) {
             if( MyDebug.LOG )
-                Log.d(TAG, "ignore audio trigger due to popup open");
+                Log.d(TAG, "ignore audio trigger due to settings sheet open");
         }
         else if( camera_in_background ) {
             if( MyDebug.LOG )
@@ -1503,7 +1499,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         super.onPause(); // docs say to call this before freeing other things
         this.app_is_paused = true;
 
-        mainUI.destroyPopup(); // important as user could change/reset settings from Android settings when pausing
         if( this.switch_multi_camera_dialog != null ) {
             // to be safe - again, camera ID could reset
             if( MyDebug.LOG )
@@ -1870,18 +1865,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         applicationInterface.stopPanorama(true);
     }
 
-    public void clickedExposureLock(View view) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "clickedExposureLock");
-        this.mainUI.getOnScreenIcons().clickedExposureLock();
-    }
-
-    public void clickedWhiteBalanceLock(View view) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "clickedWhiteBalanceLock");
-        this.mainUI.getOnScreenIcons().clickedWhiteBalanceLock();
-    }
-
     public void clickedCycleRaw(View view) {
         if( MyDebug.LOG )
             Log.d(TAG, "clickedCycleRaw");
@@ -1900,52 +1883,16 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         this.mainUI.getOnScreenIcons().clickedTextStamp();
     }
 
-    public void clickedStamp(View view) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "clickedStamp");
-        this.mainUI.getOnScreenIcons().clickedStamp();
-    }
-
-    public void clickedFocusPeaking(View view) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "clickedFocusPeaking");
-        this.mainUI.getOnScreenIcons().clickedFocusPeaking();
-    }
-
-    public void clickedAutoLevel(View view) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "clickedAutoLevel");
-        this.mainUI.getOnScreenIcons().clickedAutoLevel();
-    }
-
     public void clickedCycleFlash(View view) {
         if( MyDebug.LOG )
             Log.d(TAG, "clickedCycleFlash");
         this.mainUI.getOnScreenIcons().clickedCycleFlash();
     }
 
-    public void clickedFaceDetection(View view) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "clickedFaceDetection");
-        this.mainUI.getOnScreenIcons().clickedFaceDetection();
-    }
-
-    public void clickedAudioControl(View view) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "clickedAudioControl");
-        this.mainUI.getOnScreenIcons().clickedAudioControl();
-    }
-
     public void clickedCycleLockOrientation(View view) {
         if( MyDebug.LOG )
             Log.d(TAG, "clickedCycleLockOrientation");
         this.mainUI.getOnScreenIcons().clickedCycleLockOrientation();
-    }
-
-    public void clickedPreviewShots(View view) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "clickedPreviewShots");
-        this.mainUI.getOnScreenIcons().clickedPreviewShots();
     }
 
     /* Returns the cameraId that the "Switch camera" button will switch to.
@@ -2059,7 +2006,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                 Log.d(TAG, "already opening camera in background thread");
             return;
         }
-        this.closePopup();
         // the rows are camera specific, so the sheet closes on a camera switch (Kickoff 3.2)
         if( settingsSheet != null && settingsSheet.isOpen() )
             settingsSheet.close();
@@ -2254,7 +2200,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                             Log.d(TAG, "already opening camera in background thread");
                         return;
                     }
-                    MainActivity.this.closePopup();
                     if( MainActivity.this.preview.canSwitchCamera() ) {
                         userSwitchToCamera(logical_camera, physical_camera);
                     }
@@ -2680,8 +2625,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             return false;
         if( isScreenLocked() )
             return false;
-        if( popupIsOpen() )
-            return false;
         return true;
     }
 
@@ -2774,8 +2717,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     public void clickedSwitchVideo(View view) {
         if( MyDebug.LOG )
             Log.d(TAG, "clickedSwitchVideo");
-        this.closePopup();
-        mainUI.destroyPopup(); // important as we don't want to use a cached popup, as we can show different options depending on whether we're in photo or video mode
         // the sheet belongs to the mode, so it closes (Kickoff 3.2)
         if( settingsSheet != null && settingsSheet.isOpen() )
             settingsSheet.close();
@@ -2794,18 +2735,11 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         switchVideoButton.setEnabled(true);
 
         mainUI.setTakePhotoIcon();
-        mainUI.setPopupIcon(); // needed as turning to video mode or back can turn flash mode off or back on
 
         // ensure icons invisible if they're affected by being in video mode or not (e.g., on-screen RAW icon)
         // (if enabling them, we'll make the icon visible later on)
         mainUI.getOnScreenIcons().checkDisableGUIIcons();
 
-    }
-
-    public void clickedExposure(View view) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "clickedExposure");
-        mainUI.toggleExposureUI();
     }
 
     public void clickedSettings(View view) {
@@ -2814,27 +2748,8 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         KeyguardUtils.requireKeyguard(this, this::openSettings);
     }
 
-    public boolean popupIsOpen() {
-        return mainUI.popupIsOpen();
-    }
-
-    // for testing
-    public View getUIButton(String key) {
-        return mainUI.getUIButton(key);
-    }
-
-    public void closePopup() {
-        mainUI.closePopup();
-    }
-
     public Bitmap getPreloadedBitmap(int resource) {
         return this.preloaded_bitmap_resources.get(resource);
-    }
-
-    public void clickedPopupSettings(View view) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "clickedPopupSettings");
-        mainUI.togglePopupSettings();
     }
 
     private final PreferencesListener preferencesListener = new PreferencesListener();
@@ -3045,7 +2960,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
     public void openSettings() {
         if( MyDebug.LOG )
             Log.d(TAG, "openSettings");
-        closePopup(); // important to close the popup to avoid confusing with back button callbacks
         preview.cancelTimer(); // best to cancel any timer, in case we take a photo while settings window is open, or when changing settings
         preview.cancelRepeat(); // similarly cancel the auto-repeat mode!
         preview.stopVideo(false); // important to stop video, as we'll be changing camera parameters when the settings window closes
@@ -3053,7 +2967,7 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         stopAudioListeners();
         // close back handler callbacks (so back button is enabled again when going to settings) - in theory shouldn't be needed as all of these should
         // be disabled now, but just in case:
-        this.enablePopupOnBackPressedCallback(false);
+        this.enableSettingsSheetOnBackPressedCallback(false);
         this.enablePausePreviewOnBackPressedCallback(false);
         this.enableScreenLockOnBackPressedCallback(false);
 
@@ -3389,13 +3303,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
 
         imageQueueChanged(); // needed at least for changing photo mode, but might as well call it always
 
-        if( !keep_popup ) {
-            mainUI.destroyPopup(); // important as we don't want to use a cached popup
-            if( MyDebug.LOG ) {
-                Log.d(TAG, "updateForSettings: time after destroy popup: " + (System.currentTimeMillis() - debug_time));
-            }
-        }
-
         // update camera for changes made in prefs - do this without closing and reopening the camera app if possible for speed!
         // but need workaround for Nexus 7 bug on old camera API, where scene mode doesn't take effect unless the camera is restarted - I can reproduce this with other 3rd party camera apps, so may be a Nexus 7 issue...
         // doesn't happen if we allow using Camera2 API on Nexus 7, but reopen for consistency (and changing scene modes via
@@ -3599,43 +3506,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         else {
             if( MyDebug.LOG )
                 Log.d(TAG, "no need to call updateForSettings() for changes made to preferences");
-            if( preferencesListener.anyChange() ) {
-                // however we should still destroy cached popup, in case UI settings need to be kept in
-                // sync (e.g., changing the Repeat Mode)
-                mainUI.destroyPopup();
-            }
-        }
-    }
-
-    private PopupOnBackPressedCallback popupOnBackPressedCallback;
-
-    private class PopupOnBackPressedCallback extends OnBackPressedCallback {
-        public PopupOnBackPressedCallback(boolean enabled) {
-            super(enabled);
-        }
-
-        @Override
-        public void handleOnBackPressed() {
-            if( MyDebug.LOG )
-                Log.d(TAG, "PopupOnBackPressedCallback.handleOnBackPressed");
-            if( popupIsOpen() ) {
-                // close popup will disable the PopupOnBackPressedCallback, so no need to do it here
-                closePopup();
-            }
-            else {
-                // shouldn't be here (if popup isn't open, this callback shouldn't be enabled), but just in case
-                if( MyDebug.LOG )
-                    Log.e(TAG, "PopupOnBackPressedCallback was enabled but popup menu not open?!");
-                this.setEnabled(false);
-            }
-        }
-    }
-
-    public void enablePopupOnBackPressedCallback(boolean enabled) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "enablePopupOnBackPressedCallback: " + enabled);
-        if( popupOnBackPressedCallback != null ) {
-            popupOnBackPressedCallback.setEnabled(enabled);
         }
     }
 
@@ -4115,9 +3985,9 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                 if( MyDebug.LOG )
                     Log.d(TAG, "setImmersiveTimer: run");
                 // even though timer should have been cancelled when in background, check app_is_paused just in case
-                // an open settings sheet counts as activity, like an open popup (Kickoff 3.2):
+                // an open settings sheet counts as activity (Kickoff 3.2):
                 // hiding the GUI would close it under the user's finger
-                if( !app_is_paused && !camera_in_background && !popupIsOpen() && !settingsSheetIsOpen() && usingKitKatImmersiveMode() )
+                if( !app_is_paused && !camera_in_background && !settingsSheetIsOpen() && usingKitKatImmersiveMode() )
                     setImmersiveMode(true);
             }
         }, 5000);
@@ -4745,16 +4615,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             Log.d(TAG, "imageQueueChanged");
         applicationInterface.getDrawPreview().setImageQueueFull( !applicationInterface.canTakeNewPhoto() );
 
-        if( preview.isPreviewPaused() && applicationInterface.getImageSaver().getNRealImagesToSave() == 0 ) {
-            // if the preview is paused, then once images are saved we can show the share/trash buttons
-            if( MyDebug.LOG )
-                Log.d(TAG, "show share/trash buttons");
-            View shareButton = this.findViewById(R.id.share);
-            View trashButton = this.findViewById(R.id.trash);
-            shareButton.setVisibility(View.VISIBLE);
-            trashButton.setVisibility(View.VISIBLE);
-        }
-
         /*if( applicationInterface.getImageSaver().getNImagesToSave() == 0) {
             cancelImageSavingNotification();
         }
@@ -5299,8 +5159,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         if( MyDebug.LOG )
             Log.d(TAG, "takePicturePressed");
 
-        closePopup();
-
         // With pause-preview, we only allow taking one photo at a time (see MyApplicationInterface.canTakeNewPhoto()).
         // But if the user unpauses whilst photo is still being saved, but then takes a new photo, we want to make sure
         // that the next pause preview only covers the new photo (for share/trash options), so we need to clear the previous
@@ -5565,10 +5423,7 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
 						/*int min_iso = preview.getMinimumISO();
 						int max_iso = preview.getMaximumISO();
 						int iso = (int)exponentialScaling(frac, min_iso, max_iso);*/
-                        // n.b., important to update even if fromUser==false (e.g., so this works when user changes ISO via clicking
-                        // the ISO buttons rather than moving the slider directly, see MainUI.setupExposureUI())
                         preview.setISO( manualSeekbars.getISO(progress) );
-                        mainUI.updateSelectedISOButton();
                         if( fromUser ) {
                             last_haptic_time = performHapticFeedbackIfSafe(seekBar, last_haptic_time);
                         }
@@ -5695,13 +5550,7 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
 
         // On-screen icons such as exposure lock, white balance lock, face detection etc are made visible if necessary in
         // MainUI.showGUI()
-        // However still need to enable visibility of icons where visibility depends on camera setup - e.g., exposure button
-        // not supported for high speed video frame rates - see testTakeVideoFPSHighSpeedManual().
         // (Disabling is done in checkDisableGUIIcons(), called below.)
-        View exposureButton = findViewById(R.id.exposure);
-        //exposureButton.setVisibility(supportsExposureButton() && !mainUI.inImmersiveMode() ? View.VISIBLE : View.GONE);
-        if( supportsExposureButton() && !mainUI.inImmersiveMode() )
-            exposureButton.setVisibility(View.VISIBLE);
 
         // needed as availability of some icons is per-camera (e.g., flash, RAW)
         // for making icons visible, this is done elsewhere in call to MainUI.showGUI()
@@ -5714,7 +5563,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         // need to update some icons, e.g., white balance and exposure lock due to them being turned off when pause/resuming
         mainUI.getOnScreenIcons().updateOnScreenIcons();
 
-        mainUI.setPopupIcon(); // needed so that the icon is set right even if no flash mode is set when starting up camera (e.g., switching to front camera with no flash)
         if( MyDebug.LOG )
             Log.d(TAG, "cameraSetup: time after setting popup icon: " + (System.currentTimeMillis() - debug_time));
 
@@ -5777,7 +5625,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                     if( fromUser ) {
                         // but if user has manually changed, then exit auto mode
                         applicationInterface.setFocusBracketingSourceAutoPref(false);
-                        mainUI.destroyPopup(); // need to recreate popup
                     }
                     else {
                         return;
@@ -6140,7 +5987,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             audio_listener.release(wait_until_done);
             audio_listener = null;
         }
-        mainUI.audioControlStopped();
     }
 
     public void startAudioListener() {
@@ -6192,7 +6038,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                     break;
             }
             callback.setAudioNoiseSensitivity(audio_noise_sensitivity);
-            mainUI.audioControlStarted();
         }
         else {
             audio_listener.release(true); // shouldn't be needed, but just to be safe

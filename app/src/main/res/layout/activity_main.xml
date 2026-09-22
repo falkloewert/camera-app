@@ -68,18 +68,104 @@
         app:layout_constraintTop_toTopOf="parent"
         />
 
-    <!-- Makro-Symbol: Googles Blüte mit dem "A", weiß auf dem schwarzen Band, ohne Pille und
-         ohne Füllung. Die Grafik ist aus den Referenz-PNGs ausgeschnitten (dort 43 × 48 px =
-         19,1 × 21,3 dp) - dieselbe Blüte, nicht nachgezeichnet. -->
-    <ImageView
-        android:id="@+id/header_macro"
-        android:layout_width="19dp"
-        android:layout_height="21dp"
-        android:src="@drawable/ic_macro_focus"
-        android:importantForAccessibility="no"
+    <!-- Der zweite Chip, die Bildrate ("30", "60"), nur im Video. Er sitzt in der Lücke, in der
+         die Referenz ihr Makrofokus-Symbol hat (linker Rand 80,9 dp, gemessen); das Symbol selbst
+         gibt es hier nicht, "Makro" ist in dieser App eine Linse, kein Zustand (Falk 2026-09-22:
+         dann lieber gar keins). Getrennt vom Auflösungs-Chip, weil im Video beide unabhängig
+         wandern (Falk 2026-09-22: "fps muss separat sein weil es ja viele Kombinationen gibt").
+         Text und Sichtbarkeit setzt MainUI.layoutHeader(). -->
+    <TextView
+        android:id="@+id/header_fps"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:background="@drawable/header_chip_background"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:textColor="@android:color/black"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         />
+
+    <!-- Die Zustandsanzeigen der Kopfzeile: Blitz, RAW, GPS, Ausrichtungssperre, Textstempel.
+         Sie sind das, was von der alten Icon-Leiste geblieben ist (SPEC 4.5, Schritt C) - die
+         uebrigen Icons waren entweder doppelt oder gehoeren in die Einstellungen. Die Reihe sitzt
+         rechts im Band; welche Anzeige an ist, entscheidet ui/OnScreenIcons. Die Icons sind
+         16-dp-Glyphen (32-dp-Bild mit 8 dp Polster) und tragen das Regelmaess der alten Leiste
+         weiter; das Band selbst ist schwarz, darum hier keine eigene Fuellung. -->
+    <LinearLayout
+        android:id="@+id/header_indicators"
+        android:layout_width="wrap_content"
+        android:layout_height="32dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical|end"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" >
+
+        <ImageButton
+            android:id="@+id/cycle_raw"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/cycle_raw"
+            app:srcCompat="@drawable/raw_off_icon"
+            android:background="@null"
+            android:visibility="gone"
+            android:onClick="clickedCycleRaw"
+            />
+
+        <ImageButton
+            android:id="@+id/cycle_flash"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/cycle_flash"
+            app:srcCompat="@drawable/flash_off"
+            android:background="@null"
+            android:visibility="gone"
+            android:onClick="clickedCycleFlash"
+            />
+
+        <ImageButton
+            android:id="@+id/store_location"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/preference_location_enable"
+            app:srcCompat="@drawable/ic_gps_fixed_white_48dp"
+            android:background="@null"
+            android:visibility="gone"
+            android:onClick="clickedStoreLocation"
+            />
+
+        <ImageButton
+            android:id="@+id/cycle_lock_orientation"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/cycle_lock_orientation"
+            app:srcCompat="@drawable/mobile_unlock_48px"
+            android:background="@null"
+            android:visibility="gone"
+            android:onClick="clickedCycleLockOrientation"
+            />
+
+        <ImageButton
+            android:id="@+id/text_stamp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/preference_textstamp_summary"
+            app:srcCompat="@drawable/baseline_text_fields_white_48"
+            android:background="@null"
+            android:visibility="gone"
+            android:onClick="clickedTextStamp"
+            />
+    </LinearLayout>
 
     <!-- Everything below this point is positioned at runtime by MainUI.layoutUI() (using
          ConstraintSet) - one fixed portrait arrangement, the window never rotates (see the
@@ -309,21 +395,6 @@
         app:layout_constraintTop_toTopOf="parent"
         />
 
-    <!-- Fixed 1dp size, not 0dp: under RelativeLayout, 0dp was a literal zero size, but
-         ConstraintLayout treats 0dp as "match constraints" - with only one constraint per axis
-         (see MainUI.layoutUI()) that would make it expand to fill all remaining space instead
-         of collapsing to ~nothing, corrupting every icon chained off it. -->
-    <View
-        android:id="@+id/gui_anchor"
-        android:layout_width="1dp"
-        android:layout_height="1dp"
-        android:padding="1dp"
-        android:scaleType="fitCenter"
-        android:visibility="invisible"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
     <!-- padding set to 0 to maximise the size of the thumbnail shown; background is transparent for
         when the thumbnail aspect ratio doesn't match the button aspect ratio, to avoid showing a
         shaded background
@@ -342,124 +413,6 @@
         app:srcCompat="@drawable/baseline_photo_library_white_48"
         android:background="@drawable/squircle_background"
         android:onClick="clickedGallery"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/settings"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/action_settings"
-        app:srcCompat="@drawable/settings"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedSettings"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/popup"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/action_popup"
-        app:srcCompat="@drawable/popup"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedPopupSettings"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/exposure"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/exposure"
-        app:srcCompat="@drawable/ic_exposure_white_48dp"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedExposure"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/exposure_lock"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/exposure_lock"
-        app:srcCompat="@drawable/exposure_unlocked"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedExposureLock"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-
-    <ImageButton
-        android:id="@+id/white_balance_lock"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/white_balance_lock"
-        app:srcCompat="@drawable/white_balance_unlocked"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedWhiteBalanceLock"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/cycle_raw"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/cycle_raw"
-        app:srcCompat="@drawable/raw_off_icon"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedCycleRaw"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/store_location"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/preference_location_enable"
-        app:srcCompat="@drawable/ic_gps_fixed_white_48dp"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedStoreLocation"
-        android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         />
@@ -491,210 +444,6 @@
         android:backgroundTintMode="src_in"
         android:onClick="clickedSwitchCamera"
         />-->
-
-    <ImageButton
-        android:id="@+id/text_stamp"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/preference_textstamp_summary"
-        app:srcCompat="@drawable/baseline_text_fields_white_48"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedTextStamp"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/stamp"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/stamp_enable"
-        app:srcCompat="@drawable/ic_text_format_white_48dp"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedStamp"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/focus_peaking"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/focus_peaking_enable"
-        app:srcCompat="@drawable/key_visualizer"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedFocusPeaking"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/auto_level"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/auto_level_enable"
-        app:srcCompat="@drawable/auto_stabilise_icon"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedAutoLevel"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/cycle_flash"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/cycle_flash"
-        app:srcCompat="@drawable/flash_off"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedCycleFlash"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/face_detection"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/face_detection_enable"
-        app:srcCompat="@drawable/ic_face_white_48dp"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedFaceDetection"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/audio_control"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/audio_control_start"
-        app:srcCompat="@drawable/ic_mic_white_48dp"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedAudioControl"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/cycle_lock_orientation"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/cycle_lock_orientation"
-        app:srcCompat="@drawable/mobile_unlock_48px"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedCycleLockOrientation"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/preview_shots"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/preview_shots_enable"
-        app:srcCompat="@drawable/motion_photos_on_48px"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedPreviewShots"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageView
-        android:id="@+id/kraken_icon"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/remote_connected"
-        app:srcCompat="@drawable/baseline_bluetooth_white_48"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <!-- should be at left-most -->
-    <ImageButton
-        android:id="@+id/trash"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/trash"
-        app:srcCompat="@drawable/baseline_delete_white_48"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedTrash"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ImageButton
-        android:id="@+id/share"
-        android:layout_width="@dimen/onscreen_button_size"
-        android:layout_height="@dimen/onscreen_button_size"
-        android:padding="10dp"
-        android:scaleType="fitCenter"
-        android:contentDescription="@string/share"
-        app:srcCompat="@drawable/share"
-        android:background="@color/icons_background"
-        android:backgroundTint="@color/icons_background_tint"
-        android:backgroundTintMode="src_in"
-        android:onClick="clickedShare"
-        android:visibility="gone"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
 
     <!-- sliders_container is only ever centred in the parent (its position never changes at
          runtime - only its translationX/Y, set in MainUI.layoutUI()); the nested RelativeLayouts
@@ -849,16 +598,6 @@
         />
 
     <ScrollView
-        android:id="@+id/popup_container"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fadeScrollbars="false"
-        android:scrollbarThumbVertical="@color/scrollview"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
-
-    <ScrollView
         android:id="@+id/hide_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -1010,15 +749,20 @@
     </FrameLayout>
 
     <!-- Zurueck auf Automatik fuer den aktiven Reiter (Referenz: runder Knopf rechts NEBEN der
-         Pille). Immer sichtbar (Falk 2026-09-21) - ein Druck holt den Standardwert zurueck. -->
-    <ImageButton
+         Pille). Immer sichtbar (Falk 2026-09-21) - ein Druck holt den Standardwert zurueck.
+         Beschriftet statt mit dem Pfeil-Symbol: der Reiter "Alle zuruecksetzen" traegt dasselbe
+         Symbol, und zwei gleiche Zeichen im selben Panel waren nicht zu unterscheiden
+         (Falk 2026-09-22). -->
+    <TextView
         android:id="@+id/pro_panel_auto"
         android:layout_width="48dp"
         android:layout_height="48dp"
-        android:padding="12dp"
-        android:scaleType="fitCenter"
         android:background="@drawable/settings_sheet_dock_button"
-        android:src="@drawable/ms_restart_alt"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="@string/pro_panel_auto_value"
+        android:textColor="@color/settings_sheet_button_glyph"
+        android:textSize="12sp"
         android:contentDescription="@string/pro_panel_auto"
         android:onClick="clickedProPanelAuto"
         android:visibility="gone"
@@ -1097,6 +841,36 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
+            />
+    </HorizontalScrollView>
+
+    <!-- Die Fokus-Modi als Knopfreihe ueber der Reiter-Reihe, nur im Reiter "Fokus" sichtbar
+         (Falk 2026-09-21). Die alte Icon-Leiste hatte fuer sie keinen Platz mehr, das
+         Einstellungen-Blatt haette sie vergraben - der Reiter ist der Ort, an dem sie
+         hingehoeren. Die Knoepfe baut ui/ProPanel.java aus den focus_mode_*-Arrays. -->
+    <HorizontalScrollView
+        android:id="@+id/pro_panel_focus_modes_scroll"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        >
+
+        <LinearLayout
+            android:id="@+id/pro_panel_focus_modes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/pill_background"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
             />
     </HorizontalScrollView>
 

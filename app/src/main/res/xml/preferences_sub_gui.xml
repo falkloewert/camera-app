@@ -30,14 +30,9 @@
         android:defaultValue="false"
         />
 
-    <!--  if we move this to another PreferenceGroup, we should update code to remove this Preference -->
-    <CheckBoxPreference
-        android:key="preference_show_cycle_flash"
-        android:title="@string/preference_show_cycle_flash"
-        android:summary="@string/preference_show_cycle_flash_summary"
-        android:icon="@drawable/flash_on"
-        android:defaultValue="false"
-        />
+    <!-- "Blitz-Symbol anzeigen" (preference_show_cycle_flash) ist entfallen: das Symbol der
+         Kopfzeile ist seit Schritt C rein visuell und steht deshalb immer da, sobald das Geraet
+         einen Blitz hat - ein Schalter dafuer waere wirkungslos. Siehe ui/OnScreenIcons. -->
 
     <!--  if we move this to another PreferenceGroup, we should update code to remove this Preference -->
     <CheckBoxPreference
