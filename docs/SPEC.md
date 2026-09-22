@@ -322,6 +322,20 @@ Gemessene Werte und Abweichungen: `ui-spezifikation.md` 7.1 Punkt 4 + 7.2.
 
 **Offen:** Rest `ui-spezifikation.md` Abschnitt 7 (Punkt 3 Dock, Karussell 7.2, Sucher-Overlays
 7.1 Punkte 6–9, Farben/Blur/Schrift 7.3) und die Punkte 13/14 unten.
+
+**Am 2026-09-22 notiert, damit es nicht untergeht:**
+- **Abnahme von D, E und F:** Schritt D (Karussell) wurde **nicht einzeln** am Gerät getestet –
+  Falk nimmt D zusammen mit E und F in **einem** Durchgang ab (Entscheidung 2026-09-22).
+  Beim nächsten Mal prüfen, ob die Abnahme tatsächlich passiert ist; erst dann gilt SPEC 2.1 als
+  erfüllt und der Eintrag hier wird durch den Abschluss ersetzt.
+  Kickoffs: `docs/kickoff/redesign-moduswahl-karussell.md`,
+  `docs/kickoff/redesign-schritt-e-blitz-modi-panorama.md`,
+  `docs/kickoff/redesign-schritt-f-licht-matrix.md`.
+- **Panorama-Bildzahl offen:** nach dem Gerätetest entscheiden, wie viele Einzelbilder ein
+  Panorama wirklich braucht. Heute fest `max_panorama_pics_c = 10`
+  (`MyApplicationInterface.java:101`). Die Zahl steuert die **Schwenkweite**, nicht die Schärfe;
+  weniger Bilder heißt kürzeres Panorama und mehr Speicher pro Bild (also mehr Schärfe).
+  Test: je ein Panorama bei 1× und bei 0,5×, Nahtstellen ansehen, dann entscheiden.
 **Feste Entscheidungen:** Screenshot-Spec schlägt Detail-Spec, gemessene Werte (2,25 px/dp)
 schlagen beide; keine Animationen außer Auslöser, Glyph-Drehung, Rad-Morph, Blatt-Gleiten;
 Roboto Flex; Konflikte K1–K13 in `ui-spezifikation.md` 9; was die App nicht kann: 4b dort.

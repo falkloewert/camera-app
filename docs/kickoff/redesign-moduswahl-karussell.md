@@ -11,6 +11,10 @@ Session-Titel: `camera-app – Schritt D Moduswahl-Karussell`.
 > im Pro-Reiter) und **Nachtsicht** ein Knopf der Blitz-Zeile wird. Es gilt
 > `docs/kickoff/redesign-schritt-e-blitz-modi-panorama.md`: Karussell =
 > `Foto · Panorama · Porträt`.
+>
+> **Abnahme (Falk 2026-09-22):** Schritt D wird **nicht einzeln** am Gerät getestet, sondern
+> zusammen mit E und F in **einem** Durchgang. Im Changelog und in SPEC 4.5 ist das vermerkt;
+> der PM-Chat prüft beim nächsten Mal, ob die Abnahme passiert ist.
 
 ## 1. Soll (ui-spezifikation.md 7.2 „Moduswahl-Leiste" + Abschnitt 5)
 
