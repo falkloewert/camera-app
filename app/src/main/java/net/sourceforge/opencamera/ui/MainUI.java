@@ -581,6 +581,15 @@ public class MainUI {
                 main_activity.getApplicationInterface().getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama )
             visibility = View.GONE;
         view.setVisibility(visibility);
+        // Die Blase gehoert zur Pille (ZoomStepper.onWheelShown): bleibt die Pille weg, geht sie
+        // mit. Im Panorama und hinter dem Pro-Panel blieb sie sonst allein stehen (Falk, Schritt H
+        // Punkt 6: "bei panorama bleibt die zoom bubble waehrend die pro einstellungen offen
+        // sind"). Sichtbar macht sie nur der Zoom selbst - hier wird sie also nie eingeblendet.
+        if( visibility != View.VISIBLE ) {
+            View badge = main_activity.findViewById(R.id.zoom_badge);
+            if( badge != null )
+                badge.setVisibility(View.GONE);
+        }
     }
 
     public void layoutUI() {
@@ -719,13 +728,15 @@ public class MainUI {
             cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, (int) (16 * scale + 0.5f));
             pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f));
 
-            // The speed button of Zeitraffer/Zeitlupe stands in the same slot (the pro panel button
-            // is out while filming, so only one of the two is ever up), and the row of rates it
-            // opens takes the zoom pill's slot - both as in the reference.
+            // Der Staerke-Knopf von Zeitraffer/Zeitlupe steht links neben dem Pro-Knopf: seit
+            // Schritt H gibt es das Pro-Panel auch im Video (Falk Punkt 9), also teilen sich die
+            // beiden den Platz unten rechts statt einander abzuloesen (vorher war der Pro-Knopf im
+            // Video aus, und der Staerke-Knopf stand allein in der Ecke). Die Reihe der Staerken,
+            // die er oeffnet, nimmt weiterhin den Platz der Zoom-Pille ein.
             view = main_activity.findViewById(R.id.video_speed_button);
             view_id = view.getId();
             resetView(cs, view);
-            cs.connect(view_id, ConstraintSet.RIGHT, ConstraintSet.PARENT_ID, ConstraintSet.RIGHT, (int) (16 * scale + 0.5f));
+            cs.connect(view_id, ConstraintSet.RIGHT, R.id.pro_panel_button, ConstraintSet.LEFT, (int) (16 * scale + 0.5f));
             pinToBottom(cs, view_id, navigation_gap, (int) (37 * scale + 0.5f));
 
             view = main_activity.findViewById(R.id.video_speed_bar);
@@ -1606,7 +1617,11 @@ public class MainUI {
     private void updateVideoSpeedButton() {
         LinearLayout button = main_activity.findViewById(R.id.video_speed_button);
         String speed_mode = getVideoSpeedMode();
+        // Das offene Pro-Panel hat den Platz unten rechts (seit Schritt H steht sein Knopf auch im
+        // Video dort, der Staerke-Knopf links daneben) - und beim Ende einer Aufnahme laeuft diese
+        // Zuweisung nach applyHiddenWhileOpen(), holte den Knopf also zurueck auf die Reiter-Reihe
         boolean show = main_activity.getPreview().isVideo()
+                && !main_activity.proPanelIsOpen()
                 && !video_recording_ui
                 && !main_activity.getPreview().isVideoRecording()
                 && !MyApplicationInterface.VIDEO_SPEED_OFF.equals(speed_mode)
@@ -1780,10 +1795,10 @@ public class MainUI {
                 main_activity.findViewById(R.id.mode_bar).setVisibility(mode_visibility);
                 main_activity.findViewById(R.id.photo_video_switch).setVisibility(mode_visibility);
                 main_activity.findViewById(R.id.settings_sheet_button).setVisibility(mode_visibility);
-                // the pro panel is photo-only (Kickoff 3/4), so this path must not resurrect its
-                // button in video mode
-                main_activity.findViewById(R.id.pro_panel_button).setVisibility(
-                        main_activity.getPreview().isVideo() ? View.GONE : mode_visibility);
+                // Das Pro-Panel gibt es seit Schritt H auch im Video (dort mit Belichtung und
+                // Weissabgleich, Falk Punkt 9) - der Knopf steht also in beiden Modi da, wo die
+                // uebrigen Dock-Knoepfe stehen.
+                main_activity.findViewById(R.id.pro_panel_button).setVisibility(mode_visibility);
                 if( main_activity.showManualFocusSeekbar(false) )
                     focusSeekBar.setVisibility(visibility);
                 if( main_activity.showManualFocusSeekbar(true) )
@@ -1905,19 +1920,11 @@ public class MainUI {
                     if( settingsSheet != null && settingsSheet.isOpen() )
                         settingsSheet.close();
                 }
-                // The pro panel is a photo-mode panel: manual ISO and exposure time are what the
-                // video auto-torch hangs off (Kickoff 4), so the right dock button disappears in
-                // video mode and an open panel closes with it. This runnable serves both modes, so
-                // the mode has to be tested here - otherwise the button would never come back.
-                if( main_activity.getPreview().isVideo() ) {
-                    main_activity.findViewById(R.id.pro_panel_button).setVisibility(View.GONE);
-                    ProPanel proPanelVideo = main_activity.getProPanelOrNull();
-                    if( proPanelVideo != null && proPanelVideo.isOpen() )
-                        proPanelVideo.close();
-                }
-                else {
-                    main_activity.findViewById(R.id.pro_panel_button).setVisibility(mode_visibility);
-                }
+                // Das Pro-Panel gibt es seit Schritt H auch im Video (Falk Punkt 9: dort nur
+                // Belichtung und Weissabgleich, ProPanel.tabOffered()) - der Knopf bleibt also
+                // stehen wie die uebrigen Dock-Knoepfe. Ein offenes Panel wird nicht mehr
+                // geschlossen, es zeigt im Video von selbst die kuerzere Reiter-Reihe.
+                main_activity.findViewById(R.id.pro_panel_button).setVisibility(mode_visibility);
                 updateModeBar();
 
                 if( show_gui_photo && show_gui_video ) {

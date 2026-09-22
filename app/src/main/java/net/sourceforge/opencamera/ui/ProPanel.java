@@ -348,6 +348,9 @@ public class ProPanel {
                 lp.gravity = Gravity.CENTER_VERTICAL;
                 lp.setMarginEnd(dp(TAB_GAP));
                 divider.setLayoutParams(lp);
+                // im Video faellt "Alle zuruecksetzen" weg - dann haette der Strich nichts mehr
+                // zu trennen und stuende allein am Rand
+                divider.setVisibility(tabOffered(TAB_RESET) ? View.VISIBLE : View.GONE);
                 tabs_row.addView(divider);
             }
             // der letzte Eintrag (TAB_PEAKING) ist kein Reiter, sondern ein Schalter - siehe
@@ -386,7 +389,32 @@ public class ProPanel {
                 }
             });
 
+            // Was der Modus nicht anbietet, geht auf GONE - nicht weglassen: markTabs() rechnet
+            // den Kind-Index des Reiters aus seiner Nummer (der Trennstrich schiebt alles ab
+            // TAB_EXPOSURE um eins), und ein fehlender Eintrag wuerde dort alles verschieben.
+            entry.setVisibility(tabOffered(tab) ? View.VISIBLE : View.GONE);
             tabs_row.addView(entry);
+        }
+    }
+
+    /** Welche Reiter das Panel im laufenden Modus anbietet. Im Video sind es Belichtung und
+     *  Weissabgleich - so haelt es die native Referenz (Falk, Schritt H Punkt 9: "in der nativen
+     *  referenz gibt es dort nur belichtung und weissabgleich"). Verschlusszeit und ISO bleiben
+     *  dem Foto vorbehalten: sie haengen an der Foto-Automatik, und im Video haengt der
+     *  Auto-Blitz an ihnen (siehe MainUI). Fokus und Fokus-Peaking ebenso - der Fokus der App
+     *  steht im Video auf der Video-Fokus-Einstellung.
+     */
+    private boolean tabOffered(int tab) {
+        Preview preview = main_activity.getPreview();
+        if( preview == null || !preview.isVideo() )
+            return true;
+        switch( tab ) {
+            case TAB_EXPOSURE:
+                return preview.supportsExposures();
+            case TAB_WB:
+                return preview.supportsWhiteBalanceTemperature();
+            default:
+                return false;
         }
     }
 
@@ -1621,8 +1649,6 @@ public class ProPanel {
         Preview preview = main_activity.getPreview();
         if( preview == null )
             return;
-        if( preview.isVideo() )
-            return; // das Panel gibt es nur im Foto-Modus (MainUI.layoutUI() blendet den Knopf aus)
         if( main_activity.settingsSheetIsOpen() )
             main_activity.getSettingsSheet().close();
         // die alte Belichtungs-UI der Icon-Leiste hat hier nichts mehr zu suchen - ihre Regler
@@ -1631,7 +1657,19 @@ public class ProPanel {
             main_activity.getMainUI().closeExposureUI();
 
         open = true;
+        // die Reiter-Reihe richtet sich nach dem Modus, in dem geoeffnet wird (Video: nur
+        // Belichtung und Weissabgleich) - sie wird hier neu gebaut, weil das Panel ueber einen
+        // Moduswechsel hinweg bestehen bleibt
+        buildTabs();
         selected_tab = OPEN_TAB;
+        if( !tabOffered(selected_tab) ) {
+            for(int tab = 0; tab < N_TABS; tab++) {
+                if( tabOffered(tab) ) {
+                    selected_tab = tab;
+                    break;
+                }
+            }
+        }
         ruler_labels_tab = -1;
         hideWhileOpen();
         // kein ensureModeForTab() hier: das Oeffnen des Panels darf die Kamera nicht umstellen
@@ -1684,7 +1722,11 @@ public class ProPanel {
         // Die Dock-Zeile (beide Kreise, Foto/Video-Umschalter) geht mit: laut Referenz sitzt die
         // Tab-Reihe in deren Slot ganz unten (Falk 2026-09-21) - beide koennen nicht dort sein.
         int [] ids = { R.id.zoom_stepper, R.id.zoom_badge, R.id.mode_bar, R.id.photo_video_switch,
-                R.id.focus_seekbar, R.id.settings_sheet_button, R.id.pro_panel_button };
+                R.id.focus_seekbar, R.id.settings_sheet_button, R.id.pro_panel_button,
+                // der Staerke-Knopf von Zeitraffer/Zeitlupe und seine Reihe sitzen in derselben
+                // Ecke bzw. auf demselben Platz wie die Reiter-Reihe des Panels und lagen sonst
+                // darueber (Falk, Schritt H)
+                R.id.video_speed_button, R.id.video_speed_bar };
         for(int id : ids) {
             View view = main_activity.findViewById(id);
             if( view == null )

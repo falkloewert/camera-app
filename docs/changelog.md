@@ -483,6 +483,20 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   Seriengrößen das Verhältnis (die Nacht-Erweiterung kann 16:9 nur bis 2688×1512, vorher wurde
   daraus 4:3). Am Pixel 9 Pro getestet; Falks eigene Abnahme von D–G offen.
 
+- **2026-09-22 (Feature-Chat, Schritt H – Falks neun Befunde):** Licht-Zeile hält ihre Knöpfe und
+  ihre Markierung aus dem gespeicherten Zustand statt aus der laufenden Sitzung (die Nacht-Knöpfe
+  verschwanden und die Markierung fiel beim Tippen auf den Blitz zurück, `SettingsSheet`); alle
+  Chips im Kopfband bekommen den weißen Kasten mit runden Ecken und dunkle Zeichen
+  (`header_chip_background_icon.xml`, `activity_main.xml`); der RAW-Chip hängt am RAW-Zustand statt
+  an einer eigenen Anzeige-Präferenz; „Nacht an" im Blatt zeigt die Mond-**Kontur**
+  (`ms_moon_outline.xml`); die Zoom-Blase bleibt weg, solange das Pro-Panel offen ist;
+  **Pro-Panel auch im Video** (unten rechts, nur Belichtung und Weißabgleich – `ProPanel.tabOffered()`),
+  der Stärke-Knopf von Zeitraffer/Zeitlupe rückt dafür links daneben. Mitbehoben: Kamera-Neustart
+  stürzte ab, wenn die Zeitlupe gespeichert war und die Kamera im Foto-Modus aufgebaut wurde
+  (`VideoQualityHandler.getMaxSupportedVideoSizeHighSpeed()` lief in eine NPE). Offen: H1
+  (Timer-Chip) war nicht nachstellbar, H8 (Auto-Torch in Zeitraffer/Zeitlupe) ist ungeklärt –
+  siehe `docs/kickoff/redesign-schritt-h-befunde.md`.
+
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 
 **Recherche-Ergebnis (2026-09-14, Researcher-Agent):**

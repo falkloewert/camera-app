@@ -354,6 +354,13 @@ Nacht-Erweiterung läuft nur auf der Hauptkamera, der Mond setzt das Objektiv de
   (`MyApplicationInterface.java:101`). Die Zahl steuert die **Schwenkweite**, nicht die Schärfe;
   weniger Bilder heißt kürzeres Panorama und mehr Speicher pro Bild (also mehr Schärfe).
   Test: je ein Panorama bei 1× und bei 0,5×, Nahtstellen ansehen, dann entscheiden.
+- **Schritt H (Falks neun Befunde, 2026-09-22):** gebaut und im Gerätetest geprüft: Licht-Zeile
+  hält Knöpfe und Markierung, weiße Chip-Kästen, RAW-Chip nur bei RAW, Mond-Kontur, Zoom-Blase
+  hinter dem Panel weg, **Pro-Panel im Video** (Belichtung + Weißabgleich), Stärke-Knopf daneben.
+  Nebenbei behoben: **Absturz beim Kamera-Neustart**, wenn die Zeitlupe gespeichert war und die
+  Kamera im Foto-Modus aufgebaut wurde. **Offen:** H1 (Timer-Chip) ließ sich nicht nachstellen –
+  der Chip zykelt am Gerät korrekt; H8 (Auto-Torch in Zeitraffer/Zeitlupe) ist ungeklärt und
+  braucht einen Geräteversuch im Dunkeln. Kickoff: `docs/kickoff/redesign-schritt-h-befunde.md`.
 **Feste Entscheidungen:** Screenshot-Spec schlägt Detail-Spec, gemessene Werte (2,25 px/dp)
 schlagen beide; keine Animationen außer Auslöser, Glyph-Drehung, Rad-Morph, Blatt-Gleiten;
 Roboto Flex; Konflikte K1–K13 in `ui-spezifikation.md` 9; was die App nicht kann: 4b dort.

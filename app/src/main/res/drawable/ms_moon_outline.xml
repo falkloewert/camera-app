@@ -1,0 +1,22 @@
+<!-- Der Mond von "Nacht an" als Kontur statt als gefuellte Scheibe (Falk, Schritt H Punkt 5:
+     "das nachtbild an symbol in fotoeinstellungen soll auch nur eine mond outline nicht weiss
+     gefuellt haben"). Derselbe Pfad wie ms_dark_mode, nur mit strokeColor statt fillColor - die
+     Kontur zeichnet damit beide Raender der Sichel nach. Weiss wie die uebrigen ms_*; das Blatt
+     faerbt sie zur Laufzeit. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <group
+      android:rotation="135"
+      android:pivotX="12"
+      android:pivotY="12">
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M10,2C8.18,2 6.47,2.5 5,3.35C7.99,5.08 10,8.3 10,12s-2.01,6.92 -5,8.65C6.47,21.5 8.18,22 10,22c5.52,0 10,-4.48 10,-10S15.52,2 10,2z"/>
+  </group>
+</vector>

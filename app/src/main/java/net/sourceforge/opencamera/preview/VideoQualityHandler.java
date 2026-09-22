@@ -208,9 +208,15 @@ public class VideoQualityHandler {
         return getMaxVideoSize(video_sizes);
     }
 
-    /** Returns the maximum supported high speed video size.
-     */
+    /** Returns the maximum supported high speed video size, oder null, solange die Kamera keine
+     *  High-Speed-Groessen gemeldet hat (im Foto-Modus sind sie nicht abgefragt): der Aufrufer in
+     *  MyApplicationInterface.getVideoSpeedModeQuality() liest die Videoaufloesung auch dann,
+     *  wenn die Zeitlupe nur gespeichert ist, waehrend die Kamera im Foto-Modus steht - ohne
+     *  diese Pruefung stuerzte der Kamera-Neustart dort ab (NPE in getMaxVideoSize, am Geraet
+     *  2026-09-22). Dieselbe Pruefung wie in getMaxVideoSize() einen Aufruf darueber. */
     public CameraController.Size getMaxSupportedVideoSizeHighSpeed() {
+        if( video_sizes_high_speed == null )
+            return null;
         return getMaxVideoSize(video_sizes_high_speed);
     }
 

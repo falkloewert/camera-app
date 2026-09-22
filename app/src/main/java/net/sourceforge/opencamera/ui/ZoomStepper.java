@@ -394,7 +394,11 @@ public class ZoomStepper implements ZoomWheel.Listener {
     public void onWheelShown(boolean shown) {
         TextView badge = getBadge();
         badge.setText(formatRatio(getWheel().getRatio(), true));
-        badge.setVisibility(shown ? View.VISIBLE : View.GONE);
+        // Hinter dem offenen Pro-Panel hat die Blase nichts zu suchen: sie sitzt dann auf dessen
+        // Pille und blieb dort stehen (Falk, Schritt H Punkt 6). Das Panel blendet sie beim Oeffnen
+        // aus, ein Zoom im Sucher holte sie danach wieder zurueck - der einzige Weg, der nicht
+        // durch MainUI.setZoomStepperVisibility() laeuft.
+        badge.setVisibility(shown && !main_activity.proPanelIsOpen() ? View.VISIBLE : View.GONE);
     }
 
     @Override

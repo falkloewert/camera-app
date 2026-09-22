@@ -1,0 +1,11 @@
+<!-- Der weisse Kasten der Icon-Chips im Band (Falk, Schritt H Punkt 3: "alle chips sollen ab
+     jetzt einen weissen kasten mit runden ecken wie zb die aufloesung MP chips"). Derselbe
+     Weisston wie header_chip_background, aber fuer die 32-dp-Kaesten der Icon-Chips: bei dieser
+     Groesse wirkt ein 2-dp-Radius fast eckig, 4 dp treffen die Rundung des kleinen Text-Chips.
+     Die Zeichen darin werden schwarz getoent (Layout, android:tint), weil die ms_*-Vektoren weiss
+     gefuellt sind. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#FFFFFF" />
+    <corners android:radius="4dp" />
+</shape>

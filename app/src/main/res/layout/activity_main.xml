@@ -100,7 +100,8 @@
         android:clickable="false"
         android:focusable="false"
         app:srcCompat="@drawable/dro_icon"
-        android:background="@null"
+        android:background="@drawable/header_chip_background_icon"
+        android:tint="@android:color/black"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -129,7 +130,9 @@
             android:scaleType="fitCenter"
             android:contentDescription="@string/cycle_raw"
             app:srcCompat="@drawable/raw_off_icon"
-            android:background="@null"
+            android:background="@drawable/header_chip_background_icon"
+            android:tint="@android:color/black"
+            android:layout_marginStart="4dp"
             android:visibility="gone"
             android:onClick="clickedCycleRaw"
             />
@@ -142,7 +145,9 @@
             android:scaleType="fitCenter"
             android:contentDescription="@string/preference_location_enable"
             app:srcCompat="@drawable/ic_gps_fixed_white_48dp"
-            android:background="@null"
+            android:background="@drawable/header_chip_background_icon"
+            android:tint="@android:color/black"
+            android:layout_marginStart="4dp"
             android:visibility="gone"
             android:onClick="clickedStoreLocation"
             />
@@ -155,7 +160,9 @@
             android:scaleType="fitCenter"
             android:contentDescription="@string/cycle_lock_orientation"
             app:srcCompat="@drawable/mobile_unlock_48px"
-            android:background="@null"
+            android:background="@drawable/header_chip_background_icon"
+            android:tint="@android:color/black"
+            android:layout_marginStart="4dp"
             android:visibility="gone"
             android:onClick="clickedCycleLockOrientation"
             />
@@ -168,7 +175,9 @@
             android:scaleType="fitCenter"
             android:contentDescription="@string/preference_textstamp_summary"
             app:srcCompat="@drawable/baseline_text_fields_white_48"
-            android:background="@null"
+            android:background="@drawable/header_chip_background_icon"
+            android:tint="@android:color/black"
+            android:layout_marginStart="4dp"
             android:visibility="gone"
             android:onClick="clickedTextStamp"
             />
@@ -187,7 +196,9 @@
             android:scaleType="fitCenter"
             android:contentDescription="@string/preference_face_detection"
             app:srcCompat="@drawable/ic_face_white_48dp"
-            android:background="@null"
+            android:background="@drawable/header_chip_background_icon"
+            android:tint="@android:color/black"
+            android:layout_marginStart="4dp"
             android:visibility="gone"
             />
 
@@ -199,7 +210,9 @@
             android:scaleType="fitCenter"
             android:contentDescription="@string/preference_auto_stabilise"
             app:srcCompat="@drawable/auto_stabilise_icon"
-            android:background="@null"
+            android:background="@drawable/header_chip_background_icon"
+            android:tint="@android:color/black"
+            android:layout_marginStart="4dp"
             android:visibility="gone"
             />
 
@@ -211,7 +224,9 @@
             android:scaleType="fitCenter"
             android:contentDescription="@string/preference_record_audio"
             app:srcCompat="@drawable/ic_mic_off_white_48dp"
-            android:background="@null"
+            android:background="@drawable/header_chip_background_icon"
+            android:tint="@android:color/black"
+            android:layout_marginStart="4dp"
             android:visibility="gone"
             />
 
@@ -226,7 +241,9 @@
             android:scaleType="fitCenter"
             android:contentDescription="@string/settings_sheet_timer"
             app:srcCompat="@drawable/ms_timer_off"
-            android:background="@null"
+            android:background="@drawable/header_chip_background_icon"
+            android:tint="@android:color/black"
+            android:layout_marginStart="4dp"
             android:visibility="gone"
             android:onClick="clickedCycleTimer"
             />
@@ -243,7 +260,9 @@
             android:scaleType="fitCenter"
             android:contentDescription="@string/cycle_flash"
             app:srcCompat="@drawable/flash_off"
-            android:background="@null"
+            android:background="@drawable/header_chip_background_icon"
+            android:tint="@android:color/black"
+            android:layout_marginStart="4dp"
             android:visibility="gone"
             />
     </LinearLayout>

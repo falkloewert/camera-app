@@ -282,8 +282,11 @@ public class OnScreenIcons {
             return false;
         if( !main_activity.getApplicationInterface().isRawAllowed(main_activity.getApplicationInterface().getPhotoMode()) )
             return false;
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
-        return sharedPreferences.getBoolean(PreferenceKeys.ShowCycleRawPreferenceKey, false);
+        // Der Chip traegt den RAW-Zustand, keine eigene Anzeige-Einstellung (Falk, Schritt H
+        // Punkt 4: "den nur zeigen wenn raw modus an ist, bei aus kein chip"). Die Preference
+        // ShowCycleRawPreferenceKey stammt aus der alten Sucher-Reihe und steuerte dort das
+        // Symbol unabhaengig vom Zustand - im Band ist sie damit ohne Wirkung.
+        return main_activity.getApplicationInterface().getRawPref() == ApplicationInterface.RawPref.RAWPREF_JPEG_DNG;
     }
 
     boolean showCycleFlashIcon() {

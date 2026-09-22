@@ -763,6 +763,23 @@ nicht verifizieren (closed source).
   Foto/Video-Umschalter zeigen den Zustand bereits an. Fehler-Toasts und die
   einmaligen HDR-/Panorama-Infodialoge bleiben, da sie keine Zustands-Ankündigung sind.
 
+### Schritt H (2026-09-22) – Entscheidungen Falk
+
+- **Alle Chips im Kopfband** tragen den **weißen Kasten mit runden Ecken** des
+  Auflösungs-Chips, mit **dunklen Zeichen** (Falk: „alle chips sollen ab jetzt einen weißen
+  kasten mit runden ecken wie zb die auflösung MP chips"). Eigener Hintergrund
+  `header_chip_background_icon.xml` (4 dp Radius für die 32-dp-Kästen), die `ms_*`-Glyphen
+  werden im Layout schwarz getönt – sie sind weiß gefüllt gezeichnet.
+- **RAW-Chip** erscheint **nur**, solange RAW an ist („den nur zeigen wenn raw modus an ist,
+  bei aus kein chip") – die Anzeige-Präferenz `preference_show_cycle_raw` steuert ihn nicht mehr.
+- **„Nacht an"** im Blatt zeigt die **Mond-Kontur** (`ms_moon_outline.xml`), nicht die
+  gefüllte Fläche des Nacht-Automatik-Symbols.
+- **Pro-Panel im Video:** unten rechts, mit **Belichtung und Weißabgleich** („in der nativen
+  referenz gibt es dort nur belichtung und weißabgleich"). Verschlusszeit, ISO, Fokus,
+  Fokus-Peaking und „Alle zurücksetzen" bleiben dem Foto vorbehalten (`ProPanel.tabOffered()`).
+- **Stärke-Knopf** von Zeitraffer/Zeitlupe: rückt links neben den Pro-Knopf, statt mit ihm
+  um denselben Platz zu streiten; solange das Panel offen ist, weicht er ihm.
+
 ### Beim Orientierungs-Umbau (2026-09-17) festgestellt, nicht orientierungsbedingt
 
 Diese Punkte sind Folgen noch nicht gebauter Teile aus Abschnitt 7, keine

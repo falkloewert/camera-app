@@ -804,12 +804,25 @@ public class SettingsSheet {
             // physischem Objektiv meldet die Kamera gar keine Erweiterung (CameraController2 holt
             // die Charakteristiken nur ohne physisches Objektiv), und die Wahl der Nacht nimmt die
             // Festlegung zurück (Kickoff Schritt G, Punkt 8)
+            // Und sie bleiben stehen, solange der Zustand sie trägt (Schritt H, Punkt 1): wer die
+            // Nacht gerade gewählt hat, hat sie in den Preferences stehen, während der Neuaufbau die
+            // Erweiterung noch nicht kennt - genau in diesem Fenster verschwanden die beiden Knöpfe
+            // sonst (Falk: "außerdem verschwinden auto nacht und nacht"), und die Markierung fiel
+            // auf den Blitz zurück.
+            boolean night_stored = sharedPreferences.getBoolean(PreferenceKeys.NightAutoPreferenceKey, false) ||
+                    sharedPreferences.getBoolean(PreferenceKeys.NightOnPreferenceKey, false);
             boolean night_possible = main_activity.supportsCameraExtension(CameraExtensionCharacteristics.EXTENSION_NIGHT) ||
-                    applicationInterface.getCameraIdSPhysicalPref() != null;
+                    applicationInterface.getCameraIdSPhysicalPref() != null || night_stored;
             boolean night_auto = night_offered && night_possible &&
                     sharedPreferences.getBoolean(PreferenceKeys.NightAutoPreferenceKey, false);
             boolean night_on = night_possible && applicationInterface.isNightModeOn();
-            String current = preview.getCurrentFlashValue();
+            // Der gemerkte Blitzwert markiert, nicht der der laufenden Sitzung: waehrend des
+            // Neuaufbaus ist der Index der Sitzung -1, Preview.getCurrentFlashValue() antwortet
+            // also null und die Markierung sprang beim Tippen erst auf "nichts" und dann auf den
+            // gewaehlten Knopf (Schritt H, Punkt 2).
+            String current = applicationInterface.getFlashPref();
+            if( current == null || current.length() == 0 )
+                current = preview.getCurrentFlashValue();
             // Die Nacht hat Vorrang vor dem Blitz: eine Nacht-Sitzung lässt der Plattform wegen nur
             // flash_off zu, der gemerkte Blitzwert kommt zurück, sobald die Nacht aus ist. Damit ist
             // immer genau ein Knopf markiert (Kickoff Schritt G, Punkt 13).
@@ -838,7 +851,8 @@ public class SettingsSheet {
             }
             if( night_offered && night_possible ) {
                 // der Blitzwert bleibt gemerkt: diese Wahl rührt ihn nicht an (Schritt F)
-                options.add(lightOption(getString(R.string.settings_sheet_night_on), R.drawable.ms_dark_mode, null, null,
+                // Der Mond als Kontur, nicht als gefuellte Scheibe (Falk, Schritt H Punkt 5)
+                options.add(lightOption(getString(R.string.settings_sheet_night_on), R.drawable.ms_moon_outline, null, null,
                         null, false, Boolean.TRUE, night_on && !night_auto));
             }
             if( flash_offered && preview.hasFlashUnit() ) {
@@ -870,6 +884,10 @@ public class SettingsSheet {
                                 SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(main_activity).edit();
                                 editor.putString(PreferenceKeys.TimerPreferenceKey, value);
                                 editor.apply();
+                                // Der Timer-Chip im Band traegt denselben Zustand (Schritt G Punkt 14)
+                                // und muss mit: er frischt sich sonst erst beim naechsten showGUI auf
+                                // und stand so auf dem alten Zeichen (Schritt H, Punkt 1).
+                                main_activity.getMainUI().getOnScreenIcons().updateOnScreenIcons();
                                 refresh();
                             }
                         }));
