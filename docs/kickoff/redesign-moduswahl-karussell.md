@@ -6,6 +6,12 @@ entschieden, weil dieses Karussell sie aufnehmen soll. Genau das ist dieser Schr
 Arbeitsstand `master` (sauber, gepusht). Maße: 2,25 px/dp.
 Session-Titel: `camera-app – Schritt D Moduswahl-Karussell`.
 
+> **Nachtrag 2026-09-22:** Die Einträge-Liste in Abschnitt 1 ist ab Abschnitt 3 überholt –
+> Falk hat am selben Tag entschieden, dass **HDR und DRO keine Modi mehr** sind (drei Knöpfe
+> im Pro-Reiter) und **Nachtsicht** ein Knopf der Blitz-Zeile wird. Es gilt
+> `docs/kickoff/redesign-schritt-e-blitz-modi-panorama.md`: Karussell =
+> `Foto · Panorama · Porträt`.
+
 ## 1. Soll (ui-spezifikation.md 7.2 „Moduswahl-Leiste" + Abschnitt 5)
 
 - Aus dem `LinearLayout` wird ein **waagerechtes Paging mit Magneteffekt**: ein Tipp auf ein
