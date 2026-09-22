@@ -846,19 +846,17 @@
 
     <!-- Zurueck auf Automatik fuer den aktiven Reiter (Referenz: runder Knopf rechts NEBEN der
          Pille). Immer sichtbar (Falk 2026-09-21) - ein Druck holt den Standardwert zurueck.
-         Beschriftet statt mit dem Pfeil-Symbol: der Reiter "Alle zuruecksetzen" traegt dasselbe
-         Symbol, und zwei gleiche Zeichen im selben Panel waren nicht zu unterscheiden
-         (Falk 2026-09-22). -->
-    <TextView
+         Der Zurueck-Pfeil statt der Beschriftung "Auto": Falk 2026-09-22 ("die reset knoepfe bei
+         einzeln sollen nicht auto sondern ein pfeil zurueck sein"). Damit tragen der Reiter
+         "Alle zuruecksetzen" und dieser Knopf dasselbe Zeichen. -->
+    <ImageButton
         android:id="@+id/pro_panel_auto"
         android:layout_width="48dp"
         android:layout_height="48dp"
+        android:padding="12dp"
+        android:scaleType="fitCenter"
         android:background="@drawable/settings_sheet_dock_button"
-        android:gravity="center"
-        android:includeFontPadding="false"
-        android:text="@string/pro_panel_auto_value"
-        android:textColor="@color/settings_sheet_button_glyph"
-        android:textSize="12sp"
+        android:src="@drawable/ms_restart_alt"
         android:contentDescription="@string/pro_panel_auto"
         android:onClick="clickedProPanelAuto"
         android:visibility="gone"

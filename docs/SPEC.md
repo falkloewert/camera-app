@@ -382,6 +382,15 @@ Nacht-Erweiterung läuft nur auf der Hauptkamera, der Mond setzt das Objektiv de
   Nacht-Auto blitzte das Panorama im Hellen, weg erst nach App-Neustart), und der **RAW-Eintrag
   verschwindet in den vollen Einstellungen**, wo RAW nichts bewirkt (`isRawAllowed()` des obersten
   Modus). Kickoff: `docs/kickoff/redesign-schritt-j-staerke-im-pro-panel.md`.
+- **Schritt K (Falks fünf Befunde zu Schritt J, 2026-09-22):** gebaut, am Gerät geprüft (Zeitlupe
+  und Zeitraffer, Video-Blatt, Chip, Panorama und Foto). **„Alle zurücksetzen" gilt jetzt auch im
+  Video** – in Zeitlupe/Zeitraffer steht `[Alle zurücksetzen] [Geschwindigkeit] |—|
+  [Belichtung] [Weißabgleich]`. **Der Knopf je Reiter zeigt den Zurück-Pfeil statt „Auto"**
+  (`ms_restart_alt`, ersetzt die Notiz aus Schritt C). **Die Taschenlampen-Zeichen waren
+  unsichtbar** (y-nach-oben-Vektoren ohne `translateY`; jetzt im Blatt und im Chip zu sehen).
+  **RAW fehlt auch im Pro-Reiter des Blattes**, wo es nichts bewirkt (Panorama/Porträt), und
+  `res/drawable/header_chip_background_icon.xml` ist **gelöscht** (Falks Antwort auf die offene
+  Frage aus Schritt I). Kickoff: `docs/kickoff/redesign-schritt-k-j-befunde.md`.
 **Feste Entscheidungen:** Screenshot-Spec schlägt Detail-Spec, gemessene Werte (2,25 px/dp)
 schlagen beide; keine Animationen außer Auslöser, Glyph-Drehung, Rad-Morph, Blatt-Gleiten;
 Roboto Flex; Konflikte K1–K13 in `ui-spezifikation.md` 9; was die App nicht kann: 4b dort.

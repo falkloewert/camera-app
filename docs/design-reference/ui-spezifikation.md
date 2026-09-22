@@ -780,8 +780,9 @@ nicht verifizieren (closed source).
 - **„Nacht an"** im Blatt zeigt die **Mond-Kontur** (`ms_moon_outline.xml`), nicht die
   gefüllte Fläche des Nacht-Automatik-Symbols.
 - **Pro-Panel im Video:** unten rechts, mit **Belichtung und Weißabgleich** („in der nativen
-  referenz gibt es dort nur belichtung und weißabgleich"). Verschlusszeit, ISO, Fokus,
-  Fokus-Peaking und „Alle zurücksetzen" bleiben dem Foto vorbehalten (`ProPanel.tabOffered()`).
+  referenz gibt es dort nur belichtung und weißabgleich"). Verschlusszeit, ISO, Fokus und
+  Fokus-Peaking bleiben dem Foto vorbehalten; **„Alle zurücksetzen" gehört überall dazu**
+  (Schritt K, `ProPanel.tabOffered()`).
 - **Stärke-Knopf** von Zeitraffer/Zeitlupe: rückt links neben den Pro-Knopf, statt mit ihm
   um denselben Platz zu streiten; solange das Panel offen ist, weicht er ihm.
 
@@ -828,6 +829,26 @@ Pro-Panel**, nichts verschwindet mehr.
 - **Nacht schlägt Blitz gilt auch für die laufende Sitzung:** der erzwungene „Blitz Aus" wird
   immer an die Kamera geschickt, nicht nur beim Neuaufbau (Falks Panorama-Befund: im Hellen
   geblitzt, weg erst nach App-Neustart).
+
+### Schritt K (2026-09-22) – Entscheidungen Falk
+
+Falks Befunde zu Schritt J, noch am selben Tag am Gerät geprüft.
+
+- **„Alle zurücksetzen" auch im Video** („zeitlupe und raffer beide kein alle reset knopf"):
+  der Reiter steht jetzt in jedem Modus, in dem das Panel aufgeht. Video-Zeitlupe: `[Alle
+  zurücksetzen] [Geschwindigkeit] |—| [Belichtung] [Weißabgleich]`.
+- **Der Knopf je Reiter trägt den Zurück-Pfeil statt „Auto"** („die reset knöpfe bei einzeln
+  sollen nicht auto sondern ein pfeil zurück sein"): dasselbe Zeichen wie „Alle zurücksetzen"
+  (`ms_restart_alt`, `ImageButton` in `activity_main.xml`). **Ersetzt** die Notiz „beschriftet
+  statt mit dem Pfeil-Symbol" aus Schritt C.
+- **Taschenlampen-Zeichen waren unsichtbar:** die beiden Vektoren kamen aus einem
+  Koordinatensystem mit y nach oben und lagen ohne Verschiebung außerhalb der Ansicht
+  (`<group android:translateY="960">` wie in `ms_restart_alt.xml`). Blatt-Zeile „Taschenlampe"
+  und Band-Chip zeichnen jetzt in beiden Zuständen.
+- **RAW-Eintrag auch im Pro-Reiter des Blattes weg,** wo RAW nichts bewirkt (Panorama,
+  Porträt): dieselbe Frage wie in den vollen Einstellungen
+  (`isRawAllowed(getTopLevelPhotoMode())`).
+- **`res/drawable/header_chip_background_icon.xml` gelöscht** (seit Schritt I unbenutzt).
 
 ### Beim Orientierungs-Umbau (2026-09-17) festgestellt, nicht orientierungsbedingt
 

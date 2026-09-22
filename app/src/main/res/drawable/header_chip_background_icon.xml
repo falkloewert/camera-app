@@ -1,9 +1,0 @@
-<!-- Nicht mehr benutzt seit 2026-09-22: die Icon-Chips sitzen jetzt in demselben 18-dp-Kasten
-     wie der Aufloesungs-Chip "9 MP" und tragen darum dessen Hintergrund direkt
-     (header_chip_background) - zwei Drawables mit gleicher Farbe, gleichem Radius und gleicher
-     Groesse sind eine Dopplung. Falk fragen, ob die Datei weg darf. -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <solid android:color="#FFFFFF" />
-    <corners android:radius="4dp" />
-</shape>

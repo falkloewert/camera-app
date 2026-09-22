@@ -1071,8 +1071,13 @@ public class SettingsSheet {
             }
         }
 
-        // RAW/JPEG
-        if( preview.supportsRaw() ) {
+        // RAW/JPEG - nur wo RAW auch etwas bewirkt. Im Panorama (und im Portraet) gibt es die
+        // Einstellung nicht: dieselbe Frage stellt PreferenceSubPhoto für die vollen
+        // Foto-Einstellungen (Falk 2026-09-22: "bei panorama pro einstellung gibt es immernoch
+        // die raw einstellung bitte raus nehmen"), und gefragt wird dieselbe Stelle, die auch
+        // beim Speichern entscheidet - sonst liefen hier zwei Listen auseinander. Nach dem
+        // *obersten* Modus gefragt: die Nacht ist ein Lichtzustand und zählt als Foto.
+        if( preview.supportsRaw() && applicationInterface.isRawAllowed(applicationInterface.getTopLevelPhotoMode()) ) {
             SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
             boolean raw = "preference_raw_yes".equals(sharedPreferences.getString(PreferenceKeys.RawPreferenceKey, "preference_raw_no"));
             List<Option> options = new ArrayList<>();

@@ -164,7 +164,7 @@ public class ProPanel {
     private final ImageView end_minus_icon, end_plus_icon;
     private final View end_minus, end_plus;
     private final FrameLayout slider_holder;
-    private final TextView auto_button; // beschriftet ("Auto"), kein Symbol - siehe activity_main.xml
+    private final ImageButton auto_button; // traegt den Zurueck-Pfeil - siehe activity_main.xml
     private final TextView badge;
     private final View sheet, handle;
     private final HorizontalScrollView tabs_scroll;
@@ -416,6 +416,11 @@ public class ProPanel {
         // sonst ebenfalls (Falk 2026-09-22).
         if( tab == TAB_SPEED )
             return preview != null && main_activity.getMainUI().videoSpeedOffered();
+        // "Alle zuruecksetzen" gehoert ueberall dazu, wo das Panel aufgeht - auch im Video
+        // (Falk 2026-09-22: "zeitlupe und raffer beide kein alle reset knopf"). Er stellt
+        // ohnehin nur das zurueck, was das Panel im jeweiligen Modus anbietet.
+        if( tab == TAB_RESET )
+            return true;
         if( preview == null || !preview.isVideo() )
             return true;
         switch( tab ) {

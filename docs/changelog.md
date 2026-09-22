@@ -517,6 +517,15 @@ Neue Einträge unten anhängen, ≤ 10 Zeilen, nur Fakten (was, Commits, Entsche
   der Sucher noch startet – genau dort blitzte es bei Nacht-Auto), und der **RAW-Eintrag
   verschwindet** in den vollen Einstellungen, wo RAW nichts bewirkt. Kickoff:
   `docs/kickoff/redesign-schritt-j-staerke-im-pro-panel.md`.
+- **2026-09-22 (Feature-Chat, Schritt K – Falks fünf Befunde zu Schritt J):** **Taschenlampen-
+  Zeichen waren unsichtbar** – die y-nach-oben-Vektoren aus Schritt J brauchten
+  `<group android:translateY="960">` (`ms_flashlight_on/off.xml`); jetzt in Blatt und Chip zu
+  sehen. **RAW fehlt auch im Pro-Reiter des Blattes**, wo es nichts bewirkt
+  (`SettingsSheet.photoProRows()`, dieselbe Frage `isRawAllowed(getTopLevelPhotoMode())`).
+  **„Alle zurücksetzen" gilt jetzt im Video** (`ProPanel.tabOffered()`, Zeitlupe/Zeitraffer).
+  **Der Knopf je Reiter zeigt den Zurück-Pfeil statt „Auto"** (`ms_restart_alt`, ersetzt die
+  Beschriftung aus Schritt C). `res/drawable/header_chip_background_icon.xml` **gelöscht**.
+  Kickoff: `docs/kickoff/redesign-schritt-k-j-befunde.md`.
 
 ## Verlauf 4.5 Material-3-Redesign (aus SPEC 4.5 ausgelagert, 2026-09-18)
 
