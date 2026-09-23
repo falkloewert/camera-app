@@ -3782,7 +3782,13 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                         if( test_force_window_insets ) {
                             insets = test_cutout_insets;
                         }
-                        v.setPadding(insets.left, insets.top, insets.right, insets.bottom);
+                        // Der obere Ausschnitt wird bewusst NICHT als Abstand gesetzt: Kopfzeile und
+                        // Sucher sollen wie bei Googles Kamera bis unter die Aussparung reichen
+                        // (K4/1a). Gemessen 2026-09-23: die 68 dp Aussparung schoben den
+                        // 16:9-Sucher von 70,7 auf 138,7 dp nach unten, deshalb endete er 68 dp zu
+                        // hoch. Links/rechts/unten bleiben gesetzt, damit im Querformat nichts
+                        // unter der Aussparung bzw. der Navigationsleiste liegt.
+                        v.setPadding(insets.left, 0, insets.right, insets.bottom);
 
                         // also handle change of immersive mode (instead of using deprecated setOnSystemUiVisibilityChangeListener below
                         immersiveModeChanged( windowInsets.isVisible(WindowInsets.Type.navigationBars()) );

@@ -1393,10 +1393,93 @@ public class SettingsSheet {
                 rows.add(new Row(getString(R.string.settings_sheet_fps), value_text, options));
         }
 
+        // Format: 16:9 oder 4:3, dieselbe Zeile wie im Foto-Blatt. Im Video fehlte sie (Falk
+        // 2026-09-24: "ich kann bei video garnicht das format ändern ... nur Format fehlt"): das
+        // Pixel bietet 4:3-Video nicht als eigenes Camcorder-Profil, aber als "_r"-Groesse ueber
+        // einem Profil (2560x1920, 1920x1440 ...), und genau die schaltet diese Zeile. Sie
+        // erscheint nur, wo das Geraet beide Klassen wirklich anbietet - eine Zeile mit einem
+        // einzigen Knopf waere keine Wahl. Nicht im Selfie: das nimmt 16:9 auf, und
+        // fixFrontVideoQuality() oben dreht jede andere Wahl sofort wieder zurueck.
+        if( !video_speed_mode && !front ) {
+            String current_quality = preview.getVideoQualityHander().getCurrentVideoQuality();
+            CameraController.Size current_size = videoQualitySize(current_quality);
+            // die ungefilterte Liste: das Format ist eine Frage des Bildes, nicht der Bildrate -
+            // an der fps-Liste haengen wuerde die Zeile mit der Zeile darueber kommen und gehen
+            List<String> format_qualities = preview.getVideoQualityHander().getSupportedVideoQuality();
+            int [] labels = {R.string.settings_sheet_aspect_wide, R.string.settings_sheet_aspect_full};
+            List<Option> options = new ArrayList<>();
+            for(int i=0;i<ASPECT_CLASSES.length;i++) {
+                final float class_ratio = ASPECT_CLASSES[i];
+                final String quality = aspectQuality(format_qualities, class_ratio, current_size);
+                if( quality == null )
+                    continue;
+                // Gekennzeichnet wird nach Klasse, nicht nach Groesse: sonst waere bei einer
+                // Groesse, die in keine Klasse genau passt (das Pixel bietet 2:1), kein Knopf
+                // markiert - das sah am Geraet nach Fehler aus (Foto-Blatt, 2026-09-21)
+                CameraController.Size size = videoQualitySize(quality);
+                boolean selected = size != null && current_size != null &&
+                        aspectClassIndex(ratio(size)) == aspectClassIndex(ratio(current_size));
+                options.add(new Option(getString(labels[i]), 0, Glyph.ASPECT, null, class_ratio, selected,
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                setVideoQuality(quality);
+                            }
+                        }));
+            }
+            if( options.size() >= 2 )
+                rows.add(new Row(getString(R.string.settings_sheet_aspect),
+                        selectedLabelOr(options, current_size != null ? ratioText(current_size) : null), options));
+        }
+
         // no macro row for video (2026-09-21): the continuous autofocus gets as close as needed,
         // and the camera picks the near lens on its own when the subject is closer than ~10 cm
 
         return rows;
+    }
+
+    /** The frame size behind a video quality, or null when the camera cannot answer. While the
+     *  camera is closed it hands out a 1080p profile for <i>every</i> quality
+     *  ({@link Preview#getCamcorderProfile}), which would put them all into one class - so a
+     *  closed camera answers nothing here, and the rows built on this stay away. */
+    private CameraController.Size videoQualitySize(String quality) {
+        Preview preview = main_activity.getPreview();
+        if( quality == null || preview == null || preview.getCameraController() == null )
+            return null;
+        CamcorderProfile profile = preview.getCamcorderProfile(quality);
+        if( profile == null || profile.videoFrameWidth <= 0 || profile.videoFrameHeight <= 0 )
+            return null;
+        return new CameraController.Size(profile.videoFrameWidth, profile.videoFrameHeight);
+    }
+
+    /** The quality the format row switches to for an aspect class: the largest one of that class
+     *  within the class the current quality sits in, so a tap on 4:3 lands on 1920x1440 next to
+     *  FHD and on 2560x1920 next to 4K, never down on VGA. The border is the same
+     *  SAVING_PICTURE_WIDTH the photo sheet's format row uses.
+     *  @param current_size the size the row switches away from, null when the camera is not
+     *         answering - then the largest of the class is taken. */
+    private String aspectQuality(List<String> qualities, float class_ratio, CameraController.Size current_size) {
+        if( qualities == null )
+            return null;
+        boolean narrow = current_size != null && current_size.width <= SAVING_PICTURE_WIDTH;
+        String best = null;
+        float best_mp = 0.0f;
+        for(String quality : qualities) {
+            CameraController.Size size = videoQualitySize(quality);
+            // genau die Klasse, nicht die naechste: ein 2:1-Video (das Pixel bietet 4000x2000)
+            // zaehlt sonst als 16:9 und waere der groesste Knopf dieser Klasse
+            if( size == null || Math.abs(ratio(size) - class_ratio) > RATIO_TOLERANCE || (narrow && size.width > SAVING_PICTURE_WIDTH) )
+                continue;
+            if( best == null || mp(size) > best_mp ) {
+                best = quality;
+                best_mp = mp(size);
+            }
+        }
+        if( best == null && narrow )
+            // in der schmalen Klasse gibt es dieses Format nicht - dann das groesste des Formats,
+            // statt den Knopf wegzulassen
+            return aspectQuality(qualities, class_ratio, null);
+        return best;
     }
 
     private List<Row> videoMoreRows() {

@@ -70,7 +70,7 @@ zu können (`git fetch upstream`).
 | 7 | Zeitraffer & Zeitlupe (Video-Modi wie in der Pixel-App, siehe 4.6) | **Fertig** (2026-09-21) | Mittel |
 | 8 | Doppeltippen auf den Sucher wechselt die Kamera (Selfie ↔ hinten) | Idee (2026-09-21) | Niedrig |
 | 9 | Serienbilder als Stapel in der Galerie statt einzelner Bilder | Idee (2026-09-21, Recherche nötig) | Mittel |
-| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile, Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen, Datei-Prüfung abgeschlossen), **Feinjustier-Rad** (2026-09-18), Einstellungen-Blätter + Pro-Panel (2026-09-21) und **Kopfzeile; alte Icon-Leiste + Drei-Punkte-Popup entfernt** (Schritt C, 2026-09-22) gebaut, dazu **Karussell, Licht-Zeile, Chips, Stärke im Pro-Panel** (Schritte D–K, abgenommen 2026-09-23); offen: Rest `ui-spezifikation.md` Abschnitt 7 (Sucher-Overlays, Farben/Blur/Schrift) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
+| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile, Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen, Datei-Prüfung abgeschlossen), **Feinjustier-Rad** (2026-09-18), Einstellungen-Blätter + Pro-Panel (2026-09-21) und **Kopfzeile; alte Icon-Leiste + Drei-Punkte-Popup entfernt** (Schritt C, 2026-09-22) gebaut, dazu **Karussell, Licht-Zeile, Chips, Stärke im Pro-Panel** (Schritte D–K, abgenommen 2026-09-23) und **Sucher-Overlays: Fokus-Ring, Drittel-Raster, Wasserwaage, Sucher-Lage** (Schritt L, abgenommen 2026-09-24); offen: nur noch `ui-spezifikation.md` 7.3 (Farben/Blur/Schrift) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
 
 ### 3.1 Vereinbarte Reihenfolge (aktualisiert 2026-09-14: Material-3-Redesign vor Feature 5 vorgezogen)
 
@@ -336,9 +336,9 @@ Verhältnis (`Preview.pickSizeForRequirements()`; die Nacht-Erweiterung kann 16:
 2688×1512, vorher wurde daraus 4:3). Nicht möglich: echte Nacht im Weitwinkel-Panorama – die
 Nacht-Erweiterung läuft nur auf der Hauptkamera, der Mond setzt das Objektiv deshalb auf 1×.
 
-**Offen:** Rest `ui-spezifikation.md` Abschnitt 7 (Sucher-Overlays 7.1 Punkte 6–9,
-Farben/Blur/Schrift 7.3) und die Punkte 13/14 unten. Dock (7.1 Punkt 3) und Karussell (7.2) sind
-gebaut (Schritte A–D), Abnahme siehe unten.
+**Offen:** nur noch `ui-spezifikation.md` 7.3 (Farben/Blur/Schrift) und die Punkte 13/14 unten.
+Dock (7.1 Punkt 3), Karussell (7.2) und die **Sucher-Overlays samt Sucher-Lage (Schritt L,
+2026-09-24)** sind gebaut und abgenommen, siehe unten.
 
 **Am 2026-09-22 notiert, damit es nicht untergeht:**
 - **Schritte D–K am 2026-09-23 von Falk am Pixel 9 Pro abgenommen** (ein gemeinsamer Durchgang;
@@ -388,6 +388,35 @@ gebaut (Schritte A–D), Abnahme siehe unten.
   Frage aus Schritt I). Nachgezogen: **Stärke-Pille und Pro-Knopf lagen in Zeitlupe/Zeitraffer
   übereinander** (Falk: „der pro einstellungsbutton ist noch kaputt") – die Pille rückt 72 dp
   nach links und zeigt ihren Wert. Kickoff: `docs/kickoff/redesign-schritt-k-j-befunde.md`.
+- **Schritt L – Sucher-Overlays (2026-09-24 gebaut, am Pixel 9 Pro abgenommen):** **Fokus-Ring**
+  statt gelbem Rechteck (⌀ 64 dp, Kontur 1,5 dp, Signalgelb `#FEE75C` nach Konflikt K9, Puls
+  1,15 → 1,0, weg nach 4 s ohne Eingriff), **Drittel-Raster** 1 dp Weiß 25 % statt voller
+  Deckkraft. **Raster und Wasserwaage sind jetzt Standard an** (Raster-Preference
+  `preference_grid_3x3`, `preferences_sub_preview.xml`). **Wasserwaage** ersetzt die grüne
+  Winkellinie (`#14e715`): Modus A mit zweigeteilter Linie, fester Mittelmarke, kippender Achse
+  und Grad-Anzeige (springt erst ab 0,6° Abweichung, verschwindet über 45°), Einrasten bei ≤1°
+  mit Hysterese bis 2,5° → Linien verschmelzen, Signalgelb, `CONFIRM`; Modus B (Kamera zeigt
+  nach unten) mit weißem Fadenkreuz 12 dp / 1,5 dp und Toleranzkreis r 34 dp, das gelbe Kreuz
+  rastet beim Treffen ein. **Sucher-Lage (PM-Punkt 7, K4/1a):** der 4:3-Sucher endet auf der
+  Linie 178 dp über der Bildschirmunterkante, also bis unter die Auslöser-Zeile – gemessen
+  `[0,461][960,1741]` bei 4:3 (Foto und Video), 16:9 unverändert `[0,159][960,1865]`. Ursache
+  der alten Lage: `line_y` war in Anzeige-Koordinaten gerechnet (`getDisplaySize()` ohne
+  Cutout/Navigationsleiste), die Views leben aber im ganzen Fenster, und der Navigationsabstand
+  steckte doppelt drin; jetzt `MainUI.layoutUI_window_h` über `getDisplaySize(..., false)`. Kein
+  28-dp-Clipping (K4 entschieden). **Bewusst nicht gebaut:** Regler (Sonne/Thermometer) und
+  AE/AF-Sperre am Ring, Smart Chips (7.1 Punkt 9 – die App hat nichts, was sie zeigen könnte).
+  Kickoff: `docs/kickoff/redesign-sucher-overlays.md`.
+- **Offen aus Schritt L (2026-09-24):** der **0,5-Knopf der Zoom-Pille wechselt nicht mehr auf
+  die Ultraweitwinkel-Linse.** Am Gerät belegt: der Tipp kommt an (`ZoomTo(): 0`,
+  `CameraController2: zoom to: 0.51`, `setZoomPref: 0`, Pille bleibt auf „,5×"), aber die
+  HAL-Sitzung wird nicht neu aufgebaut, es gibt keinen Führungswechsel der Kamera. Die Stufe
+  bittet also nur um `CONTROL_ZOOM_RATIO < 1` und vertraut darauf, dass die HAL die Linse
+  tauscht; ob eine Auflösungs-/Verhältnis-/Format-/RAW-/fps-Einstellung diese Grenze
+  verschiebt, ist nicht geklärt (Matrix-Test offen: 0,5 in Foto 4:3 / Foto 16:9 / Video 4:3 /
+  Video 16:9). Beim ausdrücklichen Pinnen funktioniert der Wechsel (`switchToPhysicalLens: 3`,
+  Sitzung neu, HAL `DestroyPipelines`). Fix-Wege: die 0,5-Stufe über den vorhandenen Pin fahren
+  statt über den Zoom-Wert, oder `CONTROL_ZOOM_RATIO` aus dem Capture-Result zurücklesen und bei
+  Nichtwirkung auf den Pin ausweichen (sonst den toten Knopf ausblenden).
 **Feste Entscheidungen:** Screenshot-Spec schlägt Detail-Spec, gemessene Werte (2,25 px/dp)
 schlagen beide; keine Animationen außer Auslöser, Glyph-Drehung, Rad-Morph, Blatt-Gleiten;
 Roboto Flex; Konflikte K1–K13 in `ui-spezifikation.md` 9; was die App nicht kann: 4b dort.
@@ -398,8 +427,14 @@ Verlauf und Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
    Resume) – nicht angefasst.
 6. **Ring/Squircles auf Schwarz unsichtbar** (Videomodus, 16:9): Falk vergleicht mit der
    Pixel-App, ggf. `shutter_row_scrim` heller.
-7. **Sucher-Position (K4/1a):** 4:3-Sucher endet bei uns über der Moduswahl, Referenz
-   reicht bis unter die Auslöser-Zeile → Sucher-Overlays-Schritt (7.1 Punkt 8).
+7. ~~**Sucher-Position (K4/1a):** 4:3-Sucher endet bei uns über der Moduswahl, Referenz
+   reicht bis unter die Auslöser-Zeile → Sucher-Overlays-Schritt (7.1 Punkt 8).~~
+   **Erledigt (Schritt L, 2026-09-24):** der Sucher endet jetzt auf der Linie 178 dp über der
+   Bildschirmunterkante, am Gerät mit `[0,461][960,1741]` gemessen; K4 gilt (kein Clipping).
+15. **0,5-Knopf wechselt nicht auf die Ultraweitwinkel-Linse** (Befund aus Schritt L,
+   2026-09-24; die Mechanik selbst wurde nicht angefasst). Belege, HAL-Logs und zwei
+   Fix-Wege stehen in 4.5 unter „Offen aus Schritt L". Falk entscheidet, ob das ein eigener
+   kleiner Chat wird (Fix + Matrix-Test 4:3/16:9 × Foto/Video).
 8. **Tele-Verzögerung beim „5"-Knopf** (~1 s, Treiber entscheidet Linsenwechsel).
    Alternative: physische Tele-Linse direkt anfordern wie das Panorama-Linsenpaar
    (`userSwitchToCamera(id, physicalId)`), Preis: keine Low-Light-Automatik. Eigener

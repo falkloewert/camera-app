@@ -8,6 +8,11 @@
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
         <item name="android:windowFullscreen">true</item>
+        <!-- Ohne diese Zeile legt Android das Fenster unterhalb der Display-Aussparung an: Kopfzeile
+             und Sucher sassen 68 dp (153 px) zu tief, der 16:9-Sucher endete bei 898 dp statt bei
+             829 dp wie in der Referenz (Messung 2026-09-23). shortEdges laesst die App wie Googles
+             Kamera bis in die Aussparung zeichnen. -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:navigationBarColor">@android:color/black</item>
         <item name="android:imageButtonStyle">@style/image_button</item>

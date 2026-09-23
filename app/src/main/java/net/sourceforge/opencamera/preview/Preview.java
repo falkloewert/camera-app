@@ -592,6 +592,33 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
         // UI coordinates range from (0, 0) to (width, height).
         camera_to_preview_matrix.postScale(cameraSurface.getView().getWidth() / 2000f, cameraSurface.getView().getHeight() / 2000f);
         camera_to_preview_matrix.postTranslate(cameraSurface.getView().getWidth() / 2f, cameraSurface.getView().getHeight() / 2f);
+        // Zuletzt angehaengt = als erstes auf den Sensorpunkt angewandt: der Beschnitt passiert
+        // in Sensor-Koordinaten. Die Kamera-Koordinaten (-1000..1000) beschreiben die GANZE
+        // Sensorflaeche, sichtbar ist aber nur der Ausschnitt des Vorschau-Streams: hat der
+        // Stream ein anderes Seitenverhaeltnis als der Sensor, schneidet die HAL mittig ab
+        // (nachgemessen 2026-09-23 mit dumpsys media.camera: cropRegion 0,0,4080,3072 = ganzer
+        // Sensor, Vorschau-Stream 1920x1080 = 16:9, Foto 4032x3024 = 4:3; dieselbe Kamera liefert
+        // 16:9-Fotos als 4032x2268, also als 75-%-Ausschnitt der Hoehe - sie schneidet, sie
+        // staucht nicht). Ohne die Korrektur sitzt der Autofokus beim Tippen neben dem Finger:
+        // ein Tipp am oberen Sucherrand meint dann einen Punkt ausserhalb des Bildes.
+        if( camera_controller != null ) {
+            CameraController.Size stream_size = camera_controller.getPreviewSize();
+            CameraController.Size sensor_size = camera_controller.getPictureSize();
+            if( stream_size != null && sensor_size != null && stream_size.width > 0 && stream_size.height > 0 && sensor_size.width > 0 && sensor_size.height > 0 ) {
+                double stream_aspect = ((double)stream_size.width) / (double)stream_size.height;
+                double sensor_aspect = ((double)sensor_size.width) / (double)sensor_size.height;
+                // ponytail: als Sensorflaeche dient das eingestellte Fotoformat. Bei einem
+                // 16:9-Foto ist die Korrektur damit zu klein (der Sensor ist auch dann 4:3) -
+                // das ist der Zustand des Originals, nicht schlechter. Nachbessern, wenn Falk
+                // 16:9-Fotos nutzt und der Fokus oben/unten daneben sitzt.
+                if( stream_aspect > sensor_aspect * 1.01 ) {
+                    camera_to_preview_matrix.postScale(1.0f, (float)(sensor_aspect/stream_aspect));
+                }
+                else if( sensor_aspect > stream_aspect * 1.01 ) {
+                    camera_to_preview_matrix.postScale((float)(stream_aspect/sensor_aspect), 1.0f);
+                }
+            }
+        }
     }
 
     private void calculatePreviewToCameraMatrix() {
@@ -745,11 +772,6 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
             startCameraPreview(true, null);
         }
 
-        // whether to clear focus area instead of setting new one
-        // we don't rely purely on isFocusWaiting(), as sometimes the focus can be really quick
-        if( MyDebug.LOG )
-            Log.d(TAG, "focus_started_time: " + focus_started_time);
-        boolean clear_focus_areas = has_focus_area && focus_area_time != -1  && (System.currentTimeMillis() - focus_area_time) < ViewConfiguration.getDoubleTapTimeout();
         cancelAutoFocus();
 
         boolean touch_capture = applicationInterface.getTouchCapturePref();
@@ -757,42 +779,42 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
         // don't set focus areas on touch if the user is touching to unpause!
         // similarly if doing single touch to capture (we go straight to taking a photo)
         // and not supported for camera extensions
-        if( camera_controller != null && !this.using_face_detection && !was_paused && !touch_capture && !camera_controller.isCameraExtension() ) {
-            if( clear_focus_areas ) {
-                // double tap to clear focus areas
-                // also if we were in autofocus_in_continuous_mode mode, reset back to continuous mode
+        // ponytail: bei eingeschalteter Gesichtserkennung setzen wir das Fokusfeld trotzdem - das
+        // Original liess es dort weg, dann folgt der Fokus aber nicht dem Finger und der Fokus-Ring
+        // sitzt in der Bildmitte statt am Tippunkt (Falks Geraetetest 2026-09-23); zuruecknehmen,
+        // falls ein Geraet Fokusfeld und Gesichtserkennung nicht nebeneinander vertraegt.
+        // Ein Tipp setzt immer einen neuen Fokuspunkt. Das Original loeschte den Fokuspunkt
+        // stattdessen, wenn der zweite Tipp innerhalb des Doppeltipp-Fensters (300 ms) auf den
+        // ersten folgte ("double tap to clear focus areas") - der Ring verschwand dann, ohne
+        // dass fokussiert wurde, was wie "reagiert nicht" aussah (Falks Geraetetest 2026-09-23:
+        // nah/fern antippen, danach kein Ring mehr bis zum naechsten Tipp). Googles Kamera kennt
+        // kein Doppeltipp-Loeschen, K4/3.2 verlangt nur "Tippen setzt den Fokuspunkt".
+        if( camera_controller != null && !was_paused && !touch_capture && !camera_controller.isCameraExtension() ) {
+            this.has_focus_area = false;
+            this.focus_area_time = -1;
+
+            if( MyDebug.LOG ) {
+                Log.d(TAG, "x, y: " + event.getX() + ", " + event.getY());
+            }
+            float [] coords = {event.getX(), event.getY()};
+            calculatePreviewToCameraMatrix();
+            preview_to_camera_matrix.mapPoints(coords);
+            float focus_x = coords[0];
+            float focus_y = coords[1];
+            ArrayList<CameraController.Area> areas = getAreas(focus_x, focus_y);
+
+            if( camera_controller.setFocusAndMeteringArea(areas) ) {
                 if( MyDebug.LOG )
-                    Log.d(TAG, "remove focus areas due to touch");
-                clearFocusAreas();
-                continuousFocusReset();
+                    Log.d(TAG, "set focus (and metering?) area");
+                this.has_focus_area = true;
+                this.focus_area_time = System.currentTimeMillis();
+                this.focus_camera_x = focus_x;
+                this.focus_camera_y = focus_y;
             }
             else {
-                this.has_focus_area = false;
-                this.focus_area_time = -1;
-
-                if( MyDebug.LOG ) {
-                    Log.d(TAG, "x, y: " + event.getX() + ", " + event.getY());
-                }
-                float [] coords = {event.getX(), event.getY()};
-                calculatePreviewToCameraMatrix();
-                preview_to_camera_matrix.mapPoints(coords);
-                float focus_x = coords[0];
-                float focus_y = coords[1];
-                ArrayList<CameraController.Area> areas = getAreas(focus_x, focus_y);
-
-                if( camera_controller.setFocusAndMeteringArea(areas) ) {
-                    if( MyDebug.LOG )
-                        Log.d(TAG, "set focus (and metering?) area");
-                    this.has_focus_area = true;
-                    this.focus_area_time = System.currentTimeMillis();
-                    this.focus_camera_x = focus_x;
-                    this.focus_camera_y = focus_y;
-                }
-                else {
-                    if( MyDebug.LOG )
-                        Log.d(TAG, "didn't set focus area in this mode, may have set metering");
-                    // don't set has_focus_area in this mode
-                }
+                if( MyDebug.LOG )
+                    Log.d(TAG, "didn't set focus area in this mode, may have set metering");
+                // don't set has_focus_area in this mode
             }
         }
 
@@ -810,8 +832,7 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
 
         // don't auto focus on touch if the user is touching to unpause!
         if( !was_paused ) {
-            // if clear_focus_areas==true, don't want to reenter autofocus_in_continuous_mode mode
-            tryAutoFocus(false, !clear_focus_areas);
+            tryAutoFocus(false, true);
         }
         return true;
     }
@@ -4027,6 +4048,14 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
                 CameraController.Size picture_size = camera_controller.getPictureSize();
                 if( MyDebug.LOG )
                     Log.d(TAG, "picture_size: " + picture_size.width + " x " + picture_size.height);
+                // Der Kasten folgt dem FOTO - der Sucher zeigt genau das, was in der Datei landet
+                // (Falk 2026-09-23: "es soll nichts gecroppt werden"). Ein Zwischenstand zeigte
+                // stattdessen immer den ganzen Sensor (4:3) mit dem Foto als hellem Ausschnitt
+                // darin; bei 16:9 wurde das Bild dadurch schmal und bekam links/rechts Rand,
+                // obwohl es das vorher nicht hatte (Falks Befund 2026-09-23: "bei 16:9 ist jetzt
+                // alles mit Rand und nicht normal wie vorher"). Den Sensor-Rest, den ein
+                // 16:9-Foto wegschneidet, kann der Sucher nicht mitzeigen: er liegt neben dem
+                // Bild, ausserhalb des Bildschirms.
                 targetRatio = ((double)picture_size.width) / (double)picture_size.height;
             }
         }

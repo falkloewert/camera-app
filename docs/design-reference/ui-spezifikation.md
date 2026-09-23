@@ -414,8 +414,9 @@ oder weicht ab; im Hochformat dominiert optisch weiterhin die alte Open-Camera-I
 3. ~~Moduswahl als echtes Karussell → 7.2 Moduswahl.~~ **Gebaut (Schritt D, 2026-09-22).**
 4. ~~Feinjustier-Rad → 7.1 Punkt 1.~~ **Erledigt (2026-09-18, vorgezogen vor 2 und 3).**
 5. ~~Einstellungen-Blätter + Swipe-Down → 7.1 Punkt 2.~~ In Punkt 2 (A/B) aufgegangen.
-6. Sucher-Overlays → 7.1 Punkte 6–8.
-7. Farben / Blur / Schrift → 7.3.
+6. ~~Sucher-Overlays → 7.1 Punkte 6–8.~~ **Erledigt (Schritt L, 2026-09-24)**: Punkte 6, 7 und
+   8 sind gebaut und am Gerät abgenommen, Punkt 9 (Smart Chips) ist entfallen.
+7. Farben / Blur / Schrift → 7.3. **Letzter offener Schritt des Redesigns.**
 
 ### 7.1 Fehlende Bausteine (noch nicht gebaut)
 
@@ -472,26 +473,28 @@ Soll-Werte aus der Detail-Spec, außer wo die Screenshot-Spec etwas anderes sagt
    gemessenen Werten statt der Detail-Spec: Radius 12 dp (nicht 22), Zentrum 124 dp (nicht
    64 – das wäre im Ring), 2-dp-Rahmen. Bounce/Cross-Fade bewusst weggelassen (Abschnitt 8).
    Der pulsierende Farbfilter beim Speichern (`savingImage()`) ist geblieben.
-6. **Fokus-Ring, Belichtungs-Slider, AE/AF-Sperre (Detail-Spec 3).** Ist: gelbes
-   Rechteck, Yellow 500 (`DrawPreview` L1233 f.). Soll: Ring ⌀ 64 dp, Kontur 1,5 dp
-   (Farbe: Konflikt K9), erscheint am Berührungspunkt, Puls 1,15 → 1,0, verschwindet
-   nach 4 s ohne Interaktion; senkrechte Slider mit Sonne (Belichtungskorrektur) und
-   Thermometer (Farbtemperatur) seitlich am Ring; Long-Press auf den Sucher = AE/AF-Sperre
-   mit Schloss-Symbol am Ring und Banner „AE/AF-Sperre" (Open Camera hat die Sperre nur
-   als Icon-Button).
-7. **Nivellierung (Detail-Spec 3).** Modus A ist: alte Winkellinie mit grünem Highlight
-   `#14e715` (`DrawPreview` L683, Preference). Soll: zweigeteilte 1-px-Linie, statische
-   Mittelmarke, kippende Achse, Grad-Anzeige (`0°`, `-2°`), bei 0° verschmelzen die Linien,
-   werden Signalgelb und lösen `CONFIRM` aus. Modus B (Top-Down) fehlt ganz: statisches
-   weißes Fadenkreuz 12 × 12 dp / 1,5 dp im optischen Zentrum, Toleranzkreis Radius 34 dp
-   / 1 dp / 60 % Weiß, dynamisches gelbes Kreuz 12 × 12 dp / 1,5 dp wandert mit der
-   Neigung, beim Treffen rasten beide ein + `CONFIRM`.
-8. **Sucher-Clipping 28 dp und Translucent-Bar-Modus (16:9).** `preview` ist ein
-   `FrameLayout` ohne Outline/Clip (`activity_main.xml` L13). Ob überhaupt gewollt:
-   Konflikt K4.
-9. **Smart Chips.** Fehlen. Soll: Pille 36 dp hoch, Padding 6 dp / 14 dp, `#1E1E1E`,
-   1 dp Border 10 % Weiß; Icon 16 dp | Text 12 dp Weiß | ✕ 14 dp Hellgrau; Slide-Up
-   12 px + Fade-In, weg nach 4 s; ca. 80 dp über dem Auslöser-Zentrum.
+6. ~~**Fokus-Ring, Belichtungs-Slider, AE/AF-Sperre (Detail-Spec 3).**~~ **Fokus-Ring erledigt
+   (Schritt L, 2026-09-24):** Ring ⌀ 64 dp, Kontur 1,5 dp, Signalgelb `#FEE75C` (Konflikt K9),
+   am Berührungspunkt, Puls 1,15 → 1,0 über 250 ms, weg nach 4 s ohne Eingriff; das frühere
+   gelbe Rechteck (Yellow 500) und das grüne/rote Erfolgszeichen sind weg, der Ring sieht in
+   jedem Ausgang gleich aus. **Nicht gebaut (Entscheidung im Kickoff, Falk hat die Sperre in
+   Schritt C gestrichen):** die senkrechten Slider (Sonne/Thermometer) am Ring und die
+   AE/AF-Sperre per Long-Press – Belichtung und Weißabgleich sitzen im Pro-Panel.
+7. ~~**Nivellierung (Detail-Spec 3).**~~ **Erledigt (Schritt L, 2026-09-24):** die grüne
+   Winkellinie ist ersetzt. Modus A: zweigeteilte Linie, feste Mittelmarke, kippende Achse,
+   Grad-Anzeige (springt erst ab 0,6° Abweichung, verschwindet über 45°), bei 0° verschmelzen
+   die Linien, werden Signalgelb `#FEE75C` und lösen `CONFIRM` aus; Einrasten bei ≤1° mit
+   Hysterese bis 2,5° gegen Sensorrauschen. Modus B (Top-Down): weißes Fadenkreuz 12 dp /
+   1,5 dp, Toleranzkreis r 34 dp, das gelbe Kreuz wandert mit der Neigung und rastet beim
+   Treffen ein + `CONFIRM`. Raster und Wasserwaage sind jetzt Standard an.
+8. ~~**Sucher-Clipping 28 dp und Translucent-Bar-Modus (16:9).** `preview` ist ein
+   `FrameLayout` ohne Outline/Clip (`activity_main.xml` L13).~~ **Entschieden (K4) und erledigt
+   (Schritt L, 2026-09-24):** kein 28-dp-Clipping und kein Eckradius, die Bedienelemente liegen
+   bei 4:3 **über** dem Bild. Der 4:3-Sucher endet jetzt auf der Linie 178 dp über der
+   Bildschirmunterkante (bis unter die Auslöser-Zeile), gemessen `[0,461][960,1741]`; 16:9
+   bleibt `[0,159][960,1865]`.
+9. ~~**Smart Chips.**~~ **Entfallen (Schritt L, 2026-09-24):** die App hat nichts, was sie
+   zeigen könnte (wie beim „?" der Kopfzeile).
 10. **Haptik-Profil.** Ist: SeekBar-Ticks (`MainUI.performHapticFeedback()`) und – seit
     Audit-Schritt 1 – **Heavy Click beim Auslösen / Video-Start/-Stopp**
     (`MainUI.performHeavyClick()`). Offen: `CLOCK_TICK` bei Zoom-Stufe, Ruler-Strich,
@@ -609,10 +612,10 @@ Farb-/Blur-Punkte (7.3):
 - Pillenhöhe: bei uns ~39 dp (8 dp Padding), Referenz gemessen **32 dp** – Zentrum liegt
   dadurch 4 dp zu hoch; erledigt sich mit der Pillen-Anpassung in Audit-Schritt 3.
 
-**Drittel-Raster** (`DrawPreview` L972–977)
-- `Color.WHITE` mit voller Deckkraft; Standard der Preference ist `preference_grid_none`
-  (L710), das Raster ist also normalerweise aus. Soll: 1 dp, `rgba(255,255,255,0.25)`,
-  immer sichtbar (Screenshot-Spec 1b).
+**Drittel-Raster** (`DrawPreview`) — **erledigt (Schritt L, 2026-09-24)**, siehe 7.1 Punkt 6.
+- Ist war: `Color.WHITE` mit voller Deckkraft, Standard `preference_grid_none` (Raster also
+  normalerweise aus). Jetzt: 1 dp (`stroke_width`), `Color.argb(64,255,255,255)` = Weiß 25 %,
+  Standard `preference_grid_3x3`, also immer sichtbar (Screenshot-Spec 1b).
 
 **Rotation** (`MainUI.rotateGlyphs()`) — **erledigt** (Pixel-Drehmodell, 2026-09-17/18):
 300 ms mit `PathInterpolator(0.2, 0, 0, 1)`, wie gefordert. Das Drehmodell selbst ist
@@ -626,8 +629,8 @@ das aus Abschnitt 2 (Konflikt K3, dort endgültig entschieden).
 | Overlay-Container (Zoom-Pille, Ruler, Chips) | `#99000000`, kein Blur | `rgba(20,20,20,0.65)` + Blur 20 px |
 | Aktiver Akzent | `#F2F2F2`; `md_dark_primary` `#B0A695` definiert, aber ungenutzt; kein `DynamicColors` | Material-You-Pastell `#C2E7D9`–`#D3E8D8` bzw. `#E2E3E0`, dynamisch |
 | Inaktive Icons / Sekundärtext | `#F2F2F2` bzw. Weiß | `#C4C7C5` bzw. `rgba(255,255,255,0.7)`; Modus-Karussell inaktiv `#8E918F` |
-| Nivellierung dynamisch | Grün `#14e715` (Preference) | Signalgelb `#FEE75C` / `#F9AB00` |
-| Fokus | Yellow 500 `#FFEB3B`, Rechteck | Weiß 1,5 dp Ring (Detail-Spec) / dünn goldgelb (Screenshot) – K9 |
+| Nivellierung dynamisch | ~~Grün `#14e715`~~ Signalgelb `#FEE75C` (Schritt L) | Signalgelb `#FEE75C` / `#F9AB00` – erledigt |
+| Fokus | ~~Yellow 500 `#FFEB3B`, Rechteck~~ Signalgelb `#FEE75C`, Ring 1,5 dp (Schritt L) | Weiß 1,5 dp Ring (Detail-Spec) / dünn goldgelb (Screenshot) – K9, entschieden: goldgelb |
 | Video-Rot | ~~`#F44336`~~ `#E53935` (erledigt, Audit-Schritt 1) | `#E53935` |
 | Schriftfamilie | keine deklariert (kein `fontFamily`, kein `res/font/`) | Google Sans / Roboto Flex. Google Sans ist nicht frei lizenziert → Roboto Flex (OFL) als Font-Ressource bündeln oder Systemschrift bewusst akzeptieren – Entscheidung Falk |
 | Schriftgewicht 600 | `Typeface.BOLD` = 700 | 600 über `Typeface.create(tf, 600, false)` (API 28+, hier verfügbar) |

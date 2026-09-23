@@ -295,6 +295,11 @@ public class MainUI {
     // stores with width and height of the last time we laid out the UI
     public int layoutUI_display_w = -1;
     public int layoutUI_display_h = -1;
+    // height of the whole window, the coordinates the views in this layout actually live in:
+    // layoutUI_display_h is the display *minus* cutout and navigation bar, but neither is padded
+    // away here (MainActivity: the top cutout is deliberately not set as a gap), so the layout
+    // reaches from y=0 to this height
+    public int layoutUI_window_h = -1;
 
     private ConstraintLayout getConstraintRoot() {
         return (ConstraintLayout) main_activity.findViewById(R.id.activity_main_root);
@@ -621,6 +626,9 @@ public class MainUI {
         main_activity.getApplicationInterface().getDisplaySize(display_size, true);
         this.layoutUI_display_w = display_size.x;
         this.layoutUI_display_h = display_size.y;
+        Point window_size = new Point();
+        main_activity.getApplicationInterface().getDisplaySize(window_size, false);
+        this.layoutUI_window_h = window_size.y;
         if( MyDebug.LOG ) {
             Log.d(TAG, "layoutUI_display_w: " + layoutUI_display_w);
             Log.d(TAG, "layoutUI_display_h: " + layoutUI_display_h);
@@ -706,6 +714,34 @@ public class MainUI {
             resetView(cs, view);
             centerHorizontally(cs, view_id);
             pinToBottom(cs, view_id, navigation_gap, (int) (109 * scale + 0.5f)); // reference pill bottom edge 133 dp from the screen edge - 24 dp inset
+
+            // Der Sucher (Schritt L, Falk 2026-09-23): seine Unterkante liegt auf der Linie
+            // zwischen Ausloeser-Zeile und Modus-Leiste, SOLANGE das Bild dafuer nicht zu hoch
+            // wird. Der Kasten reicht dafuer bis zur Fensterunterkante - der Abstand zur Linie
+            // steckt im oberen Rand, den diese Zeilen setzen. Ein 16:9-Bild (Video, 16:9-Foto)
+            // ist hoeher als der Platz bis zur Linie: es haengt dann oben an der Kopfzeile und
+            // laeuft wie in der Referenz unter die Modus-Leiste (K4/1a), statt schmaler zu werden
+            // und links/rechts Rand zu bekommen (Falks Befund 2026-09-23: "bei 16:9 ist jetzt
+            // alles mit Rand und nicht normal wie vorher").
+            // Die Linie selbst: Ausloeser-Unterkante 191 dp (Mitte 241 dp minus halbe Hoehe
+            // 50 dp), Modus-Leisten-Oberkante 165 dp (Unterkante 133 dp plus 32 dp Pille) - die
+            // Mitte der beiden, also 178 dp ueber der Bildschirmunterkante.
+            final double preview_target_ratio = main_activity.getPreview().getTargetRatio();
+            if( preview_target_ratio > 0.0 ) {
+                // Gerechnet wird in Fensterkoordinaten (layoutUI_window_h), nicht in
+                // layoutUI_display_h: das ist die um Aussparung und Navigationsleiste verkuerzte
+                // Hoehe, und beides wird hier bewusst nicht als Abstand gesetzt - damit rechnete
+                // diese Zeile 207 px zu hoch und die 4:3-Unterkante landete bei 1480 statt 1741
+                // (gemessen am Geraet 2026-09-24). Die Navigationsleiste steckt in den 178 dp
+                // nicht mit drin: die Referenzmasse (191 dp / 165 dp) sind ab Bildschirmunterkante.
+                int line_y = layoutUI_window_h - (int) (178 * scale + 0.5f);
+                int header_bottom = (int) (header_height_dp * scale + 0.5f);
+                int image_height = (int) (display_width * preview_target_ratio + 0.5f);
+                int preview_top_margin = Math.max(0, (line_y - header_bottom) - image_height);
+                if( MyDebug.LOG )
+                    Log.d(TAG, "preview_top_margin: " + preview_top_margin);
+                cs.connect(R.id.preview, ConstraintSet.TOP, R.id.header_bar, ConstraintSet.BOTTOM, preview_top_margin);
+            }
 
             // The left dock button, at the same height as the switch's own row (Kickoff 3.1):
             // centre 40 dp from the left screen edge and 85 dp from the bottom, i.e. a 16 dp
@@ -1075,9 +1111,16 @@ public class MainUI {
      *  Vibrator directly it needs no VIBRATE permission.
      */
     public void performHeavyClick() {
+        performConfirm(main_activity.findViewById(R.id.take_photo));
+    }
+
+    /** Der CONFIRM-Tick, wenn die Wasserwaage einrastet (Detail-Spec 3: Horizont bei 0°, bzw.
+     *  das gelbe Fadenkreuz in der Mitte) - derselbe Tick wie am Ausloeser, nur auf einem
+     *  beliebigen View, weil der Sucher keine eigene View ist.
+     */
+    public void performConfirm(View view) {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(main_activity);
         if( sharedPreferences.getBoolean(PreferenceKeys.AllowHapticFeedbackPreferenceKey, true) ) {
-            View view = main_activity.findViewById(R.id.take_photo);
             if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.R )
                 view.performHapticFeedback(HapticFeedbackConstants.CONFIRM);
             else

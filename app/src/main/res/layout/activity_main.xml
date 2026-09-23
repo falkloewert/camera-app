@@ -6,18 +6,21 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity" >
 
-    <!-- The camera preview is the one view here that is never repositioned at runtime by
-         MainUI.layoutUI() - it just needs to stay centred, like RelativeLayout's
-         layout_centerInParent used to give it (ConstraintLayout centres a view by connecting
-         both opposing sides on each axis to the parent). -->
+    <!-- Der Sucher haengt oben an der UNTERKANTE DER KOPFZEILE, nicht an der Bildschirmmitte
+         (Schritt L, Messung 2026-09-23): mittig sass er 26 dp zu tief und erreichte die
+         Ausloeser-Zeile nie. Wie weit er nach unten rueckt, setzt MainUI.layoutUI() als oberen
+         Rand: seine Unterkante soll auf der Linie zwischen Ausloeser-Zeile und Modus-Leiste
+         liegen, solange das Bild dafuer nicht zu hoch wird (Falk 2026-09-23: "die Linie zwischen
+         ausloeser und foto modus"); ein 16:9-Bild ist hoeher und haengt dann oben an der
+         Kopfzeile, wie vorher. Hier steht nur der Rueckfall - die Hoehe des Bildes ergibt sich aus
+         dem Seitenverhaeltnis des Sucherkastens (Preview.calculateTargetRatioForPreview). -->
     <FrameLayout
         android:id="@+id/preview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/header_bar"
         />
 
     <!-- Selfie-Beleuchtung (Frontkamera, Foto und Video): fuellt die schwarzen Flaechen ueber und

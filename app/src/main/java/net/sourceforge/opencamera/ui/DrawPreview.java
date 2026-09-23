@@ -150,9 +150,46 @@ public class DrawPreview {
     private Rect text_bounds_angle_double;
 
     private final static double close_level_angle = 1.0f;
+    /** Einrasten der Wasserwaage bei |Winkel| <= level_enter_angle, verlassen erst oberhalb
+     *  level_exit_angle. Die Hysterese verhindert, dass Sensorrauschen um 0 Grad herum die
+     *  Goldfaerbung und den CONFIRM-Tick flattern laesst (Geraetetest 2026-09-23). */
+    private final static double level_enter_angle = 1.0;
+    private final static double level_exit_angle = 2.5;
+    /** Die Grad-Anzeige der Wasserwaage springt erst um, wenn der Winkel mehr als
+     *  level_angle_round_step von der angezeigten Zahl abweicht ("die Zahlen springen bei Naehe
+     *  sehr stark hin und her"), und verschwindet oberhalb level_angle_display_max: ab da steht
+     *  der Sucher ohnehin quer, eine Zahl bis 360 ergaebe keinen Sinn (Geraetetest 2026-09-23). */
+    private final static double level_angle_round_step = 0.6;
+    private final static double level_angle_display_max = 45.0;
+    /** Die Neigungslinie (Kamera zeigt nach oben oder unten) wandert je Grad um
+     *  pitch_line_dps_per_deg und bleibt ab pitch_line_max_angle stehen; sie ist kuerzer als die
+     *  Horizontlinie, damit beide unterscheidbar bleiben, solange sie nicht uebereinander liegen. */
+    private final static double pitch_line_dps_per_deg = 1.0;
+    private final static double pitch_line_max_angle = 30.0;
+    private final static float pitch_line_radius_factor = 0.6f;
+    /** Signalgelb der Wasserwaage (Detail-Spec 3, "Signalgelb #FEE75C") - denselben Ton traegt
+     *  der Fokus-Ring, den die Screenshot-Spec "gelb/golden" nennt (Konflikt K9). */
+    private final static int color_level = 0xFFFEE75C;
+    /** Ab hier gilt die Kamera als "nach unten gerichtet" - dann zeigt der Sucher statt der
+     *  Horizont-Wasserwaage (Modus A) das Fadenkreuz (Modus B). Genau der Wert, ab dem
+     *  Preview.hasLevelAngleStable() den Horizont verwirft (70 Grad aus der Waagerechten), die
+     *  beiden Modi loesen einander also lueckenlos ab. */
+    private final static double top_down_pitch_angle = -70.0;
+    /** Toleranzkreis und Fadenkreuz von Modus B (Detail-Spec 3). */
+    private final static float top_down_radius_dps = 34.0f;
+    private final static float top_down_cross_dps = 12.0f;
+    /** Neigung, bei der das gelbe Kreuz den Toleranzkreis erreicht. */
+    private final static double top_down_max_angle = 20.0;
+    /** Der Fokus-Ring verschwindet nach 4 s ohne Eingriff (Detail-Spec 3). */
+    private final static long focus_ring_duration = 4000;
+    private final static long focus_ring_pulse_duration = 250;
     private String angle_string; // cached for UI performance
     private double cached_angle; // the angle that we used for the cached angle_string
     private long last_angle_string_time;
+    private long focus_ring_start_ms; // 0 = kein Ring zu sehen
+    private boolean level_was_level; // Flanke fuer den CONFIRM-Tick von Modus A
+    private boolean level_was_snapped; // Flanke fuer den CONFIRM-Tick von Modus B
+    private int level_angle_shown = Integer.MIN_VALUE; // zuletzt angezeigte Gradzahl (MINT_VALUE = noch keine)
 
     private float free_memory_gb = -1.0f;
     private String free_memory_gb_string;
@@ -706,7 +743,7 @@ public class DrawPreview {
         crop_guide_pref = sharedPreferences.getString(PreferenceKeys.ShowCropGuidePreferenceKey, "crop_guide_none");
         store_location_pref = sharedPreferences.getBoolean(PreferenceKeys.LocationPreferenceKey, false);
 
-        show_angle_line_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowAngleLinePreferenceKey, false);
+        show_angle_line_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowAngleLinePreferenceKey, true);
         show_pitch_lines_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowPitchLinesPreferenceKey, false);
         show_geo_direction_lines_pref = sharedPreferences.getBoolean(PreferenceKeys.ShowGeoDirectionLinesPreferenceKey, false);
 
@@ -724,7 +761,7 @@ public class DrawPreview {
 
         auto_stabilise_pref = applicationInterface.getAutoStabilisePref();
 
-        preference_grid_pref = sharedPreferences.getString(PreferenceKeys.ShowGridPreferenceKey, "preference_grid_none");
+        preference_grid_pref = sharedPreferences.getString(PreferenceKeys.ShowGridPreferenceKey, "preference_grid_3x3");
 
         ghost_image_pref = sharedPreferences.getString(PreferenceKeys.GhostImagePreferenceKey, "preference_ghost_image_off");
         if( ghost_image_pref.equals("preference_ghost_image_selected") ) {
@@ -987,7 +1024,10 @@ public class DrawPreview {
 
         switch( preference_grid_pref ) {
             case "preference_grid_3x3":
-                p.setColor(Color.WHITE);
+                // Drittel-Raster der Referenz: 1 dp, Weiss 25 % (Detail-Spec 3). Die Strichstaerke
+                // kommt von stroke_width oben, nur die Deckkraft ist hier anders als bei den
+                // uebrigen Rastern.
+                p.setColor(Color.argb(64, 255, 255, 255));
                 canvas.drawLine(w2 / 3.0f, 0.0f, w2 / 3.0f, h2 - 1.0f, p);
                 canvas.drawLine(2.0f * w2 / 3.0f, 0.0f, 2.0f * w2 / 3.0f, h2 - 1.0f, p);
                 canvas.drawLine(0.0f, h2 / 3.0f, w2 - 1.0f, h2 / 3.0f, p);
@@ -2139,6 +2179,17 @@ public class DrawPreview {
         return angle_step;
     }
 
+    /** Winkel auf -180...180 Grad normalisieren, damit eine Neigung nach der einen Seite als
+     *  -1° und nicht als 359° erscheint (Geraetetest 2026-09-23). */
+    private static double normalizeAngle180(double angle) {
+        angle = angle % 360.0;
+        if( angle > 180.0 )
+            angle -= 360.0;
+        else if( angle < -180.0 )
+            angle += 360.0;
+        return angle;
+    }
+
     private void drawAngleLines(Canvas canvas, int device_ui_rotation, long time_ms) {
         Preview preview = main_activity.getPreview();
         CameraController camera_controller = preview.getCameraController();
@@ -2194,10 +2245,24 @@ public class DrawPreview {
             int cx = canvas.getWidth()/2;
             int cy = canvas.getHeight()/2;
 
-            boolean is_level = false;
-            if( has_level_angle && Math.abs(level_angle) <= close_level_angle ) { // n.b., use level_angle, not angle or orig_level_angle
-                is_level = true;
-            }
+            // n.b. geprueft wird der Winkel, mit dem die Linien auch gezeichnet werden
+            // (orig_level_angle): im gesperrten Hochformat-Fenster (Pixel-Drehmodell K3) dreht sich
+            // die Oberflaeche nicht mit, also ist "waagerecht auf dem Bildschirm" genau dieser
+            // Winkel. level_angle rechnet zusätzlich die Geraetehaltung heraus und wuerde die
+            // Goldmarkierung bei quer gehaltenem Geraet zur falschen Zeit ausloesen.
+            // Vorzeichenbehaftet auf -180...180 normalisieren: sonst zaehlt die Anzeige auf der
+            // anderen Seite bis 360 hoch statt ins Negative zu laufen (Geraetetest 2026-09-23).
+            // Die Geraetedrehung kommt dazu, weil die festen Linien um preview.getUIRotation()
+            // mitdrehen: im Querformat steht der Horizont bei rund +/-90 Grad, ausgerichtet ist er
+            // aber bei 0 - ohne den Zuschlag faerbte sich dort nie etwas gold.
+            double screen_level_angle = normalizeAngle180(preview.getOrigLevelAngle() + preview.getUIRotation());
+            // Eingerastet ist die Wasserwaage nur, wenn beide Achsen stimmen: Roll (Horizont
+            // kippt) und Pitch (Kamera zeigt nach oben/unten). Die Toleranz haengt davon ab, ob
+            // sie im vorigen Bild schon eingerastet war - Hysterese gegen das Zittern der Werte.
+            double level_tolerance = level_was_level ? level_exit_angle : level_enter_angle;
+            boolean is_level = has_level_angle
+                    && Math.abs(screen_level_angle) <= level_tolerance
+                    && (!has_pitch_angle || Math.abs(pitch_angle) <= level_tolerance);
 
             final int line_alpha = 160;
             float hthickness = (0.5f * scale_dp + 0.5f); // convert dps to pixels
@@ -2205,60 +2270,122 @@ public class DrawPreview {
             shadow_radius = Math.max(shadow_radius, 1.0f);
             p.setStyle(Paint.Style.FILL);
 
-            if( actual_show_angle_line_pref && preview.hasLevelAngleStable() ) {
-                // draw the non-rotated part of the level
-                // only show the angle line if level angle "stable" (i.e., not pointing near vertically up or down)
+            // Modus A der Wasserwaage (Detail-Spec 3) laeuft nur, solange der Horizont brauchbar
+            // ist - Preview.hasLevelAngleStable() verwirft ihn ab 70 Grad Neigung, also genau dort,
+            // wo Modus B (Kamera zeigt nach unten) uebernimmt.
+            boolean show_horizon = actual_show_angle_line_pref && preview.hasLevelAngleStable();
+            // Modus B: Kamera zeigt nach unten (Dokumenten-/Bodenshot). Pitch ist der Winkel aus
+            // der Senkrechten, -90 heisst senkrecht nach unten (Preview.onAccelerometerSensorChanged).
+            boolean top_down = actual_show_angle_line_pref && has_pitch_angle && pitch_angle <= top_down_pitch_angle;
 
+            if( show_horizon ) {
+                // Drei Linien: die feste waagerechte, die mitkippende Horizontlinie und die
+                // Neigungslinie fuer "Kamera zeigt nach oben/unten", alle in der Mitte geteilt,
+                // damit die feste Mittelmarke sichtbar bleibt. Bei 0° liegen sie uebereinander,
+                // leuchten Signalgelb und geben einen CONFIRM-Tick (einmal je Einrasten, nicht in
+                // jedem Bild).
                 p.setShadowLayer(shadow_radius, 0.0f, 0.0f, Color.BLACK);
-
                 if( is_level ) {
-                    p.setColor(angle_highlight_color_pref);
+                    p.setColor(color_level);
+                    if( !level_was_level ) {
+                        level_was_level = true;
+                        main_activity.getMainUI().performConfirm(main_activity.findViewById(R.id.preview));
+                    }
                 }
                 else {
                     p.setColor(Color.WHITE);
+                    level_was_level = false;
                 }
-                p.setAlpha(line_alpha);
+                p.setAlpha(is_level ? 255 : line_alpha); // eingerastet leuchtet die Linie voll auf
+                float gap = (4.0f * scale_dp + 0.5f); // halbe Breite der Mittelmarke
+
+                // Die festen Teile drehen mit der Geraetehaltung: das Fenster bleibt hochkant (K3),
+                // im Querformat liegt die Welt-Waagerechte also nicht mehr waagerecht auf dem
+                // Bildschirm. Ohne diese Drehung fehlt im Querformat die Ausrichtung, an der man
+                // den Horizont ausrichtet, und die Neigungslinie zeigt in die falsche Richtung
+                // (Falks Geraetetest 2026-09-23). Die kippende Horizontlinie weiter unten dreht
+                // ohnehin mit ihrem eigenen Winkel, die Grad-Anzeige dreht damit zusammen und
+                // bleibt so in jeder Haltung lesbar.
+                canvas.save();
+                canvas.rotate(preview.getUIRotation(), cx, cy);
+
                 draw_rect.set(cx - radius - o_radius, cy - hthickness, cx - radius, cy + hthickness);
                 canvas.drawRoundRect(draw_rect, hthickness, hthickness, p);
                 draw_rect.set(cx + radius, cy - hthickness, cx + radius + o_radius, cy + hthickness);
                 canvas.drawRoundRect(draw_rect, hthickness, hthickness, p);
+                draw_rect.set(cx - radius, cy - hthickness, cx - gap, cy + hthickness);
+                canvas.drawRoundRect(draw_rect, hthickness, hthickness, p);
+                draw_rect.set(cx + gap, cy - hthickness, cx + radius, cy + hthickness);
+                canvas.drawRoundRect(draw_rect, hthickness, hthickness, p);
 
+                // statische Mittelmarke
+                float half_mark = (5.0f * scale_dp + 0.5f);
+                draw_rect.set(cx - hthickness, cy - half_mark, cx + hthickness, cy + half_mark);
+                canvas.drawRoundRect(draw_rect, hthickness, hthickness, p);
+
+                // Grad-Anzeige. Sie steht in der gedrehten Zeichenflaeche (oben) und bleibt damit
+                // in jeder Haltung lesbar, ohne dass sie selbst noch gedreht werden muesste.
+                // Nur bis +/- level_angle_display_max: darueber steht das Geraet ohnehin quer.
+                String level_angle_string = null;
+                if( Math.abs(screen_level_angle) <= level_angle_display_max ) {
+                    // die Anzeige springt erst um, wenn der Winkel spuerbar abweicht (Geraetetest)
+                    if( Math.abs(screen_level_angle - level_angle_shown) >= level_angle_round_step )
+                        level_angle_shown = (int)Math.round(screen_level_angle);
+                    level_angle_string = String.format(Locale.getDefault(), "%d°", level_angle_shown);
+                }
+                else {
+                    level_angle_shown = Integer.MIN_VALUE; // beim Wiederkommen frisch anfangen
+                }
+                if( level_angle_string != null ) {
+                    float old_text_size = p.getTextSize(); // die Peilungs-/Himmelsrichtungslinien darunter malen mit der alten Groesse
+                    p.setTextAlign(Paint.Align.LEFT);
+                    p.setTextSize(12 * scale_font + 0.5f); // convert dps to pixels
+                    float text_x = cx + 2 * gap;
+                    canvas.drawText(level_angle_string, text_x, cy - 3 * hthickness, p);
+                    p.setTextSize(old_text_size);
+                }
+
+                // Neigungslinie (Geraetetest 2026-09-23): zeigt, ob die Kamera nach oben oder nach
+                // unten zeigt. Sie wandert senkrecht mit dem Pitch - nach unten geneigt (Pitch
+                // negativ) schiebt sie nach oben, wie der Horizont im Bild -, ist kuerzer als die
+                // Horizontlinie und liegt bei 0 Grad genau auf der festen Mittellinie. Sie liegt in
+                // derselben gedrehten Zeichenflaeche wie die feste Linie, wandert also im Querformat
+                // mit (sonst zeigte sie in die falsche Richtung). Ihre Farbe haengt nur am Pitch,
+                // nicht am Roll: so bleibt bei schiefem Horizont erkennbar, welche der beiden
+                // Achsen noch fehlt.
+                if( has_pitch_angle ) {
+                    double pitch_clamped = Math.max(-pitch_line_max_angle, Math.min(pitch_line_max_angle, pitch_angle));
+                    float pitch_offset = (float)(pitch_clamped * pitch_line_dps_per_deg * scale_dp); // convert dps to pixels
+                    float pitch_cy = cy + pitch_offset;
+                    float pitch_radius = radius * pitch_line_radius_factor;
+                    boolean pitch_is_level = Math.abs(pitch_angle) <= level_tolerance;
+                    p.setColor(pitch_is_level ? color_level : Color.WHITE);
+                    p.setAlpha(pitch_is_level ? 255 : line_alpha);
+                    draw_rect.set(cx - pitch_radius, pitch_cy - hthickness, cx - gap, pitch_cy + hthickness);
+                    canvas.drawRoundRect(draw_rect, hthickness, hthickness, p);
+                    draw_rect.set(cx + gap, pitch_cy - hthickness, cx + pitch_radius, pitch_cy + hthickness);
+                    canvas.drawRoundRect(draw_rect, hthickness, hthickness, p);
+                }
+
+                canvas.restore(); // Ende der gedrehten Zeichenflaeche der festen Teile
                 p.clearShadowLayer();
             }
 
             canvas.save();
             canvas.rotate((float)angle, cx, cy);
 
-            if( actual_show_angle_line_pref && preview.hasLevelAngleStable() ) {
-                // only show the angle line if level angle "stable" (i.e., not pointing near vertically up or down)
-
+            if( show_horizon ) {
+                // dieselbe Farbe wie die feste Linie; nur die kippende Horizontlinie selbst
                 p.setShadowLayer(shadow_radius, 0.0f, 0.0f, Color.BLACK);
-
-                if( is_level ) {
-                    p.setColor(angle_highlight_color_pref);
-                }
-                else {
-                    p.setColor(Color.WHITE);
-                }
-                p.setAlpha(line_alpha);
-                draw_rect.set(cx - radius, cy - hthickness, cx + radius, cy + hthickness);
+                p.setAlpha(is_level ? 255 : line_alpha);
+                float gap = (4.0f * scale_dp + 0.5f);
+                draw_rect.set(cx - radius, cy - hthickness, cx - gap, cy + hthickness);
                 canvas.drawRoundRect(draw_rect, hthickness, hthickness, p);
-
-                // draw the vertical crossbar
-                draw_rect.set(cx - hthickness, cy - radius / 2.0f, cx + hthickness, cy + radius / 2.0f);
+                draw_rect.set(cx + gap, cy - hthickness, cx + radius, cy + hthickness);
                 canvas.drawRoundRect(draw_rect, hthickness, hthickness, p);
-
-                if( is_level ) {
-                    // draw a second line
-
-                    p.setColor(angle_highlight_color_pref);
-                    p.setAlpha(line_alpha);
-                    draw_rect.set(cx - radius, cy - 6 * hthickness, cx + radius, cy - 4 * hthickness);
-                    canvas.drawRoundRect(draw_rect, hthickness, hthickness, p);
-                }
-
                 p.clearShadowLayer();
             }
+
             updateCachedViewAngles(time_ms); // ensure view_angle_x_preview, view_angle_y_preview are computed and up to date
             float camera_angle_x, camera_angle_y;
             if( system_orientation_portrait ) {
@@ -2369,6 +2496,65 @@ public class DrawPreview {
             p.setStyle(Paint.Style.FILL); // reset
 
             canvas.restore();
+
+            if( top_down ) {
+                // Modus B (Detail-Spec 3): Kamera zeigt nach unten (Dokumenten- oder Bodenshot).
+                // Festes weisses Fadenkreuz im optischen Zentrum, darum ein Toleranzkreis, und ein
+                // gelbes Kreuz, das mit der Neigung wandert. Deckt es sich mit dem festen, rasten
+                // beide ein, faerben sich voll und geben einen CONFIRM-Tick.
+                //
+                // Die Neigung kommt aus demselben Sensorwert wie die Wasserwaage: Pitch ist der
+                // Winkel aus der Senkrechten (-90 = genau nach unten), der Azimut steckt im
+                // Levelwinkel (Preview: natural_level_angle = atan2(-x, y)). Das gelbe Kreuz
+                // wandert dorthin, wohin die Kamera kippt.
+                float top_down_radius = top_down_radius_dps * scale_dp + 0.5f; // convert dps to pixels
+                float cross = (top_down_cross_dps * scale_dp + 0.5f) / 2.0f; // halbe Kreuzbreite
+                float cross_stroke = 1.5f * scale_dp + 0.5f; // convert dps to pixels
+                double tilt_angle = 90.0 + pitch_angle; // 0 = genau nach unten
+                double sin_tilt = Math.sin(Math.toRadians(Math.min(tilt_angle, 90.0)));
+                double sin_max = Math.sin(Math.toRadians(top_down_max_angle));
+                float drift = (float)(top_down_radius * sin_tilt / sin_max);
+                if( drift > top_down_radius ) {
+                    drift = top_down_radius;
+                }
+                // Einrasten mit denselben Schwellen wie Modus A, ebenfalls mit Hysterese
+                double tilt_tolerance = level_was_snapped ? level_exit_angle : level_enter_angle;
+                boolean snapped = tilt_angle <= tilt_tolerance;
+                if( snapped ) {
+                    drift = 0.0f;
+                    if( !level_was_snapped ) {
+                        level_was_snapped = true;
+                        main_activity.getMainUI().performConfirm(main_activity.findViewById(R.id.preview));
+                    }
+                }
+                else {
+                    level_was_snapped = false;
+                }
+                double drift_angle = Math.toRadians(preview.getOrigLevelAngle()); // 0 = Kamera kippt nach oben
+                float drift_x = (float)(drift * Math.sin(drift_angle));
+                float drift_y = (float)(-drift * Math.cos(drift_angle));
+
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(stroke_width);
+                p.setColor(Color.WHITE);
+                p.setAlpha(153); // 60 % Weiss
+                canvas.drawCircle(cx, cy, top_down_radius, p);
+
+                // festes Kreuz (beim Einrasten voll weiss)
+                p.setStrokeWidth(cross_stroke);
+                p.setAlpha(snapped ? 255 : 153);
+                canvas.drawLine(cx - cross, cy, cx + cross, cy, p);
+                canvas.drawLine(cx, cy - cross, cx, cy + cross, p);
+
+                // mitwanderndes Kreuz in Signalgelb
+                p.setColor(color_level);
+                p.setAlpha(255);
+                canvas.drawLine(cx + drift_x - cross, cy + drift_y, cx + drift_x + cross, cy + drift_y, p);
+                canvas.drawLine(cx + drift_x, cy + drift_y - cross, cx + drift_x, cy + drift_y + cross, p);
+
+                p.setStyle(Paint.Style.FILL); // reset
+                p.setAlpha(255);
+            }
         }
 
         //if( allow_angle_lines && auto_stabilise_pref && preview.hasLevelAngleStable() && !preview.isVideo() )
@@ -2544,57 +2730,42 @@ public class DrawPreview {
         }
 
         if( preview.isFocusWaiting() || preview.isFocusRecentSuccess() || preview.isFocusRecentFailure() ) {
-            long time_since_focus_started = preview.timeSinceStartedAutoFocus();
-            float min_radius = (40 * scale_dp + 0.5f); // convert dps to pixels
-            float max_radius = (45 * scale_dp + 0.5f); // convert dps to pixels
-            float radius = min_radius;
-            if( time_since_focus_started > 0 ) {
-                final long length = 500;
-                float frac = ((float)time_since_focus_started) / (float)length;
-                if( frac > 1.0f )
-                    frac = 1.0f;
-                if( frac < 0.5f ) {
-                    float alpha = frac*2.0f;
-                    radius = (1.0f-alpha) * min_radius + alpha * max_radius;
+            // Fokus-Ring der Referenz (Detail-Spec 3): duenner goldener Ring am Beruehrungspunkt,
+            // ⌀ 64 dp, Kontur 1,5 dp, pulsiert beim Erscheinen kurz von 1,15 auf 1,0 und
+            // verschwindet nach 4 s ohne Eingriff. Die Farbe ist Signalgelb, nicht Weiss
+            // (Konflikt K9: Screenshot-Spec); das frueher gruene/rote Erfolgszeichen faellt damit
+            // weg, der Ring sieht in jedem Ausgang gleich aus.
+            if( focus_ring_start_ms == 0 ) {
+                focus_ring_start_ms = time_ms;
+            }
+            long focus_ring_age = time_ms - focus_ring_start_ms;
+            if( focus_ring_age <= focus_ring_duration ) {
+                float radius = (32 * scale_dp + 0.5f); // convert dps to pixels
+                if( focus_ring_age < focus_ring_pulse_duration ) {
+                    float alpha = ((float)focus_ring_age) / (float)focus_ring_pulse_duration;
+                    radius *= 1.15f - 0.15f * alpha;
+                }
+                int pos_x;
+                int pos_y;
+                if( preview.hasFocusArea() ) {
+                    Pair<Integer, Integer> focus_pos = preview.getFocusPos();
+                    pos_x = focus_pos.first;
+                    pos_y = focus_pos.second;
                 }
                 else {
-                    float alpha = (frac-0.5f)*2.0f;
-                    radius = (1.0f-alpha) * max_radius + alpha * min_radius;
+                    pos_x = canvas.getWidth() / 2;
+                    pos_y = canvas.getHeight() / 2;
                 }
+                p.setColor(color_level);
+                p.setAlpha(255);
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(1.5f * scale_dp + 0.5f); // convert dps to pixels
+                canvas.drawCircle(pos_x, pos_y, radius, p);
+                p.setStyle(Paint.Style.FILL); // reset
             }
-            int size = (int)radius;
-
-            if( preview.isFocusRecentSuccess() )
-                p.setColor(Color.rgb(20, 231, 21)); // Green A400
-            else if( preview.isFocusRecentFailure() )
-                p.setColor(Color.rgb(244, 67, 54)); // Red 500
-            else
-                p.setColor(Color.WHITE);
-            p.setStyle(Paint.Style.STROKE);
-            p.setStrokeWidth(stroke_width);
-            int pos_x;
-            int pos_y;
-            if( preview.hasFocusArea() ) {
-                Pair<Integer, Integer> focus_pos = preview.getFocusPos();
-                pos_x = focus_pos.first;
-                pos_y = focus_pos.second;
-            }
-            else {
-                pos_x = canvas.getWidth() / 2;
-                pos_y = canvas.getHeight() / 2;
-            }
-            float frac = 0.5f;
-            // horizontal strokes
-            canvas.drawLine(pos_x - size, pos_y - size, pos_x - frac*size, pos_y - size, p);
-            canvas.drawLine(pos_x + frac*size, pos_y - size, pos_x + size, pos_y - size, p);
-            canvas.drawLine(pos_x - size, pos_y + size, pos_x - frac*size, pos_y + size, p);
-            canvas.drawLine(pos_x + frac*size, pos_y + size, pos_x + size, pos_y + size, p);
-            // vertical strokes
-            canvas.drawLine(pos_x - size, pos_y - size, pos_x - size, pos_y - frac*size, p);
-            canvas.drawLine(pos_x - size, pos_y + frac*size, pos_x - size, pos_y + size, p);
-            canvas.drawLine(pos_x + size, pos_y - size, pos_x + size, pos_y - frac*size, p);
-            canvas.drawLine(pos_x + size, pos_y + frac*size, pos_x + size, pos_y + size, p);
-            p.setStyle(Paint.Style.FILL); // reset
+        }
+        else {
+            focus_ring_start_ms = 0;
         }
     }
 

@@ -785,3 +785,13 @@ Nachteile hat; Filmchen-Modus und Dual-Kamera hätten dagegen jeweils eigene UI-
 - **2026-09-23 (PM-Chat):** Schritte D–K von Falk am Pixel 9 Pro abgenommen (ein Durchgang).
   Offen bleibt die Panorama-Bildzahl (fest 10, SPEC 4.5). Nächster Schritt: Sucher-Overlays,
   Kickoff `docs/kickoff/redesign-sucher-overlays.md`.
+
+- **2026-09-24 (Schritt L, Sucher-Overlays):** gebaut und am Pixel 9 Pro abgenommen:
+  Fokus-Ring (⌀ 64 dp, 1,5 dp, Signalgelb, Puls, 4 s) statt gelbem Rechteck, Drittel-Raster
+  1 dp Weiß 25 % und **Standard an**, Wasserwaage Modus A + B statt grüner Winkellinie.
+  **Sucher-Lage (PM-Punkt 7):** 4:3 endet auf der Linie 178 dp über der Bildschirmunterkante
+  – `[0,461][960,1741]`, 16:9 unverändert; Ursache war `line_y` in Anzeige-Koordinaten,
+  jetzt `MainUI.layoutUI_window_h`. Smart Chips entfallen, Regler/AE-AF-Sperre bewusst nicht
+  gebaut. Kickoff `docs/kickoff/redesign-sucher-overlays.md`. Offen: Zoom-Pille **„0,5" wechselt
+  nicht mehr auf die Ultraweitwinkel-Linse** (Belege und Fix-Wege in SPEC 4.5) – die Mechanik
+  selbst wurde nicht angefasst. Nächster Schritt des Redesigns: 7.3 (Farben/Blur/Schrift).
