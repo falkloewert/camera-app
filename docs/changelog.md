@@ -781,3 +781,7 @@ Nachteile hat; Filmchen-Modus und Dual-Kamera hätten dagegen jeweils eigene UI-
    Weitwinkel als Ursache am Gerät ausgeschlossen. Kein Code nötig; Blitz bleibt Falks
    Wahl („Aus"). Beim Einstellungen-Blatt (7.1 Punkt 2) entfällt die Fokus-Zeile ohnehin,
    die Pixel-App bietet keine Fokusmodus-Wahl.
+
+- **2026-09-23 (PM-Chat):** Schritte D–K von Falk am Pixel 9 Pro abgenommen (ein Durchgang).
+  Offen bleibt die Panorama-Bildzahl (fest 10, SPEC 4.5). Nächster Schritt: Sucher-Overlays,
+  Kickoff `docs/kickoff/redesign-sucher-overlays.md`.

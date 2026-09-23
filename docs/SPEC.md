@@ -70,7 +70,7 @@ zu können (`git fetch upstream`).
 | 7 | Zeitraffer & Zeitlupe (Video-Modi wie in der Pixel-App, siehe 4.6) | **Fertig** (2026-09-21) | Mittel |
 | 8 | Doppeltippen auf den Sucher wechselt die Kamera (Selfie ↔ hinten) | Idee (2026-09-21) | Niedrig |
 | 9 | Serienbilder als Stapel in der Galerie statt einzelner Bilder | Idee (2026-09-21, Recherche nötig) | Mittel |
-| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile, Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen, Datei-Prüfung abgeschlossen), **Feinjustier-Rad** (2026-09-18), Einstellungen-Blätter + Pro-Panel (2026-09-21) und **Kopfzeile; alte Icon-Leiste + Drei-Punkte-Popup entfernt** (Schritt C, 2026-09-22) gebaut, dazu **Karussell, Licht-Zeile, Chips, Stärke im Pro-Panel** (Schritte D–K, 2026-09-22, Falks Abnahme offen); offen: Rest `ui-spezifikation.md` Abschnitt 7 (Sucher-Overlays, Farben/Blur/Schrift) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
+| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile, Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen, Datei-Prüfung abgeschlossen), **Feinjustier-Rad** (2026-09-18), Einstellungen-Blätter + Pro-Panel (2026-09-21) und **Kopfzeile; alte Icon-Leiste + Drei-Punkte-Popup entfernt** (Schritt C, 2026-09-22) gebaut, dazu **Karussell, Licht-Zeile, Chips, Stärke im Pro-Panel** (Schritte D–K, abgenommen 2026-09-23); offen: Rest `ui-spezifikation.md` Abschnitt 7 (Sucher-Overlays, Farben/Blur/Schrift) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
 
 ### 3.1 Vereinbarte Reihenfolge (aktualisiert 2026-09-14: Material-3-Redesign vor Feature 5 vorgezogen)
 
@@ -341,15 +341,9 @@ Farben/Blur/Schrift 7.3) und die Punkte 13/14 unten. Dock (7.1 Punkt 3) und Karu
 gebaut (Schritte A–D), Abnahme siehe unten.
 
 **Am 2026-09-22 notiert, damit es nicht untergeht:**
-- **Abnahme von D, E, F und G:** Schritt D (Karussell) wurde **nicht einzeln** am Gerät getestet –
-  Falk nimmt D zusammen mit E, F und G in **einem** Durchgang ab (Entscheidung 2026-09-22); der
-  Gerätetest dieser Runde lief am Pixel 9 Pro bereits durch (alle 14 Befunde geprüft), Falks
-  eigenes Abnehmen steht aus. Erst danach gilt SPEC 2.1 als erfüllt und der Eintrag hier wird
-  durch den Abschluss ersetzt.
-  Kickoffs: `docs/kickoff/redesign-moduswahl-karussell.md`,
-  `docs/kickoff/redesign-schritt-e-blitz-modi-panorama.md`,
-  `docs/kickoff/redesign-schritt-f-licht-matrix.md`,
-  `docs/kickoff/redesign-schritt-g-bugs-chips.md`.
+- **Schritte D–K am 2026-09-23 von Falk am Pixel 9 Pro abgenommen** (ein gemeinsamer Durchgang;
+  D wurde nicht einzeln getestet). Kickoffs `docs/kickoff/redesign-moduswahl-karussell.md` und
+  `redesign-schritt-{e..k}-*.md`; die Schritt-Einträge unten sind damit abgeschlossen.
 - **Panorama-Bildzahl offen:** nach dem Gerätetest entscheiden, wie viele Einzelbilder ein
   Panorama wirklich braucht. Heute fest `max_panorama_pics_c = 10`
   (`MyApplicationInterface.java:101`). Die Zahl steuert die **Schwenkweite**, nicht die Schärfe;
