@@ -411,7 +411,7 @@ oder weicht ab; im Hochformat dominiert optisch weiterhin die alte Open-Camera-I
    Dock-Button + Swipe-Down (7.1 Punkte 2 und 3, `docs/kickoff/redesign-einstellungen-
    blatt-foto.md`) → **B** Reiter Pro + Video-Blatt + rechter Dock-Button → **C** Kopfzeile
    (7.1 Punkt 4), dann Icon-Leiste und Popup abschaffen.
-3. Moduswahl als echtes Karussell → 7.2 Moduswahl.
+3. ~~Moduswahl als echtes Karussell → 7.2 Moduswahl.~~ **Gebaut (Schritt D, 2026-09-22).**
 4. ~~Feinjustier-Rad → 7.1 Punkt 1.~~ **Erledigt (2026-09-18, vorgezogen vor 2 und 3).**
 5. ~~Einstellungen-Blätter + Swipe-Down → 7.1 Punkt 2.~~ In Punkt 2 (A/B) aufgegangen.
 6. Sucher-Overlays → 7.1 Punkte 6–8.
@@ -572,9 +572,14 @@ Farb-/Blur-Punkte (7.3):
 - ~~Die alte `zoom_seekbar` bleibt im Layout~~ Entfernt.
 
 **Moduswahl-Leiste** (`mode_bar`, `MainUI.setupModeBar()` L1227, `updateModeBar()` L1328)
-- Ist ein `LinearLayout`: kein Scrollen, kein Snap-to-Center, keine Alpha-Verläufe an
-  den Rändern. Soll: waagerechtes Paging mit Magnet-Effekt, Tipp auf ein Nachbarwort
-  scrollt es in die Mitte, `CLOCK_TICK` beim Einrasten.
+- ~~Ist ein `LinearLayout`: kein Scrollen, kein Snap-to-Center, keine Alpha-Verläufe an
+  den Rändern.~~ **Gebaut (Schritt D, 2026-09-22):** `ui/ModeBar` (`HorizontalScrollView`),
+  Einrasten in der Mitte (300 ms, gleiche Kurve wie die Glyph-Drehung), Tipp auf ein
+  Nachbarwort zieht es in die Mitte, `CLOCK_TICK` beim Einrasten, Ausblenden zu den Rändern
+  über 40 dp. Umgeschaltet wird erst beim Einrasten (kein Kamera-Neuaufbau je Eintrag).
+  Einträge-Höhe 32 dp (gemessen). Foto-Einträge: `Foto · Panorama · Porträt` (Porträt nur,
+  wenn die Kamera die Erweiterung meldet); HDR/DRO sind Knöpfe im Pro-Reiter, Nacht ist Teil
+  der Licht-Zeile (Schritte E/F). Die Einträge-Liste unten ist damit Vorgeschichte.
 - **Einträge (Stand Audit-Schritt 1):** nur „Panorama" im Fotomodus (Umschalter: nochmal
   tippen = normales Foto), im Videomodus leer. Foto ↔ Video läuft über die
   `PhotoVideoSwitch`-Pille darunter. Entscheidung Falk 2026-09-17 (Abschnitt 8): kein

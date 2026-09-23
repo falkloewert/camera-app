@@ -336,8 +336,9 @@ Verhältnis (`Preview.pickSizeForRequirements()`; die Nacht-Erweiterung kann 16:
 2688×1512, vorher wurde daraus 4:3). Nicht möglich: echte Nacht im Weitwinkel-Panorama – die
 Nacht-Erweiterung läuft nur auf der Hauptkamera, der Mond setzt das Objektiv deshalb auf 1×.
 
-**Offen:** Rest `ui-spezifikation.md` Abschnitt 7 (Punkt 3 Dock, Karussell 7.2, Sucher-Overlays
-7.1 Punkte 6–9, Farben/Blur/Schrift 7.3) und die Punkte 13/14 unten.
+**Offen:** Rest `ui-spezifikation.md` Abschnitt 7 (Sucher-Overlays 7.1 Punkte 6–9,
+Farben/Blur/Schrift 7.3) und die Punkte 13/14 unten. Dock (7.1 Punkt 3) und Karussell (7.2) sind
+gebaut (Schritte A–D), Abnahme siehe unten.
 
 **Am 2026-09-22 notiert, damit es nicht untergeht:**
 - **Abnahme von D, E, F und G:** Schritt D (Karussell) wurde **nicht einzeln** am Gerät getestet –
