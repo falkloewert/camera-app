@@ -1499,6 +1499,19 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         super.onPause(); // docs say to call this before freeing other things
         this.app_is_paused = true;
 
+        // the sheet and the panel must not stay open while the camera goes away: coming back they
+        // would refresh against a camera that is still being set up. The replaced popup called
+        // closePopup() right here (review 2026-09-24, fund 8).
+        if( settingsSheetIsOpen() )
+            settingsSheet.close();
+        if( proPanelIsOpen() )
+            proPanel.close();
+        if( settingsSheet != null ) {
+            // a queued updateForSettings must not fire into this pause (review 2026-09-24, fund 9):
+            // the preference is already written, the camera re-reads it when it is set up again
+            settingsSheet.cancelPendingUpdate();
+        }
+
         if( this.switch_multi_camera_dialog != null ) {
             // to be safe - again, camera ID could reset
             if( MyDebug.LOG )

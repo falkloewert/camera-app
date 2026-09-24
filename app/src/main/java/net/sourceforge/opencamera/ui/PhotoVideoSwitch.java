@@ -133,6 +133,18 @@ public class PhotoVideoSwitch extends View {
     }
 
     @Override
+    protected void onDetachedFromWindow() {
+        // a running spring or animator keeps the view alive after the dock was rebuilt - the same
+        // cleanup RulerSlider does (review 2026-09-24, fund 7)
+        knob_spring.cancel();
+        if( glyph_rotation_animator != null ) {
+            glyph_rotation_animator.cancel();
+            glyph_rotation_animator = null;
+        }
+        super.onDetachedFromWindow();
+    }
+
+    @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         setMeasuredDimension(Math.round(dp(PILL_LENGTH_DP)), Math.round(dp(KNOB_DP)));
     }

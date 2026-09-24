@@ -272,6 +272,26 @@ public class ZoomWheel extends LinearLayout {
         glyph_rotation_animator.start();
     }
 
+    @Override
+    protected void onDetachedFromWindow() {
+        // running animators keep the view alive after the dock was rebuilt - the same cleanup
+        // RulerSlider does (review 2026-09-24, fund 7). The fade goes first: cancelling the morph
+        // can bring the buttons back, and that fade is cancelled right after.
+        if( buttons_fade != null ) {
+            buttons_fade.cancel();
+            buttons_fade = null;
+        }
+        if( glyph_rotation_animator != null ) {
+            glyph_rotation_animator.cancel();
+            glyph_rotation_animator = null;
+        }
+        if( morph_animator != null ) {
+            morph_animator.cancel();
+            morph_animator = null;
+        }
+        super.onDetachedFromWindow();
+    }
+
     private static float log2(float value) {
         return (float) (Math.log(value) / Math.log(2.0));
     }

@@ -256,6 +256,9 @@ public class ModeBar extends HorizontalScrollView {
             cancelSnap();
         else if( action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL ) {
             settle_scroll_x = Integer.MIN_VALUE; // always poll once before deciding it has stopped
+            // a second release must not start a second chain - both would poll and snap on their own
+            // (review 2026-09-24, fund 6)
+            removeCallbacks(settle_check);
             post(settle_check);
         }
         return super.onTouchEvent(ev);

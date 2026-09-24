@@ -1593,6 +1593,14 @@ public class SettingsSheet {
         handler.postDelayed(update_settings_runnable, delay);
     }
 
+    /** Drops a queued {@link #update_settings_runnable}. Called when the activity pauses: the
+     *  update would otherwise reconfigure a camera that is being torn down (review 2026-09-24,
+     *  fund 9). Nothing is lost - the preference is written already and the camera reads it when
+     *  it is set up again on resume. */
+    public void cancelPendingUpdate() {
+        handler.removeCallbacks(update_settings_runnable);
+    }
+
     private final Runnable update_settings_runnable = new Runnable() {
         @Override
         public void run() {
