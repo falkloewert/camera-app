@@ -603,9 +603,11 @@ public class JavaImageFunctionsPanorama {
                         int g = (int)(sum_fg+0.5f);
                         int b = (int)(sum_fb+0.5f);
 
-                        /*r = Math.max(0, Math.min(255, r));
+                        // the blend sums can leave 0..255: without the clamp the cast wraps around and
+                        // paints black or colour-speckled pixels (review 2026-09-24, fund 2)
+                        r = Math.max(0, Math.min(255, r));
                         g = Math.max(0, Math.min(255, g));
-                        b = Math.max(0, Math.min(255, b));*/
+                        b = Math.max(0, Math.min(255, b));
 
                         // this code is performance critical; note it's faster to avoid calls to Color.argb()
                         pixels_out[c] = (255 << 24) | (r << 16) | (g << 8) | b;
@@ -713,9 +715,11 @@ public class JavaImageFunctionsPanorama {
                         int g = (int)(sum_fg+0.5f);
                         int b = (int)(sum_fb+0.5f);
 
-                        /*r = Math.max(0, Math.min(255, r));
+                        // the blend sums can leave 0..255: without the clamp the cast wraps around and
+                        // paints black or colour-speckled pixels (review 2026-09-24, fund 2)
+                        r = Math.max(0, Math.min(255, r));
                         g = Math.max(0, Math.min(255, g));
-                        b = Math.max(0, Math.min(255, b));*/
+                        b = Math.max(0, Math.min(255, b));
 
                         // this code is performance critical; note it's faster to avoid calls to Color.argb()
                         pixels_out[c] = (255 << 24) | (r << 16) | (g << 8) | b;
@@ -816,9 +820,11 @@ public class JavaImageFunctionsPanorama {
                         int g = (int)(sum_fg+0.5f);
                         int b = (int)(sum_fb+0.5f);
 
-                        /*r = Math.max(0, Math.min(255, r));
+                        // the blend sums can leave 0..255: without the clamp the cast wraps around and
+                        // paints black or colour-speckled pixels (review 2026-09-24, fund 2)
+                        r = Math.max(0, Math.min(255, r));
                         g = Math.max(0, Math.min(255, g));
-                        b = Math.max(0, Math.min(255, b));*/
+                        b = Math.max(0, Math.min(255, b));
 
                         bitmap_out[c] = (byte)255;
                         bitmap_out[c+1] = (byte)r;
@@ -921,9 +927,11 @@ public class JavaImageFunctionsPanorama {
                         int g = (int)(sum_fg+0.5f);
                         int b = (int)(sum_fb+0.5f);
 
-                        /*r = Math.max(0, Math.min(255, r));
+                        // the blend sums can leave 0..255: without the clamp the cast wraps around and
+                        // paints black or colour-speckled pixels (review 2026-09-24, fund 2)
+                        r = Math.max(0, Math.min(255, r));
                         g = Math.max(0, Math.min(255, g));
-                        b = Math.max(0, Math.min(255, b));*/
+                        b = Math.max(0, Math.min(255, b));
 
                         bitmap_out[c] = (byte)255;
                         bitmap_out[c+1] = (byte)r;
@@ -1568,9 +1576,11 @@ public class JavaImageFunctionsPanorama {
                         int g = (int)(sum_fg+0.5f);
                         int b = (int)(sum_fb+0.5f);
 
-                        //r = Math.max(0, Math.min(255, r));
-                        //g = Math.max(0, Math.min(255, g));
-                        //b = Math.max(0, Math.min(255, b));
+                        // the blend sums can leave 0..255: without the clamp the cast wraps around and
+                        // paints black or colour-speckled pixels (review 2026-09-24, fund 2)
+                        r = Math.max(0, Math.min(255, r));
+                        g = Math.max(0, Math.min(255, g));
+                        b = Math.max(0, Math.min(255, b));
 
                         //bitmap_out[c] = (byte)255;
                         bitmap_out[c+1] = (byte)r;
@@ -1703,9 +1713,11 @@ public class JavaImageFunctionsPanorama {
                         int g = (int)(sum_fg+0.5f);
                         int b = (int)(sum_fb+0.5f);
 
-                        //r = Math.max(0, Math.min(255, r));
-                        //g = Math.max(0, Math.min(255, g));
-                        //b = Math.max(0, Math.min(255, b));
+                        // the blend sums can leave 0..255: without the clamp the cast wraps around and
+                        // paints black or colour-speckled pixels (review 2026-09-24, fund 2)
+                        r = Math.max(0, Math.min(255, r));
+                        g = Math.max(0, Math.min(255, g));
+                        b = Math.max(0, Math.min(255, b));
 
                         bitmap_out[c] = (byte)255;
                         bitmap_out[c+1] = (byte)r;

@@ -103,7 +103,7 @@ public class PostProcessing {
      * @param is_front_facing Whether the camera is front-facing.
      * @return A bitmap representing the auto-stabilised jpeg.
      */
-    private Bitmap autoStabilise(byte [] data, Bitmap bitmap, double level_angle, boolean is_front_facing) {
+    private Bitmap autoStabilise(byte [] data, Bitmap bitmap, double level_angle, boolean is_front_facing, boolean mirror) {
         if( MyDebug.LOG ) {
             Log.d(TAG, "autoStabilise");
             Log.d(TAG, "level_angle: " + level_angle);
@@ -180,7 +180,11 @@ public class PostProcessing {
                 Log.d(TAG, "after scaling: w0 = " + w0 + " , h0 = " + h0);
                 Log.d(TAG, "after scaling: w1 = " + w1 + " , h1 = " + h1);
             }
-            if( is_front_facing ) {
+            // the front camera is negated only because the image is mirrored after this step: a
+            // horizontal flip turns the rotation back the other way. With "mirror front camera" off
+            // the tilt has to be corrected like on the back camera - otherwise the image ends up
+            // twice the tilt in the wrong direction (review 2026-09-24, fund 11)
+            if( is_front_facing && mirror ) {
                 matrix.postRotate((float)-level_angle);
             }
             else {
@@ -531,7 +535,7 @@ public class PostProcessing {
         }
 
         if( request.do_auto_stabilise ) {
-            bitmap = autoStabilise(data, bitmap, request.level_angle, request.is_front_facing);
+            bitmap = autoStabilise(data, bitmap, request.level_angle, request.is_front_facing, request.mirror);
         }
         if( MyDebug.LOG ) {
             Log.d(TAG, "Save single image performance: time after auto-stabilise: " + (System.currentTimeMillis() - time_s));

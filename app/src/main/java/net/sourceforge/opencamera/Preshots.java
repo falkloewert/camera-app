@@ -455,23 +455,46 @@ public class Preshots {
             }
         }
         finally {
+            // every step catches for itself: one throwing must not skip the steps after it - a
+            // MediaMuxer that never gets released leaks its file descriptor (review 2026-09-24,
+            // fund 4)
             if( encoder != null ) {
                 if( MyDebug.LOG )
                     Log.d(TAG, "stop encoder");
-                encoder.stop();
+                try {
+                    encoder.stop();
+                }
+                catch(IllegalStateException e) {
+                    MyDebug.logStackTrace(TAG, "failed to stop encoder", e);
+                }
                 if( MyDebug.LOG )
                     Log.d(TAG, "release encoder");
-                encoder.release();
+                try {
+                    encoder.release();
+                }
+                catch(IllegalStateException e) {
+                    MyDebug.logStackTrace(TAG, "failed to release encoder", e);
+                }
             }
             if( muxer != null ) {
-                if( muxer_info.muxer_started ) {
-                    if( MyDebug.LOG )
-                        Log.d(TAG, "stop muxer");
-                    muxer.stop();
+                try {
+                    if( muxer_info.muxer_started ) {
+                        if( MyDebug.LOG )
+                            Log.d(TAG, "stop muxer");
+                        muxer.stop();
+                    }
+                }
+                catch(IllegalStateException e) {
+                    MyDebug.logStackTrace(TAG, "failed to stop muxer", e);
                 }
                 if( MyDebug.LOG )
                     Log.d(TAG, "release muxer");
-                muxer.release();
+                try {
+                    muxer.release();
+                }
+                catch(IllegalStateException e) {
+                    MyDebug.logStackTrace(TAG, "failed to release muxer", e);
+                }
             }
             try {
                 if( video_pfd_saf != null ) {

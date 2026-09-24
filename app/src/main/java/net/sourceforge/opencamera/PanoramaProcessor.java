@@ -189,6 +189,11 @@ public class PanoramaProcessor {
                 Log.d(TAG, "### expandBitmap: time after converting int array to byte array: " + (System.currentTimeMillis() - time_s));
         }
 
+        // ponytail: hier liegen gleichzeitig 24 Byte pro Pixel (pixels + bitmap_argb + expanded),
+        // bei 12 MP rund 290 MB - auf dem Pixel droht bei voller Aufloesung OOM (Review 2026-09-24,
+        // Fund 3, von Falk bewusst zurueckgestellt). Nachbessern ueber
+        // Bitmap.createScaledBitmap(), sobald Panorama in voller Aufloesung oder mit mehr Bildern
+        // tatsaechlich abbricht.
         byte [] expanded_bitmap_argb = new byte[4*(2*width)*(2*height)];
         JavaImageFunctionsPanorama.ExpandBitmapFullFunction function = new JavaImageFunctionsPanorama.ExpandBitmapFullFunction(bitmap_argb, expanded_bitmap_argb, 2*width, 2*height);
         JavaImageProcessing.applyFunction(function, null, null, 0, 0, 2*width, 2*height);
