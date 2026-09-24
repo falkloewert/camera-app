@@ -8309,9 +8309,12 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
         if( refreshPreviewBitmapTaskIsRunning() ) {
             // if we're being destroyed, better to wait until completion rather than just cancelling
             try {
-                refreshPreviewBitmapTask.get(); // forces thread to complete
+                // but with a timeout, like the close_camera_task below: waiting here without one is an
+                // ANR, and the task's onPostExecute gives up by itself once the activity is gone
+                // (review 2026-09-24, fund 1)
+                refreshPreviewBitmapTask.get(3000, TimeUnit.MILLISECONDS); // forces thread to complete
             }
-            catch(ExecutionException | InterruptedException e) {
+            catch(ExecutionException | InterruptedException | TimeoutException e) {
                 MyDebug.logStackTrace(TAG, "exception while waiting for background_task to finish", e);
             }
         }

@@ -1082,9 +1082,17 @@ public class CameraController2 extends CameraController {
 
     private void onError(@NonNull CameraDevice cam) {
         Log.e(TAG, "onError");
-        boolean camera_already_opened = this.camera != null;
-        // need to set the camera to null first, as closing the camera may take some time, and we don't want any other operations to continue (if called from main thread)
-        this.camera = null;
+        boolean camera_already_opened;
+        // hand the camera over under the same lock release() uses: without it a release() running at
+        // the same time reads the camera before it is nulled here, and both threads close it (review
+        // 2026-09-24, fund 5). Only the handover is locked - cam.close() and the callback path below
+        // (which can run inline on the UI thread) stay outside, so this can never block release()'s
+        // thread.join().
+        synchronized( background_camera_lock ) {
+            camera_already_opened = this.camera != null;
+            // need to set the camera to null first, as closing the camera may take some time, and we don't want any other operations to continue (if called from main thread)
+            this.camera = null;
+        }
         if( MyDebug.LOG )
             Log.d(TAG, "onError: camera is now set to null");
         cam.close();
@@ -1455,11 +1463,14 @@ public class CameraController2 extends CameraController {
         if( MyDebug.LOG )
             Log.d(TAG, "release: " + this);
         closeCaptureSession();
-        CameraDevice camera_to_close = this.camera;
+        CameraDevice camera_to_close;
         synchronized( background_camera_lock ) {
             // set all to null straight away, as this can be called on background thread, but also
             // don't want to be in an incomplete state for other threads where camera is non-null but
             // previewBuilder is null
+            // the camera is read inside the lock as well, so that onError() and this method can never
+            // both take it and close it twice (review 2026-09-24, fund 5)
+            camera_to_close = camera;
             previewBuilder = null;
             previewIsVideoMode = false;
             camera = null;
