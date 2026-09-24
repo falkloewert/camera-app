@@ -269,17 +269,22 @@ public class LocationSupplier {
                     Log.d(TAG, "has_fine_location_permission? " + has_fine_location_permission);
                 }
                 // require at least one permission to be present
-                if( !has_coarse_location_permission && !has_fine_location_permission ) {
+                boolean can_remove_updates = has_coarse_location_permission || has_fine_location_permission;
+                if( !can_remove_updates ) {
                     if( MyDebug.LOG )
                         Log.d(TAG, "location permission not available");
-                    return;
                 }
+                // without the permission removeUpdates() throws (see the link above), but the
+                // references have to go either way - returning here kept the listener on this context
+                // (review 2026-09-24, fund 16)
+                for(int i=0;i<locationListeners.length;i++) {
+                    if( can_remove_updates ) {
+                        locationManager.removeUpdates(locationListeners[i]);
+                    }
+                    locationListeners[i] = null;
+                }
+                locationListeners = null;
             }
-            for(int i=0;i<locationListeners.length;i++) {
-                locationManager.removeUpdates(locationListeners[i]);
-                locationListeners[i] = null;
-            }
-            locationListeners = null;
             if( MyDebug.LOG )
                 Log.d(TAG, "location listeners now freed");
         }

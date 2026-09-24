@@ -297,17 +297,20 @@ public class BluetoothRemoteControl {
     public void stopRemoteControl() {
         if( MyDebug.LOG )
             Log.d(TAG, "BLE Remote control service shutdown...");
-        if( remoteEnabled()) {
-            // Stop the service if necessary
-            try {
-                main_activity.unregisterReceiver(remoteControlCommandReceiver);
-                main_activity.unbindService(mServiceConnection);
-                is_connected = false; // Unbinding closes the connection, of course
-                main_activity.getMainUI().updateRemoteConnectionIcon();
-            }
-            catch(IllegalArgumentException e){
-                MyDebug.logStackTrace(TAG, "Remote Service was not running, that's strange", e);
-            }
+        // deliberately no remoteEnabled() check: it reads the preference, and the user turning the
+        // remote control off in the settings - or revoking the Bluetooth permission - is exactly the
+        // case where the service is still bound and has to be torn down. The guard skipped the
+        // teardown and left the receiver registered (review 2026-09-24, fund 15).
+        try {
+            main_activity.unregisterReceiver(remoteControlCommandReceiver);
+            main_activity.unbindService(mServiceConnection);
+            is_connected = false; // Unbinding closes the connection, of course
+            main_activity.getMainUI().updateRemoteConnectionIcon();
+        }
+        catch(IllegalArgumentException e){
+            // nothing was started - onPause() calls this on every pause
+            if( MyDebug.LOG )
+                Log.d(TAG, "Remote Service was not running, that's fine");
         }
     }
 

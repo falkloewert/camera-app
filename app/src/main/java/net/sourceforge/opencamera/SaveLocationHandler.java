@@ -332,6 +332,11 @@ public class SaveLocationHandler {
     public void clearFolderHistorySAF() {
         if( MyDebug.LOG )
             Log.d(TAG, "clearFolderHistorySAF");
+        if( save_location_history_saf == null ) {
+            // the constructor only builds this when SAF was already on - enabling SAF later leaves it
+            // null, and clearing the history then threw (review 2026-09-24, fund 12)
+            save_location_history_saf = new SaveLocationHistory(main_activity, PreferenceKeys.SaveLocationHistorySAFBasePreferenceKey, main_activity.getStorageUtils().getSaveLocationSAF());
+        }
         save_location_history_saf.clearFolderHistory(main_activity.getStorageUtils().getSaveLocationSAF());
     }
 

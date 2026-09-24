@@ -171,6 +171,9 @@ public class BluetoothLeService extends Service {
                 // know the service is unbound (and if it's later bound again, we'll try connecting
                 // again anyway without needing this).
                 Log.e(TAG, "don't attempt to reconnect when service not bound");
+                // without this the timer below ran anyway, and kept running after the unbind
+                // (review 2026-09-24, fund 13)
+                return;
             }
 
             Timer timer = new Timer();
@@ -482,10 +485,11 @@ public class BluetoothLeService extends Service {
         }
 
         // Check for Android 12 Bluetooth permission just in case (and for Android lint error)
+        // n.b., closing the handle itself needs no permission, so this must not return before it -
+        // that left the GATT client unreleased (review 2026-09-24, fund 14)
         if( DeviceScanner.useAndroid12BluetoothPermissions() ) {
             if( ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED ) {
                 Log.e(TAG, "bluetooth scan permission not granted!");
-                return;
             }
         }
 

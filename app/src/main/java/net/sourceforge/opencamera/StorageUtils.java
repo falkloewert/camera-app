@@ -783,7 +783,7 @@ public class StorageUtils {
 			}
 			else*/ {
                 String mediaFilename = createMediaFilename(type, suffix, count, "." + extension, current_date);
-                mediaFile = new File(mediaStorageDir.getPath() + File.separator + mediaFilename);
+                mediaFile = new File(mediaStorageDir, mediaFilename);
             }
             if( !mediaFile.exists() ) {
                 break;
