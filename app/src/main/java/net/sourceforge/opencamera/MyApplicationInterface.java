@@ -94,7 +94,16 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     private final DrawPreview drawPreview;
     private final ImageSaver imageSaver;
 
-    private final static float panorama_pics_per_screen = 3.33333f;
+    // Schrittweite des Panoramas, in Bildbreiten pro aufgenommenem Bild (Falk 2026-09-25): Upstream
+    // stand hier 3.33333, d.h. pro Bild nur 30 % der Bildbreite weiter - bei 9 Schritten kam ein
+    // 1x-Panorama damit gerade auf knapp 180 Grad und war zu Ende, bevor der Schwenk fertig war.
+    // 2.5 heisst 40 % pro Bild: rund 234 Grad bei 1x, und weil Führung (setNextPanoramaPoint) und
+    // Stitcher (PanoramaProcessor.panorama) denselben Wert lesen, bleibt die Annahme des Stitchers
+    // über die Schrittweite weiterhin genau die, die der Nutzer geführt wird. Die Überlappung
+    // schrumpft dabei von 70 % auf 60 % - das Suchfenster der Restausrichtung (±10 % der
+    // Bildbreite) deckt eine ungleichmässige Schwenkgeschwindigkeit damit noch bis ±25 % ab.
+    // Speicherbedarf ändert sich nicht, die Bildzahl bleibt max_panorama_pics_c.
+    private final static float panorama_pics_per_screen = 2.5f;
     private int n_capture_images = 0; // how many calls to onPictureTaken() since the last call to onCaptureStarted()
     private int n_capture_images_raw = 0; // how many calls to onRawPictureTaken() since the last call to onCaptureStarted()
     private int n_panorama_pics = 0;
@@ -542,49 +551,54 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     // abgebrochen, obwohl Falk 10 wollte. An den Heap passt sich jetzt die Stich-Aufloesung an
     // (ImageSaver, inSampleSize aus dem Heap), das kostet Bildschaerfe statt Panoramalaenge.
 
-    /** The size a panorama shoots at (Schritt E): the one the sheet's ratio and size rows stored,
-     *  as long as the camera still offers it - that is what makes 3840x2160 (4K) and 4032x2268
-     *  reachable. Without a stored choice (fresh install) or with one the camera no longer offers,
-     *  it falls back to choosePanoramaResolution(), i.e. to the largest 4:3 size up to 2080 px that
-     *  the mode used to be pinned to - never to the camera's own maximum, which is far beyond what
-     *  the stitcher can hold.
+    /** Width ceiling for a panorama frame. The stitcher holds every frame in memory at once;
+     *  above this the heap guard in ImageSaver.computePanoramaSampleSize() starts shrinking the
+     *  frames, and the shrunken frames are what a smeared, unusable stitch is made of.
+     *  Upstream was pinned to the same ceiling for the same reason.
+     */
+    private final static int max_panorama_width_c = 2080;
+
+    /** The size a panorama shoots at (Schritt E, Falk 2026-09-25): the ratio comes from the sheet's
+     *  ratio row, the size is capped at max_panorama_width_c - 4K frames do not fit the heap
+     *  alongside the stitcher's own buffers, and being shrunk to fit costs exactly the sharpness a
+     *  panorama needs. Without a stored choice (fresh install) it falls back to
+     *  choosePanoramaResolution(), i.e. to the largest 4:3 size up to the same ceiling.
      */
     public static CameraController.Size panoramaResolution(CameraController.Size wanted, List<CameraController.Size> sizes) {
         if( wanted != null ) {
-            for(CameraController.Size size : sizes) {
-                if( size.width == wanted.width && size.height == wanted.height )
-                    return size;
-            }
-            if( MyDebug.LOG )
-                Log.d(TAG, "stored panorama size " + wanted.width + "x" + wanted.height + " is not offered, falling back");
-            // Der Rückfall hält das Verhältnis der gespeicherten Größe (Schritt G, Punkt 12): in
-            // der Nacht-Sitzung stehen dort die Größen der Erweiterung, und mit festgelegtem
-            // physischem Objektiv liegt die gespeicherte Größe unter einem anderen
-            // Preferences-Schlüssel - beides Mal fiel das Panorama sonst auf das 4:3 von
-            // choosePanoramaResolution() zurück, obwohl 16:9 gewählt war.
-            CameraController.Size same_ratio = null;
             double wanted_ratio = ((double)wanted.width) / (double)wanted.height;
+            // Dieselbe Auswahl wie früher für die gespeicherte Größe (Schritt G, Punkt 12: mit
+            // festgelegtem physischem Objektiv liegt sie unter einem anderen Preferences-Schlüssel,
+            // deshalb zählt das Verhältnis und nicht die genaue Größe) - jetzt aber nur bis zur
+            // Obergrenze: das größte angebotene Größe mit diesem Verhältnis darunter.
+            CameraController.Size same_ratio = null;
             double best_diff = 0.0;
             for(CameraController.Size size : sizes) {
+                if( size.width > max_panorama_width_c )
+                    continue;
                 double diff = Math.abs(((double)size.width) / (double)size.height - wanted_ratio);
                 if( same_ratio == null || diff < best_diff || (diff == best_diff && size.width > same_ratio.width) ) {
                     same_ratio = size;
                     best_diff = diff;
                 }
             }
-            if( same_ratio != null )
+            if( same_ratio != null ) {
+                if( MyDebug.LOG )
+                    Log.d(TAG, "panorama size from stored " + wanted.width + "x" + wanted.height + ": " + same_ratio.width + "x" + same_ratio.height);
                 return same_ratio;
+            }
         }
         return choosePanoramaResolution(sizes);
     }
 
-    /** The fallback for the panorama size: the largest 4:3 size up to 2080 px wide, or the largest
-     *  up to that width, or the smallest at all (see panoramaResolution() for the normal case).
+    /** The fallback for the panorama size: the largest 4:3 size up to max_panorama_width_c px wide,
+     *  or the largest up to that width, or the smallest at all (see panoramaResolution() for the
+     *  normal case).
      */
     public static CameraController.Size choosePanoramaResolution(List<CameraController.Size> sizes) {
         // if we allow panorama with higher resolutions, review against memory requirements under MainActivity.supportsPanorama()
         // also may need to update the downscaling in the testing code
-        final int max_width_c = 2080;
+        final int max_width_c = max_panorama_width_c;
         boolean found = false;
         CameraController.Size best_size = null;
         // find largest width <= max_width_c with aspect ratio 4:3

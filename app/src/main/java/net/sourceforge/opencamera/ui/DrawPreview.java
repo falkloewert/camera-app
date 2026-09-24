@@ -2196,13 +2196,12 @@ public class DrawPreview {
         MainActivity.SystemOrientation system_orientation = main_activity.getSystemOrientation();
         boolean system_orientation_portrait = system_orientation == MainActivity.SystemOrientation.PORTRAIT;
         boolean has_level_angle = preview.hasLevelAngle();
-        boolean actual_show_angle_line_pref;
-        if( photoMode == MyApplicationInterface.PhotoMode.Panorama ) {
-            // in panorama mode, we should the level iff we aren't taking the panorama photos
-            actual_show_angle_line_pref = !main_activity.getApplicationInterface().getGyroSensor().isRecording();
-        }
-        else
-            actual_show_angle_line_pref = show_angle_line_pref;
+        // Falk 2026-09-25: die Wasserwaage bleibt auch waehrend der Panorama-Aufnahme sichtbar.
+        // Open Camera blendete sie dort aus, solange die Panorama-Bilder liefen - genau waehrend des
+        // Schwenks fehlte damit die einzige Hilfe, den Horizont gerade zu halten. Sie zeichnet sich
+        // jetzt im Panorama wie im Foto- und Videomodus (Gradzahlen inklusive, die haengen an
+        // demselben Schalter).
+        boolean actual_show_angle_line_pref = show_angle_line_pref;
 
         boolean allow_angle_lines = camera_controller != null && !preview.isPreviewPaused();
 
