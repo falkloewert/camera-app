@@ -21,23 +21,23 @@ Bugs sind Open-Camera-Upstream-Altlasten, keine eigenen Fehler. Der Rest liegt i
   3000ms-Timeout, dieser nicht).
 - **Auslöser:** HDR/Burst-Foto, App sofort schließen/rotieren → ANR, im zweiten Fall
   permanent, wenn der Task hängt.
-- **Status:** offen.
+- **Status:** behoben in `0b3d4b88` (Preview-Task 3000 ms; `ImageSaver.waitUntilDone()` bewusst unbegrenzt – Datenverlust geht vor ANR).
 
 ### 2. Panorama-Blending: Clamp auskommentiert (Upstream)
 - **Stelle:** `JavaImageFunctionsPanorama.java:824,929,1576,1711`.
 - **Auslöser:** Kontrastreiche Szene → `byte`-Wraparound → Schwarz-/Farbartefakte.
-- **Status:** offen, Upstream-Code (nicht eigener Diff).
+- **Status:** behoben in `c7e280ab` (Clamps wieder aktiv).
 
 ### 3. Panorama `expandBitmap()`: 3 volle Bildkopien im Speicher (Upstream)
 - **Stelle:** `PanoramaProcessor.java:~183-192`.
 - **Auslöser:** 12-48MP-Sensor → OOM, Rendering-Thread crasht.
-- **Status:** offen, Upstream-Code.
+- **Status:** zurückgestellt – `ponytail:`-Marker an `PanoramaProcessor.expandBitmap` (`c7e280ab`).
 
 ### 4. Pre-Shot-Encoder: Exception im `finally` verhindert Cleanup (Upstream)
 - **Stelle:** `Preshots.java:461,470`.
 - **Auslöser:** Speicherplatzmangel/Kamera-Disconnect während Pre-Shot-Aufnahme →
   MediaMuxer- und Filedescriptor-Leak.
-- **Status:** offen, Upstream-Code.
+- **Status:** behoben in `c7e280ab`.
 
 ## Funde — Race Conditions / Lifecycle (Kamera-Kern, eigener Diff wo markiert)
 
@@ -47,33 +47,33 @@ Bugs sind Open-Camera-Upstream-Altlasten, keine eigenen Fehler. Der Rest liegt i
   nutzt ihn).
 - **Auslöser:** Error-Callback feuert während UI die Kamera schließt → Double-Release/NPE/
   `IllegalStateException`.
-- **Status:** offen.
+- **Status:** behoben in `0b3d4b88` (`CameraController2`; `CameraController1` unverändert, auf dem Pixel nicht benutzt).
 
 ### 6. `ModeBar` stapelt Runnables bei schnellem Touch
 - **Stelle:** `ui/ModeBar.java:284` (`settle_check` ohne `removeCallbacks()` davor).
 - **Auslöser:** Schnelles Antippen/Wischen → konkurrierende Runnables, Jitter.
-- **Status:** offen.
+- **Status:** behoben in `583de612`.
 
 ### 7. Animator ohne Detach-Cleanup
 - **Stelle:** `ui/PhotoVideoSwitch.java:122-126` (`glyph_rotation_animator`),
   `ui/ZoomWheel.java:191` (`morph_animator`). Zum Vergleich: `RulerSlider.java` macht das
   Cleanup korrekt.
 - **Auslöser:** View-Detach/Activity-Zerstörung während Animation läuft → Leak.
-- **Status:** offen.
+- **Status:** behoben in `583de612`.
 
 ### 8. `SettingsSheet`/`ProPanel` schließen nicht bei `onPause()` (eigener Diff)
 - **Stelle:** `MainActivity.java:1499`. Die ersetzte `PopupView` hat in `onPause`
   aggressiv `closePopup()` gerufen, die neuen Komponenten nicht.
 - **Auslöser:** Settings-Sheet offen, App backgrounden (Kamera-Session stirbt), zurückkommen
   → Sheet refresht gegen neu initialisierende Kamera → stale UI/Crash auf Null-Profildaten.
-- **Status:** offen.
+- **Status:** behoben in `583de612`.
 
 ### 9. `SettingsSheet` verzögertes Runnable ohne Cancel (eigener Diff)
 - **Stelle:** `ui/SettingsSheet.java:1591` (`update_settings_runnable`, 400-800ms Delay,
   nie in `close()`/`onPause()`/`onDestroy()` gecancelt).
 - **Auslöser:** Einstellung antippen, sofort Screen sperren/Zurück → Runnable feuert gegen
   pausierte/zerstörte Activity → Crash-Risiko.
-- **Status:** offen.
+- **Status:** behoben in `583de612`.
 
 ## Funde — stille Bildfehler (Upstream, kein Crash, falsches Ergebnis)
 
@@ -81,50 +81,50 @@ Bugs sind Open-Camera-Upstream-Altlasten, keine eigenen Fehler. Der Rest liegt i
 - **Stelle:** `PostProcessing.java:122,246,544`.
 - **Auslöser:** Pipeline will bewusst unrotierte Rohdaten (z.B. Panorama-Alignment) →
   wird trotzdem EXIF-rotiert → doppelte Rotation bei späterem manuellem Nachdrehen.
-- **Status:** offen.
+- **Status:** verworfen: der zweite Parameter von `loadBitmapWithRotation()` ist `mutable`, nicht `ignore_exif_orientation`; das Flag behandelt `postProcessBitmap()` korrekt (`c7e280ab`).
 
 ### 11. Frontkamera-Kippkorrektur verdoppelt bei deaktiviertem Spiegeln
 - **Stelle:** `PostProcessing.java:183` (`autoStabilise`, `postRotate(-level_angle)` geht
   von immer folgender Spiegelung aus).
 - **Auslöser:** "Frontkamera spiegeln" aus, Selfie mit 10° Neigung → Ergebnis 20° in
   falsche Richtung statt begradigt.
-- **Status:** offen.
+- **Status:** behoben in `c7e280ab` (richtet sich nach `request.mirror`).
 
 ## Funde — Remote-Control / Storage
 
 ### 12. SAF-History-Löschen ohne Null-Check
 - **Stelle:** `SaveLocationHandler.java:335`.
 - **Auslöser:** History löschen bei deaktiviertem SAF → NullPointerException.
-- **Status:** offen.
+- **Status:** behoben in `08b92c70`.
 
 ### 13. Bluetooth-Reconnect: fehlendes `return`
 - **Stelle:** `remotecontrol/BluetoothLeService.java:171-174` (`attemptReconnect()`).
 - **Auslöser:** `!is_bound` wird geloggt, aber trotzdem ein Reconnect-`TimerTask`
   geplant → läuft endlos weiter, auch nach Unbind.
-- **Status:** offen.
+- **Status:** behoben in `08b92c70`.
 
 ### 14. Bluetooth `close()` überspringt GATT-Cleanup
 - **Stelle:** `remotecontrol/BluetoothLeService.java:485-489`.
 - **Auslöser:** Fehlende `BLUETOOTH_CONNECT`-Permission (Android 12+) → `close()` kehrt
   früh zurück, `bluetoothGatt.close()` bleibt aus → Leak.
-- **Status:** offen.
+- **Status:** behoben in `08b92c70`.
 
 ### 15. Remote-Control-Teardown übersprungen
 - **Stelle:** `remotecontrol/BluetoothRemoteControl.java:299-311` (`stopRemoteControl()`
   unter `if(remoteEnabled())`).
 - **Auslöser:** Remote-Control in Einstellungen deaktiviert, während Service läuft →
   `unregisterReceiver`/`unbindService` übersprungen → BroadcastReceiver-Leak.
-- **Status:** offen.
+- **Status:** behoben in `08b92c70`.
 
 ### 16. Location-Listener-Leak bei fehlenden Permissions
 - **Stelle:** `LocationSupplier.java:~275` (`freeLocationListeners()`).
 - **Auslöser:** Beide Standort-Permissions entzogen → früher Return, `removeUpdates()`
   übersprungen → Listener bleibt an Context/Activity hängen.
-- **Status:** offen.
+- **Status:** behoben in `08b92c70`.
 
 ### 17. Fragiler Pfadaufbau
 - **Stelle:** `StorageUtils.java:786` (String-Konkatenation statt `new File(dir, name)`).
-- **Status:** offen, geringe Priorität.
+- **Status:** behoben in `08b92c70` (kosmetisch).
 
 ## Ponytail-Lens — Überengineering (nicht als "Bug" gegengeprüft)
 
@@ -151,6 +151,9 @@ Bugs sind Open-Camera-Upstream-Altlasten, keine eigenen Fehler. Der Rest liegt i
 - **`ExifHandler.java:242-243` Apertur/FNumber-Verwechslung (Erstfund):** Code behandelt
   `TAG_MAX_APERTURE_VALUE` und `TAG_F_NUMBER` getrennt und korrekt (Kommentar an Z. 170
   bestätigt das explizit). Kein Bug.
+
+## Stand 2026-09-25
+15 behoben (Gruppen A–D, `583de612`, `0b3d4b88`, `08b92c70`, `c7e280ab`), 1 zurückgestellt (3), 1 verworfen (10). Ponytail-Punkte und Security-/IPC-Analyse weiter offen.
 
 ## Fazit
 17 echte Bugs (4 kritisch, davon 3 Upstream-Altlasten außerhalb des eigenen Diffs), 9

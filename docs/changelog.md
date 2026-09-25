@@ -804,4 +804,12 @@ Nachteile hat; Filmchen-Modus und Dual-Kamera hätten dagegen jeweils eigene UI-
   Scheiben = 3,7° Überschuss, rechter Rand trug den linken doppelt), Photosphere-Angabe ohne
   negative Crop-Werte. Panorama ist fest 4:3, Format-Zeile im Blatt im Panoramamodus
   ausgeblendet (`ui/SettingsSheet`). Am Pixel 9 Pro abgenommen: Länge/Kippung/Runde ok, die
-  Naht am Ende nur „ok" – Restdrift als PM-Punkt 15 in SPEC 4.5.
+  Naht am Ende nur „ok" – Restdrift als PM-Punkt 16 in SPEC 4.5.
+
+- **2026-09-24/25 (Feature-Chat, Stabilitäts-Fixes):** Mehrpass-Review (Gemini) abgearbeitet,
+  Kickoff `docs/kickoff/fix-stabilitaet-review.md`. A `583de612`: Blatt/Pro-Panel schließen bei
+  `onPause`, gequeuter Blatt-Update abbrechen, ModeBar-Runnables, Animatoren beim Detach. B
+  `0b3d4b88`: Preview-Timeout, Kamera-Übergabe unter Lock. C `08b92c70`: Null-Checks, Bluetooth-/
+  Standort-Aufräumen. D `c7e280ab`: Panorama-Clamp, Pre-Shot-Cleanup, Selfie-Kippkorrektur.
+  Fund 3 zurückgestellt (`ponytail:`), Fund 10 verworfen. PM-Nachtrag: Status je Fund im Review,
+  doppelte PM-Nummer 15 → Naht am Panorama-Ende ist jetzt 16.

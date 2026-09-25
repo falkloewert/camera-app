@@ -373,11 +373,12 @@ Dock (7.1 Punkt 3), Karussell (7.2) und die **Sucher-Overlays samt Sucher-Lage (
 - **Schritte D–K am 2026-09-23 von Falk am Pixel 9 Pro abgenommen** (ein gemeinsamer Durchgang;
   D wurde nicht einzeln getestet). Kickoffs `docs/kickoff/redesign-moduswahl-karussell.md` und
   `redesign-schritt-{e..k}-*.md`; die Schritt-Einträge unten sind damit abgeschlossen.
-- **Panorama-Bildzahl offen:** nach dem Gerätetest entscheiden, wie viele Einzelbilder ein
-  Panorama wirklich braucht. Heute fest `max_panorama_pics_c = 10`
-  (`MyApplicationInterface.java:101`). Die Zahl steuert die **Schwenkweite**, nicht die Schärfe;
-  weniger Bilder heißt kürzeres Panorama und mehr Speicher pro Bild (also mehr Schärfe).
-  Test: je ein Panorama bei 1× und bei 0,5×, Nahtstellen ansehen, dann entscheiden.
+- ~~**Panorama-Bildzahl offen**~~ **Erledigt (2026-09-25):** fest 17 Bilder für eine volle Runde
+  (Panorama-Nacharbeit, `8a26a0a2`, SPEC 4.4). Übrig nur die Naht am Ende, PM-Punkt 16.
+- **Stabilitäts-Fixes aus dem Mehrpass-Review (2026-09-24/25):** 15 von 17 Funden behoben
+  (Gruppen A–D), Fund 3 zurückgestellt, Fund 10 verworfen; Status je Fund in
+  `docs/reviews/2026-09-24-multipass-stability-review.md`. Offen: die neun Ponytail-Punkte,
+  Security-/IPC-Analyse.
 - **Schritt H (Falks neun Befunde, 2026-09-22):** gebaut und im Gerätetest geprüft: Licht-Zeile
   hält Knöpfe und Markierung, weiße Chip-Kästen, RAW-Chip nur bei RAW, Mond-Kontur, Zoom-Blase
   hinter dem Panel weg, **Pro-Panel im Video** (Belichtung + Weißabgleich), Stärke-Knopf daneben.
@@ -504,7 +505,7 @@ Verlauf und Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
     `assembleDebug`, `assembleDebugAndroidTest` und `compileDebugUnitTestJavaWithJavac` laufen;
     nur die Test-Tasks lassen sich nicht anlegen. Entscheidung nötig: Wrapper auf Gradle 9
     hochziehen oder ein JDK 21 für Gradle setzen.
-15. **Naht am Panorama-Ende** (2026-09-25, aus der Nacharbeit in 4.4): Falk „der Schnitt am
+16. **Naht am Panorama-Ende** (2026-09-25, aus der Nacharbeit in 4.4): Falk „der Schnitt am
     Ende nicht sehr schön zusammengebaut, aber ok" – so abgenommen. Übrig bleibt die
     Restdrift der kumulierten Stitch-Verschiebung (`align_x` in
     `PanoramaProcessor.computePanoramaTransforms()`); sie ließe sich über die letzten Bilder
