@@ -97,17 +97,37 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     // Schrittweite des Panoramas, in Bildbreiten pro aufgenommenem Bild (Falk 2026-09-25): Upstream
     // stand hier 3.33333, d.h. pro Bild nur 30 % der Bildbreite weiter - bei 9 Schritten kam ein
     // 1x-Panorama damit gerade auf knapp 180 Grad und war zu Ende, bevor der Schwenk fertig war.
-    // 2.5 heisst 40 % pro Bild: rund 234 Grad bei 1x, und weil Führung (setNextPanoramaPoint) und
-    // Stitcher (PanoramaProcessor.panorama) denselben Wert lesen, bleibt die Annahme des Stitchers
-    // über die Schrittweite weiterhin genau die, die der Nutzer geführt wird. Die Überlappung
-    // schrumpft dabei von 70 % auf 60 % - das Suchfenster der Restausrichtung (±10 % der
-    // Bildbreite) deckt eine ungleichmässige Schwenkgeschwindigkeit damit noch bis ±25 % ab.
-    // Speicherbedarf ändert sich nicht, die Bildzahl bleibt max_panorama_pics_c.
+    // 2.5 heisst 40 % pro Bild, am Geraet gemessen (41.4 Grad Bildbreite bei 1x) also 16.6 Grad pro
+    // Bild. Weil Führung (setNextPanoramaPoint) und Stitcher (PanoramaProcessor.panorama) denselben
+    // Wert lesen, bleibt die Annahme des Stitchers über die Schrittweite genau die, die der Nutzer
+    // geführt wird.
+    // 1.6 (62 % pro Bild) wurde am 2026-09-25 getestet und wieder verworfen: mit nur noch 37 %
+    // Überlappung findet die Restausrichtung an den Nahtstellen keinen gemeinsamen Bezug mehr, es
+    // gibt senkrechte Schlieren (Verschmieren eines Bildes in die Höhe). Wer mehr Grad pro Bild
+    // will, nimmt die 0.5x-Linse: die deckt rund 67 Grad pro Bild ab, bei unveränderter Überlappung.
     private final static float panorama_pics_per_screen = 2.5f;
+    // Jenseits dieser Schwenkstrecke beendet sich das Panorama von selbst (Falk 2026-09-25): der
+    // Stitcher legt die Bilder auf einer Geraden ab und wickelt nie um den Kreis. Bis 360 Grad
+    // decken die Scheiben [k*Schritt, (k+1)*Schritt] die Runde luckenlos ab (die Naht am Anfang ist
+    // dann eine harte Kante, wie bei jedem 360-Grad-Panorama), darueber hinaus wiederholt das Ende
+    // den Anfang und wird zu Matsch. Gemessen wird die Aussenkante der letzten Scheibe
+    // (n*Schritt + Schritt/2): erst wenn die ueber 360 Grad liegt, traegt sie schon wieder den
+    // Anfang. Bei 1x/4:3 bindet die Bildzahl (17 Bilder = 353 Grad Aussenkante), bei 0.5x diese
+    // Grenze.
+    private final static float max_panorama_sweep_deg = 360f;
     private int n_capture_images = 0; // how many calls to onPictureTaken() since the last call to onCaptureStarted()
     private int n_capture_images_raw = 0; // how many calls to onRawPictureTaken() since the last call to onCaptureStarted()
     private int n_panorama_pics = 0;
-    public final static int max_panorama_pics_c = 10; // if we increase this, review against memory requirements under MainActivity.supportsPanorama()
+    private final float [] target_point = new float [3]; // scratch for panoramaTargetPoint()
+    // 17 Bilder (Falk 2026-09-25: "immernoch ein bild zu kurz"): die Zahl ist der Speicherdeckel,
+    // nicht mehr die Laenge - bei 1x mit 4:3 (53.5 Grad Bildbreite, gemessen) sind 17 Bilder 16
+    // Schritte a 21.4 Grad = 342 Grad Schwenk und 364 Grad Bildbreite, also einmal herum, und
+    // choosePanoramaResolution() rechnet den Speicher fuer genau diese 17 Rahmen. Bei 0.5x bindet
+    // stattdessen max_panorama_sweep_deg. Wer frueher fertig ist, beendet das Panorama mit dem
+    // Ausloeser (MainActivity ruft dann finishPanorama()).
+    // Speicher: 17 x 1536x2048x4 = 214 MB, unter dem Budget in
+    // ImageSaver.computePanoramaSampleSize() (dessen Verkleinerung greift erst darueber).
+    public final static int max_panorama_pics_c = 17; // if we increase this, review against memory requirements under MainActivity.supportsPanorama()
     private boolean panorama_pic_accepted; // whether the last panorama picture was accepted, or else needs to be retaken
     private boolean panorama_dir_left_to_right = true; // direction of panorama (set after we've captured two images)
 
@@ -565,50 +585,46 @@ public class MyApplicationInterface extends BasicApplicationInterface {
      *  choosePanoramaResolution(), i.e. to the largest 4:3 size up to the same ceiling.
      */
     public static CameraController.Size panoramaResolution(CameraController.Size wanted, List<CameraController.Size> sizes) {
-        if( wanted != null ) {
-            double wanted_ratio = ((double)wanted.width) / (double)wanted.height;
-            // Dieselbe Auswahl wie früher für die gespeicherte Größe (Schritt G, Punkt 12: mit
-            // festgelegtem physischem Objektiv liegt sie unter einem anderen Preferences-Schlüssel,
-            // deshalb zählt das Verhältnis und nicht die genaue Größe) - jetzt aber nur bis zur
-            // Obergrenze: das größte angebotene Größe mit diesem Verhältnis darunter.
-            CameraController.Size same_ratio = null;
-            double best_diff = 0.0;
-            for(CameraController.Size size : sizes) {
-                if( size.width > max_panorama_width_c )
-                    continue;
-                double diff = Math.abs(((double)size.width) / (double)size.height - wanted_ratio);
-                if( same_ratio == null || diff < best_diff || (diff == best_diff && size.width > same_ratio.width) ) {
-                    same_ratio = size;
-                    best_diff = diff;
-                }
-            }
-            if( same_ratio != null ) {
-                if( MyDebug.LOG )
-                    Log.d(TAG, "panorama size from stored " + wanted.width + "x" + wanted.height + ": " + same_ratio.width + "x" + same_ratio.height);
-                return same_ratio;
-            }
-        }
-        return choosePanoramaResolution(sizes);
+        // Falk 2026-09-25: das Panorama ignoriert das Foto-Format und nimmt immer 4:3 - im
+        // Hochformat schwenkt die kurze Bildseite, ein 16:9-Bild deckt dort nur 41 Grad ab, ein
+        // 4:3-Bild 55 Grad, bei gleicher Pixeldichte pro Grad. Fuehrung und Stitcher lesen den
+        // Bildwinkel zur Laufzeit (Preview.getViewAngleY() / panorama_pics_per_screen), beide folgen
+        // dem Format also von selbst; wanted dient nur noch der Orientierung (Hoch-/Querformat).
+        return choosePanoramaResolution(sizes, wanted);
     }
 
-    /** The fallback for the panorama size: the largest 4:3 size up to max_panorama_width_c px wide,
-     *  or the largest up to that width, or the smallest at all (see panoramaResolution() for the
-     *  normal case).
+    /** The panorama size: die groesste 4:3-Groesse bis max_panorama_width_c, die mit
+     *  max_panorama_pics_c Bildern noch in das Budget von ImageSaver.computePanoramaSampleSize()
+     *  passt - sonst verkleinert der Waechter die Bilder wieder und die Schaerfe ist weg.
+     *  orientation_hint (darf null sein) bevorzugt die 4:3-Lage der Vorschau; die Liste der
+     *  Kamera-Groessen ist nicht auf jedem Geraet gleich orientiert, deshalb beide Durchlaeufe.
      */
     public static CameraController.Size choosePanoramaResolution(List<CameraController.Size> sizes) {
+        return choosePanoramaResolution(sizes, null);
+    }
+
+    private static CameraController.Size choosePanoramaResolution(List<CameraController.Size> sizes, CameraController.Size orientation_hint) {
         // if we allow panorama with higher resolutions, review against memory requirements under MainActivity.supportsPanorama()
         // also may need to update the downscaling in the testing code
         final int max_width_c = max_panorama_width_c;
+        final long budget = Runtime.getRuntime().maxMemory() / 2; // wie ImageSaver.computePanoramaSampleSize()
         boolean found = false;
         CameraController.Size best_size = null;
-        // find largest width <= max_width_c with aspect ratio 4:3
-        for(CameraController.Size size : sizes) {
-            if( size.width <= max_width_c ) {
-                double aspect_ratio = ((double)size.width) / (double)size.height;
-                if( Math.abs(aspect_ratio - 4.0/3.0) < 1.0e-5 ) {
-                    if( !found || size.width > best_size.width ) {
-                        found = true;
-                        best_size = size;
+        boolean prefer_portrait = orientation_hint != null && orientation_hint.height > orientation_hint.width;
+        // find largest width <= max_width_c with aspect ratio 4:3, erst in der Lage der Vorschau,
+        // dann in der anderen
+        for(int pass = 0; pass < 2 && !found; pass++) {
+            boolean want_portrait = (pass == 0) == prefer_portrait;
+            double wanted_ratio = want_portrait ? 3.0/4.0 : 4.0/3.0;
+            for(CameraController.Size size : sizes) {
+                if( size.width <= max_width_c ) {
+                    double aspect_ratio = ((double)size.width) / (double)size.height;
+                    if( Math.abs(aspect_ratio - wanted_ratio) < 1.0e-5
+                            && (long)size.width * size.height * 4 * max_panorama_pics_c <= budget ) {
+                        if( !found || size.width > best_size.width ) {
+                            found = true;
+                            best_size = size;
+                        }
                     }
                 }
             }
@@ -1665,7 +1681,12 @@ public class MyApplicationInterface extends BasicApplicationInterface {
             return false;
         }
         // otherwise, still have a max limit of 5 photos
-        if( n_images_to_save >= 5*photo_cost ) {
+        // Panorama (Falk 2026-09-25): hier zaehlt ein ganzer Panorama-Stapel, nicht die 5. Der Stapel
+        // des vorigen Panoramas liegt noch im ImageSaver, waehrend das naechste schon laufen soll -
+        // mit 5 waere der Ausloeser bis zum Ende des Stitchs gesperrt. Dass beide zusammen noch in
+        // die Warteschlange passen, prueft der Panorama-Block weiter oben.
+        int max_images_to_save = (photo_mode == PhotoMode.Panorama) ? 2*max_panorama_pics_c : 5*photo_cost;
+        if( n_images_to_save >= max_images_to_save ) {
             if( main_activity.supportsNoiseReduction() && n_images_to_save <= 8 ) {
                 // if we take a photo in NR mode, then switch to std mode, it doesn't make sense to suddenly block!
                 // so need to at least allow a new photo, if the number of photos is less than 1 NR photo
@@ -2303,18 +2324,61 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         if( n_panorama_pics > 1 && !panorama_dir_left_to_right ) {
             angle = - angle; // for right-to-left
         }
-        float x = (float) Math.sin(angle / panorama_pics_per_screen);
-        float z = (float) -Math.cos(angle / panorama_pics_per_screen);
-        setNextPanoramaPoint(x, 0.0f, z);
+        angle /= panorama_pics_per_screen;
+        // angle ist die Mitte des naechsten Bildes, also n_panorama_pics * Schritt; seine Scheibe
+        // reicht einen halben Schritt weiter (Schritt = angle / n_panorama_pics). Erst wenn diese
+        // Aussenkante ueber 360 Grad liegt, traegt das Bild schon wieder den Anfang.
+        float sweep_deg = Math.abs((float) Math.toDegrees(angle));
+        if( sweep_deg + sweep_deg/(2.0f * n_panorama_pics) > max_panorama_sweep_deg ) {
+            if( MyDebug.LOG )
+                Log.d(TAG, "reached max panorama sweep");
+            finishPanorama();
+            return;
+        }
+        panoramaTargetPoint(target_point, angle);
+        setNextPanoramaPoint(target_point[0], target_point[1], target_point[2]);
 
         if( n_panorama_pics == 1 ) {
             // also set target for right-to-left
-            angle = - angle;
-            x = (float) Math.sin(angle / panorama_pics_per_screen);
-            z = (float) -Math.cos(angle / panorama_pics_per_screen);
-            gyroSensor.addTarget(x, 0.0f, z);
-            drawPreview.addGyroDirectionMarker(x, 0.0f, z);
+            panoramaTargetPoint(target_point, -angle);
+            gyroSensor.addTarget(target_point[0], target_point[1], target_point[2]);
+            drawPreview.addGyroDirectionMarker(target_point[0], target_point[1], target_point[2]);
         }
+    }
+
+    /** Der Zielpunkt für den nächsten Panorama-Schritt: die Blickrichtung beim ersten Bild, um
+     *  {@code angle} (Bogenmaß) um die Erdvertikale gedreht (Falk 2026-09-25). Die Erdvertikale
+     *  kommt aus dem Beschleunigungsmesser (GyroSensor.getUpVector()), nicht aus der Hoch-Achse des
+     *  Handys: war das Handy beim Start schräg, ist beides verschieden.
+     *  Upstream legte den Zielpunkt in die Horizontalebene des Bezugssystems (y = 0), also in die
+     *  Ebene senkrecht zur Hoch-Achse beim Start. Bei schräg begonnenem Panorama ist das nicht die
+     *  Horizontebene der Welt: die Führung zog die Aufnahme damit im Verlauf nach oben zum Horizont
+     *  zurück, statt die begonnene Neigung zu halten. Um die Erdvertikale gedreht bleibt die
+     *  Neigung über den ganzen Schwenk konstant (die Aufnahme läuft "im Kreis"), und die Einzelbilder
+     *  gehen weiterhin durch eine reine Drehung um die Erdvertikale auseinander hervor - genau das,
+     *  was die Projektion des Stitchers annimmt.
+     *  Für ein gerade gehaltenes Handy (up = (0,1,0), Blick = (0,0,-1)) ergibt das exakt die
+     *  bisherige Formel (sin(angle), 0, -cos(angle)) samt Drehrichtung.
+     */
+    private void panoramaTargetPoint(float [] out, float angle) {
+        float [] v0 = new float[3];
+        float [] up = new float[3];
+        gyroSensor.getStartVector(v0);
+        gyroSensor.getUpVector(up);
+        // Achse = -up: reproduziert für ein gerade gehaltenes Handy die bisherige Drehrichtung
+        float nx = -up[0];
+        float ny = -up[1];
+        float nz = -up[2];
+        float cos = (float) Math.cos(angle);
+        float sin = (float) Math.sin(angle);
+        float dot = nx * v0[0] + ny * v0[1] + nz * v0[2];
+        // Rodrigues: v*cos + (n x v)*sin + n*(n.v)*(1-cos)
+        float cx = ny * v0[2] - nz * v0[1];
+        float cy = nz * v0[0] - nx * v0[2];
+        float cz = nx * v0[1] - ny * v0[0];
+        out[0] = v0[0] * cos + cx * sin + nx * dot * (1.0f - cos);
+        out[1] = v0[1] * cos + cy * sin + ny * dot * (1.0f - cos);
+        out[2] = v0[2] * cos + cz * sin + nz * dot * (1.0f - cos);
     }
 
     private void setNextPanoramaPoint(float x, float y, float z) {

@@ -36,6 +36,20 @@ public class GyroSensor implements SensorEventListener {
     private final float [] initAccelVector = new float[3];
     private final float [] accelVector = new float[3];
 
+    // Falk 2026-09-25: Blickrichtung beim Start des Panoramas. Upstream setzte die Zielpunkte in
+    // die Horizontalebene des Bezugssystems (y = 0), d.h. in die Ebene senkrecht zur Hoch-Achse des
+    // Handys beim Start. Bei schräg begonnenem Panorama ist das nicht die Horizontebene der Welt:
+    // die Führung zog die Aufnahme damit im Verlauf zum Horizont zurück, statt die begonnene
+    // Neigung zu halten. Gebraucht wird deshalb die Erdvertikale (initAccelVector, siehe
+    // getUpVector()) und die Startblickrichtung.
+    private final float [] startVector = new float[3];
+    private boolean has_start_vector;
+    // Die Rolllage (is_upright) und die Neigung werden getrennt geprüft: is_upright behält seine
+    // Bedeutung für den Dreh-Hinweis im Sucher (zu weit im/gegen den Uhrzeigersinn), die Neigung
+    // braucht einen eigenen Wert, weil ein schräg begonnenes Panorama sie halten soll statt sie
+    // aufzugeben.
+    private boolean pitch_ok = true;
+
     private boolean has_original_rotation_matrix;
     private final float [] originalRotationMatrix = new float[9];
     private boolean has_rotationVector;
@@ -44,6 +58,8 @@ public class GyroSensor implements SensorEventListener {
     // temporary vectors:
     private final float [] tempVector = new float[3];
     private final float [] inVector = new float[3];
+    private final float [] upVector = new float[3];
+    private final float [] startVectorTmp = new float[3];
 
     public interface TargetCallback {
         /** Called when the target has been achieved.
@@ -107,6 +123,52 @@ public class GyroSensor implements SensorEventListener {
         }
         has_init_accel = false;
         has_original_rotation_matrix = false;
+        has_start_vector = false;
+    }
+
+    /** Direction the device is currently pointing in, in the coordinate system of startRecording().
+     *  Without any movement since the start of the recording this is (0, 0, -1).
+     * @param out An array of length 3 to store the returned vector.
+     */
+    public void getViewVector(float [] out) {
+        setVector(inVector, 0.0f, 0.0f, -1.0f); // vector pointing behind the device's screen
+        transformVector(out, currentRotationMatrix, inVector);
+    }
+
+    /** The world's "up" (gravity) in the coordinate system of startRecording(), normalised.
+     *  Deliberately not simply (0, 1, 0): that axis is the device's own up at the moment the
+     *  recording started, so for a device that started out tilted the two differ.
+     * @param out An array of length 3 to store the returned vector.
+     */
+    public void getUpVector(float [] out) {
+        if( has_init_accel ) {
+            System.arraycopy(initAccelVector, 0, out, 0, 3);
+        }
+        else {
+            // noch kein Beschleunigungswert: "gerade gehalten" annehmen, das ist das Verhalten von vorher
+            setVector(out, 0.0f, 1.0f, 0.0f);
+        }
+    }
+
+    /** The direction the device was pointing in when the current target was first set, in the
+     *  coordinate system of startRecording().
+     * @param out An array of length 3 to store the returned vector.
+     */
+    void getStartVector(float [] out) {
+        if( has_start_vector ) {
+            System.arraycopy(startVector, 0, out, 0, 3);
+        }
+        else {
+            getViewVector(out);
+        }
+    }
+
+    /** Whether the device keeps the tilt (pitch) it had when the current target was first set.
+     *  Together with isUpright() (the roll) this is what has to hold for a panorama to go in a
+     *  circle at a constant tilt.
+     */
+    boolean isPitchOk() {
+        return this.pitch_ok;
     }
 
     /** Helper method to set a 3D vector.
@@ -212,6 +274,11 @@ public class GyroSensor implements SensorEventListener {
         this.targetCallback = targetCallback;
         this.has_lastTargetAngle = false;
         this.lastTargetAngle = 0.0f;
+        if( !has_start_vector ) {
+            // die Blickrichtung, mit der das Panorama beginnt: die Neigung daraus soll es halten
+            getViewVector(startVector);
+            has_start_vector = true;
+        }
     }
 
     void addTarget(float target_x, float target_y, float target_z) {
@@ -521,68 +588,41 @@ public class GyroSensor implements SensorEventListener {
             for(int indx=0;indx<targetVectors.size();indx++) {
                 float [] targetVector = targetVectors.get(indx);
                 // first check if we are still "upright"
-                setVector(inVector, 0.0f, 1.0f, 0.0f); // vector pointing in "up" direction
-                transformVector(tempVector, currentRotationMatrix, inVector);
-                /*if( MyDebug.LOG ) {
-                    Log.d(TAG, "### transformed vector up: " + tempVector[0] + " , " + tempVector[1] + " , " + tempVector[2]);
-                }*/
-                /*float sin_angle_up = tempVector[0];
-                if( Math.abs(sin_angle_up) <= 0.017452406437f ) {  // 1 degree
-                    is_upright = 0;
-                }
-                else
-                    is_upright = (sin_angle_up > 0) ? 1 : -1;*/
-                // store up vector
+                // Falk 2026-09-25: geprüft wird jetzt die Rolllage gegen die Erdvertikale und die
+                // Neigung gegen die Neigung beim Start der Aufnahme. Upstream verglich dagegen die
+                // Hoch-Achse des Handys mit der beim Start - das ist drehwinkelabhängig und erzwang
+                // damit ein gerades Panorama: wer schräg beginnt, muss die Neigung aufgeben, weil
+                // die Hoch-Achse beim Schwenk um die Erdvertikale zwangsläufig aus der Startlage
+                // wandert (bei 90 Grad Schwenk und 15 Grad Neigung sind das 21 Grad, weit über die
+                // 3 Grad Toleranz). Für den Stitcher zählt genau umgekehrt: die Aufnahmen müssen
+                // durch eine Drehung um die Erdvertikale auseinander hervorgehen, also Rolle gerade
+                // und Neigung konstant.
                 is_upright = 0;
+                pitch_ok = true;
+                getUpVector(upVector);
+                float sin_tol = (float)Math.sin(this.uprightAngleTol);
 
-                float ux = tempVector[0];
-                float uy = tempVector[1];
-                float uz = tempVector[2];
+                // (a) Rolllage: die Rechts-Achse des Handys muss waagerecht bleiben
+                setVector(inVector, 1.0f, 0.0f, 0.0f); // vector pointing in "right" direction
+                transformVector(tempVector, currentRotationMatrix, inVector);
+                float sin_roll = tempVector[0]*upVector[0] + tempVector[1]*upVector[1] + tempVector[2]*upVector[2];
+                if( Math.abs(sin_roll) > sin_tol ) {
+                    is_upright = (sin_roll < 0) ? 1 : -1;
+                }
 
-                // project up vector into plane perpendicular to targetVector
-                // v' = v - (v.n)n
-                float u_dot_n = ux * targetVector[0] + uy * targetVector[1] + uz * targetVector[2];
-                float p_ux = ux - u_dot_n * targetVector[0];
-                float p_uy = uy - u_dot_n * targetVector[1];
-                float p_uz = uz - u_dot_n * targetVector[2];
-                /*if( MyDebug.LOG ) {
-                    Log.d(TAG, "    u: " + ux + " , " + uy + " , " + uz);
-                    Log.d(TAG, "    p_u: " + p_ux + " , " + p_uy + " , " + p_uz);
-                }*/
-                double p_u_mag = Math.sqrt(p_ux*p_ux + p_uy*p_uy + p_uz*p_uz);
-                if( p_u_mag > 1.0e-5 ) {
-                    /*if( MyDebug.LOG ) {
-                        Log.d(TAG, "    p_u norm: " + p_ux/p_u_mag + " , " + p_uy/p_u_mag + " , " + p_uz/p_u_mag);
-                    }*/
-                    // normalise p_u
-                    //noinspection lossy-conversions
-                    p_ux /= p_u_mag;
-                    //p_uy /= p_u_mag; // commented out as not needed
-                    //noinspection lossy-conversions
-                    p_uz /= p_u_mag;
-
-                    // compute p_u X (0 1 0)
-                    float cx = - p_uz;
-                    float cy = 0.0f;
-                    float cz = p_ux;
-                    /*if( MyDebug.LOG ) {
-                        Log.d(TAG, "    c: " + cx + " , " + cy + " , " + cz);
-                    }*/
-                    float sin_angle_up = (float)Math.sqrt(cx*cx + cy*cy + cz*cz);
-                    float angle_up = (float)Math.asin(sin_angle_up);
-
-                    setVector(inVector, 0.0f, 0.0f, -1.0f); // vector pointing behind the device's screen
-                    transformVector(tempVector, currentRotationMatrix, inVector);
-
-                    if( Math.abs(angle_up) > this.uprightAngleTol ) {
-                        float dot = cx*tempVector[0] + cy*tempVector[1] + cz*tempVector[2];
-                        is_upright = (dot < 0) ? 1 : -1;
-                    }
+                // (b) Neigung: unverändert gegenüber dem Start der Aufnahme
+                setVector(inVector, 0.0f, 0.0f, -1.0f); // vector pointing behind the device's screen
+                transformVector(tempVector, currentRotationMatrix, inVector);
+                float sin_pitch = tempVector[0]*upVector[0] + tempVector[1]*upVector[1] + tempVector[2]*upVector[2];
+                getStartVector(startVectorTmp);
+                float sin_pitch_start = startVectorTmp[0]*upVector[0] + startVectorTmp[1]*upVector[1] + startVectorTmp[2]*upVector[2];
+                if( Math.abs(sin_pitch - sin_pitch_start) > sin_tol ) {
+                    pitch_ok = false;
                 }
 
                 float cos_angle = tempVector[0] * targetVector[0] + tempVector[1] * targetVector[1] + tempVector[2] * targetVector[2];
                 float angle = (float)Math.acos(cos_angle);
-                if( is_upright == 0 ) {
+                if( is_upright == 0 && pitch_ok ) {
                     /*if( MyDebug.LOG )
                         Log.d(TAG, "gyro vector angle with target: " + Math.toDegrees(angle) + " degrees");*/
                     if( angle <= targetAngle ) {

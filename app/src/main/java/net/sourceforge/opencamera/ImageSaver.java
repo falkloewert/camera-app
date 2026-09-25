@@ -1661,17 +1661,20 @@ public class ImageSaver extends Thread {
             List<Bitmap> bitmaps = null;
             Bitmap panorama;
             try {
-                // Schritt F: the panorama is a fixed 10 frames now, so its size is the thing that
-                // adapts - at 50 MP the ten frames in ARGB_8888 would not fit the heap.
+                // Falk 2026-09-25: die Einzelbilder werden nicht mehr heruntergerechnet - die
+                // Panorama-Groesse ist auf max_panorama_width_c gedeckelt (MyApplicationInterface.
+                // panoramaResolution()), damit die zehn Rahmen in voller Aufloesung in den Heap
+                // passen. Die Rechnung hier bleibt als Sicherheitsnetz fuer den Fall, dass eine
+                // Kamera darueber hinaus keine passende Groesse anbietet.
                 final int inSampleSize = computePanoramaSampleSize(request.jpeg_images);
                 if( MyDebug.LOG )
                     Log.d(TAG, "panorama inSampleSize: " + inSampleSize);
                 bitmaps = ImageUtils.loadBitmaps(request.jpeg_images, -2, inSampleSize);
             }
             catch(OutOfMemoryError e) {
-                // Schritt E: das Panorama darf so gross sein, wie Falk es waehlt (4K-Test) - reicht
-                // der Heap dann nicht, ist dieses eine Bild verloren, aber die App laeuft weiter:
-                // die Bilder aus dem Speicher werfen, sagen warum, und ohne Absturz zurueck.
+                // Schritt E: reicht der Heap nicht, ist dieses eine Bild verloren, aber die App
+                // laeuft weiter: die Bilder aus dem Speicher werfen, sagen warum, und ohne Absturz
+                // zurueck.
                 MyDebug.logStackTrace(TAG, "out of memory loading the panorama frames", e);
                 main_activity.getPreview().showToast(null, R.string.failed_to_process_panorama);
                 System.gc();
@@ -1697,6 +1700,7 @@ public class ImageSaver extends Thread {
             if( MyDebug.LOG ) {
                 Log.d(TAG, "panorama performance: time after rotating for exif: " + (System.currentTimeMillis() - time_s));
             }
+
 
             try {
                 panorama = panoramaProcessor.panorama(bitmaps, MyApplicationInterface.getPanoramaPicsPerScreen(), request.camera_view_angle_y, request.panorama_crop);
@@ -2375,7 +2379,15 @@ public class ImageSaver extends Thread {
         // see code in MyApplicationInterface.setNextPanoramaPoint()
         float camera_angle_y = main_activity.getPreview().getViewAngleY(false); // angle spanned by one image
         float angle_per_pic = camera_angle_y / MyApplicationInterface.getPanoramaPicsPerScreen(); // extra angle per extra pic
-        float total_angle = camera_angle_y + angle_per_pic * (n_pics-1);
+        // Falk 2026-09-25: der Bildwinkel des *Ergebnisses* ist bilder*Schritt, nicht
+        // camera_angle_y + Schritt*(bilder-1). Die alte Formel lieferte bei 17 Bildern 395.8 Grad,
+        // also FullPanoWidthPixels 10148 < Bildbreite 11158 und ein negatives CroppedAreaLeftPixels -
+        // eine Photosphere-Angabe, die kein Betrachter sinnvoll dehnen kann (das "vertikal
+        // gestretcht"). Und mehr als eine Runde ergibt keinen Sinn: PanoramaProcessor.panorama()
+        // kuerzt das Bild auf genau 360 Grad.
+        float total_angle = angle_per_pic * n_pics;
+        if( total_angle > 360.0f )
+            total_angle = 360.0f;
         float n_pics_for_360 = 360.0f/total_angle;
         int full_width = (int)(width * n_pics_for_360 + 0.5f);
 

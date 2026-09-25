@@ -900,13 +900,12 @@ public class SettingsSheet {
         // buttons of the manual lens selection now, and without that selection in video there is
         // none at all
 
-        // aspect ratio - in panorama mode too since Schritt E: the panorama used to be nailed to
-        // 4:3 (MyApplicationInterface.choosePanoramaResolution()), and with the ratio reachable
-        // the row can offer 16:9 there as well. Together with the resolution row's two classes
-        // that is the 4:3/16:9 x FHD/large choice Falk asked for; the panorama is a fixed 10
-        // frames since Schritt F, and its stitch resolution follows the heap
-        // (ImageSaver.computePanoramaSampleSize()).
-        {
+        // aspect ratio - not in panorama mode (Falk 2026-09-25: "im blatt gibt es immernoch die
+        // format einstellung diese bitte bei panorama komplett entfernen"): the panorama takes 4:3
+        // whatever is stored (MyApplicationInterface.choosePanoramaResolution() ignores the photo
+        // format entirely), so the row could only offer a choice it does not honour. The stored
+        // format is left untouched and counts again the moment the mode leaves the panorama.
+        if( main_activity.getApplicationInterface().getTopLevelPhotoMode() != MyApplicationInterface.PhotoMode.Panorama ) {
             CameraController.Size current = preview.getCurrentPictureSize();
             if( current != null && sizes != null && !sizes.isEmpty() ) {
                 final float [] ratios = ASPECT_CLASSES;

@@ -1911,23 +1911,33 @@ public class PanoramaProcessor {
     private Bitmap createProjectedBitmap(final Rect src_rect_workspace, final Rect dst_rect_workspace, final Bitmap bitmap, final Paint p, final int bitmap_width, final int bitmap_height, final double camera_angle, final int centre_shift_x) {
         Bitmap projected_bitmap = Bitmap.createBitmap(bitmap_width, bitmap_height, Bitmap.Config.ARGB_8888);
         {
-            // project
+            // Zylindrische Projektion (Falk 2026-09-25): das Einzelbild ist geradlinig in tan(Theta),
+            // der Zylinder geradlinig in Theta. Die alte Fassung bog nur die Hoehe um (cos) und
+            // liess die Breite geradlinig stehen, zielte also auf dieselbe Spalte. Bei 2.5 Bildern je
+            // Bildschirm ist eine Scheibe 21 Grad breit; ueber ihre halbe Breite laufen tan und Theta
+            // schon 1.4 Grad (40 px) auseinander, und der cos-Faktor ist an der Naht fuer beide
+            // Nachbarn verschieden - zusammen das "vertikal gestretcht und verzogen" und der Grund,
+            // warum die Enden nicht zusammenkamen. Hier wird die Quellspalte x auf die Winkelspalte
+            // atan((x-cx)/f)*Bildbreite/Bildwinkel gezogen (Ziel-x != Quell-x, sonst wie vorher:
+            // Hoehe um cos um die Mitte gestaucht, damit der Horizont liegen bleibt). Stueckweise
+            // geradlinig, wie der alte Code - ein Mesh waere genauer, ist in Software aber um
+            // Groessenordnungen langsamer (gemessen 2026-09-25: 17 Bilder liefen nicht durch).
+            final float cx = bitmap_width/2.0f + centre_shift_x;
+            final float focal = (float)((bitmap_width/2.0) / Math.tan(camera_angle/2.0)); // Brennweite in px
+            final float half_height = bitmap_height/2.0f;
             Canvas projected_canvas = new Canvas(projected_bitmap);
             int prev_x = 0;
+            int prev_dst_x = dstX(0, cx, focal, bitmap_width, camera_angle);
             int prev_y0 = -1, prev_y1 = -1;
             for(int x=0;x<bitmap_width;x++) {
-                float dx = (float)(x - (bitmap_width/2 + centre_shift_x));
-                // rectangular projection:
-                //float new_height = bitmap_height * (float)(h / (h * Math.cos(alpha) - dx * Math.sin(alpha)));
-                // cylindrical projection:
-                float theta = (float)(dx*camera_angle)/(float)bitmap_width;
-                float new_height = bitmap_height * (float)Math.cos(theta);
-
+                float theta = (float)Math.atan((x - cx) / focal);
+                float cos_theta = (float)Math.cos(theta);
+                int dst_x = dstX(x, cx, focal, bitmap_width, camera_angle);
                 //float fixed_y_frac = 0.5f;
                 //int dst_y0 = (int)(fixed_y_frac*(bitmap_height - new_height) + 0.5f);
                 //int dst_y1 = (int)(fixed_y_frac*bitmap_height + (1.0f - fixed_y_frac)*new_height + 0.5f);
-                int dst_y0 = (int)((bitmap_height - new_height)/2.0f+0.5f);
-                int dst_y1 = (int)((bitmap_height + new_height)/2.0f+0.5f);
+                int dst_y0 = (int)(half_height - half_height*cos_theta + 0.5f);
+                int dst_y1 = (int)(half_height + half_height*cos_theta + 0.5f);
 
                 // y_tol: boost performance at the expense of accuracy (but only by up to 1 pixel)
                 //final int y_tol = 0;
@@ -1939,9 +1949,10 @@ public class PanoramaProcessor {
                 //else if( dst_y0 != prev_y0 || dst_y1 != prev_y1 ) {
                 else if( Math.abs(dst_y0 - prev_y0) > y_tol || Math.abs(dst_y1 - prev_y1) > y_tol ) {
                     src_rect_workspace.set(prev_x, 0, x, bitmap_height);
-                    dst_rect_workspace.set(prev_x, dst_y0, x, dst_y1);
+                    dst_rect_workspace.set(prev_dst_x, dst_y0, dst_x, dst_y1);
                     projected_canvas.drawBitmap(bitmap, src_rect_workspace, dst_rect_workspace, p);
                     prev_x = x;
+                    prev_dst_x = dst_x;
                     prev_y0 = dst_y0;
                     prev_y1 = dst_y1;
                 }
@@ -1949,7 +1960,7 @@ public class PanoramaProcessor {
                 if( x == bitmap_width-1 ) {
                     // draw last
                     src_rect_workspace.set(prev_x, 0, x+1, bitmap_height);
-                    dst_rect_workspace.set(prev_x, dst_y0, x+1, dst_y1);
+                    dst_rect_workspace.set(prev_dst_x, dst_y0, dstX(x+1, cx, focal, bitmap_width, camera_angle), dst_y1);
                     projected_canvas.drawBitmap(bitmap, src_rect_workspace, dst_rect_workspace, p);
                 }
 
@@ -1960,6 +1971,12 @@ public class PanoramaProcessor {
             }
         }
         return projected_bitmap;
+    }
+
+    /** Zielspalte der Quellspalte x in der zylindrischen Projektion: geradlinig im Winkel. */
+    private static int dstX(int x, float cx, float focal, int bitmap_width, double camera_angle) {
+        float theta = (float)Math.atan((x - cx) / focal);
+        return (int)(cx + theta * bitmap_width / camera_angle + 0.5f);
     }
 
     private void renderPanoramaImage(final int i, final int n_bitmaps, final Rect src_rect_workspace, final Rect dst_rect_workspace,
@@ -2989,6 +3006,27 @@ public class PanoramaProcessor {
                 // can happen if the transforms are such that we move off top or bottom of screen! Better to fail gracefully
                 Log.e(TAG, "crop caused panorama height to become -ve: " + panorama_height);
                 throw new PanoramaProcessorException(PanoramaProcessorException.FAILED_TO_CROP);
+            }
+        }
+
+        {
+            // Genau eine Runde (Falk 2026-09-25): die Scheiben decken bilder*Schritt Grad ab, bei 17
+            // Bildern a 21.4 Grad also 363.7 Grad = 3.7 Grad mehr als eine Runde. Der Stitcher legt
+            // sie geradlinig ab, also traegt der rechte Rand den linken auf diesen 3.7 Grad noch
+            // einmal - auf dem Geraet sah das aus, als waere das Panorama an den Enden doppelt und
+            // nicht zusammengebaut. Hier auf genau 360 Grad kuerzen (nur rechts, das linke Bild
+            // bleibt, wo es ist): dann sind linker und rechter Rand dieselbe Richtung und laufen
+            // ineinander.
+            float step_deg = (float)Math.toDegrees(camera_angle) / panorama_pics_per_screen;
+            int width_360 = offset_x - crop_x0 + (int)(360.0f/step_deg*slice_width + 0.5f);
+            if( MyDebug.LOG ) {
+                Log.d(TAG, "    step_deg: " + step_deg);
+                Log.d(TAG, "    width_360: " + width_360);
+            }
+            if( panorama_width > width_360 ) {
+                panorama_width = width_360;
+                if( MyDebug.LOG )
+                    Log.d(TAG, "    panorama_width cropped to one revolution: " + panorama_width);
             }
         }
 
