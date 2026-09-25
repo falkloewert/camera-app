@@ -32,7 +32,13 @@ Session-Titel: `camera-app – Schritt N Farben/Schrift`.
 - Keine Layout- und Größenänderungen außer denen, die die neue Schrift erzwingt (Textbreiten im
   Karussell und in den Chips am Gerät ansehen).
 
-## 4. Abschluss (nach Falks Gerätetest)
+## 4. Im selben Gerätetest nebenbei (Rest aus Schritt M, kein Code geplant)
+
+0,5 per **Rad und Pinch** über die Grenze 1× ↔ 0,5, dazu 0,5 in **Video 4:3 / 16:9** und im
+**Panorama**: wechselt die Linse sichtbar? Nur beobachten und in SPEC 4.5 eintragen; fällt
+etwas aus, eigener kleiner Fix-Chat.
+
+## 5. Abschluss (nach Falks Gerätetest)
 
 SPEC 4.5 (Redesign-Restliste leer → Feature 6 prüfen, ob „Fertig"), Übersicht 3,
 `ui-spezifikation.md` 7.3, `docs/changelog.md` ≤ 10 Zeilen, `graphify update .`, Commit mit
