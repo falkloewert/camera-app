@@ -813,3 +813,12 @@ Nachteile hat; Filmchen-Modus und Dual-Kamera hätten dagegen jeweils eigene UI-
   Standort-Aufräumen. D `c7e280ab`: Panorama-Clamp, Pre-Shot-Cleanup, Selfie-Kippkorrektur.
   Fund 3 zurückgestellt (`ponytail:`), Fund 10 verworfen. PM-Nachtrag: Status je Fund im Review,
   doppelte PM-Nummer 15 → Naht am Panorama-Ende ist jetzt 16.
+- **2026-09-25 (Schritt M, Fehlbefund):** Der in Schritt L gemeldete „0,5-Knopf wechselt nicht
+  auf die Ultraweitwinkel-Linse" (PM-Punkt 15) war ein **Fehlschluss** – die Linse wechselt.
+  Am Gerät ohne vorherigen Linsenknopf-Tipp geprüft: Foto 4:3 und Foto 16:9 wechseln in beiden
+  Fällen sichtbar auf Ultraweitwinkel. Grund: fehlender Sitzungs-Neubau/`DestroyPipelines` ist
+  beim Weg über `CONTROL_ZOOM_RATIO` normal (die HAL tauscht ohne Neubau, nur der Pin baut neu).
+  Kein Code-Regress: `ui/ZoomStepper` → `Preview.zoomTo()` → `CameraController2.setZoom()` seit
+  dem Rad-Commit (`e9a95d90`) unverändert, die 13 Commits seit `beacee07` fassen den Zoom-/
+  Linsen-Pfad nicht an, 16:9-Standard (`88409de0`) entlastet. **Kein Code geändert.** Nicht
+  geprüft: Rad-/Pinch-Zoom über 1× ↔ 0,5 (Falk: Rad bleibt wie es ist), Video, Panorama.

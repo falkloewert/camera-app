@@ -436,17 +436,19 @@ Dock (7.1 Punkt 3), Karussell (7.2) und die **Sucher-Overlays samt Sucher-Lage (
   28-dp-Clipping (K4 entschieden). **Bewusst nicht gebaut:** Regler (Sonne/Thermometer) und
   AE/AF-Sperre am Ring, Smart Chips (7.1 Punkt 9 – die App hat nichts, was sie zeigen könnte).
   Kickoff: `docs/kickoff/redesign-sucher-overlays.md`.
-- **Offen aus Schritt L (2026-09-24):** der **0,5-Knopf der Zoom-Pille wechselt nicht mehr auf
-  die Ultraweitwinkel-Linse.** Am Gerät belegt: der Tipp kommt an (`ZoomTo(): 0`,
-  `CameraController2: zoom to: 0.51`, `setZoomPref: 0`, Pille bleibt auf „,5×"), aber die
-  HAL-Sitzung wird nicht neu aufgebaut, es gibt keinen Führungswechsel der Kamera. Die Stufe
-  bittet also nur um `CONTROL_ZOOM_RATIO < 1` und vertraut darauf, dass die HAL die Linse
-  tauscht; ob eine Auflösungs-/Verhältnis-/Format-/RAW-/fps-Einstellung diese Grenze
-  verschiebt, ist nicht geklärt (Matrix-Test offen: 0,5 in Foto 4:3 / Foto 16:9 / Video 4:3 /
-  Video 16:9). Beim ausdrücklichen Pinnen funktioniert der Wechsel (`switchToPhysicalLens: 3`,
-  Sitzung neu, HAL `DestroyPipelines`). Fix-Wege: die 0,5-Stufe über den vorhandenen Pin fahren
-  statt über den Zoom-Wert, oder `CONTROL_ZOOM_RATIO` aus dem Capture-Result zurücklesen und bei
-  Nichtwirkung auf den Pin ausweichen (sonst den toten Knopf ausblenden).
+- **Geklärt aus Schritt L (2026-09-25, Schritt M):** der Befund „der **0,5-Knopf der Zoom-Pille
+  wechselt nicht mehr auf die Ultraweitwinkel-Linse**" war ein **Fehlschluss** – die Linse
+  wechselt. Am Gerät ohne vorherigen Linsenknopf-Tipp geprüft: Foto 4:3 und Foto 16:9 wechseln
+  in beiden Fällen sichtbar auf die Ultraweitwinkel-Linse. Ursache des Fehlschlusses: das
+  Ausbleiben von Sitzungs-Neubau/`DestroyPipelines` ist beim Weg über `CONTROL_ZOOM_RATIO`
+  **normal** – die HAL tauscht die physische Kamera ohne Neubau; nur der Pin baut die Sitzung
+  neu und sah deshalb wie der einzig funktionierende Weg aus. Code-Regress gibt es keinen:
+  `ui/ZoomStepper` → `Preview.zoomTo()` → `CameraController2.setZoom()` ist seit dem
+  Rad-Commit (`e9a95d90`, 2026-09-18) unverändert, und die 13 Commits seit `beacee07` fassen
+  den Zoom-/Linsen-Pfad nicht an. Die 16:9-Standardauflösung (`88409de0`) war als Ursache
+  verdächtigt und ist damit entlastet. **Nicht geprüft:** Rad- und Pinch-Zoom über die Grenze
+  1× ↔ 0,5 (Entscheidung Falk 2026-09-25: das Rad bleibt wie es ist, nichts ändern), Video
+  4:3/16:9 und Panorama – der Anlass dafür ist mit dem Fehlbefund entfallen.
 **Feste Entscheidungen:** Screenshot-Spec schlägt Detail-Spec, gemessene Werte (2,25 px/dp)
 schlagen beide; keine Animationen außer Auslöser, Glyph-Drehung, Rad-Morph, Blatt-Gleiten;
 Roboto Flex; Konflikte K1–K13 in `ui-spezifikation.md` 9; was die App nicht kann: 4b dort.
@@ -461,10 +463,11 @@ Verlauf und Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
    reicht bis unter die Auslöser-Zeile → Sucher-Overlays-Schritt (7.1 Punkt 8).~~
    **Erledigt (Schritt L, 2026-09-24):** der Sucher endet jetzt auf der Linie 178 dp über der
    Bildschirmunterkante, am Gerät mit `[0,461][960,1741]` gemessen; K4 gilt (kein Clipping).
-15. **0,5-Knopf wechselt nicht auf die Ultraweitwinkel-Linse** (Befund aus Schritt L,
-   2026-09-24; die Mechanik selbst wurde nicht angefasst). Belege, HAL-Logs und zwei
-   Fix-Wege stehen in 4.5 unter „Offen aus Schritt L". Falk entscheidet, ob das ein eigener
-   kleiner Chat wird (Fix + Matrix-Test 4:3/16:9 × Foto/Video).
+15. ~~**0,5-Knopf wechselt nicht auf die Ultraweitwinkel-Linse** (Befund aus Schritt L,
+   2026-09-24; die Mechanik selbst wurde nicht angefasst).~~
+   **Fehlbefund (Schritt M, 2026-09-25):** die Linse wechselt in Foto 4:3 und Foto 16:9
+   sichtbar auf Ultraweitwinkel, ohne vorherigen Linsenknopf-Tipp. Belege und Auflösung
+   stehen in 4.5 unter „Geklärt aus Schritt L"; kein Code geändert.
 8. **Tele-Verzögerung beim „5"-Knopf** (~1 s, Treiber entscheidet Linsenwechsel).
    Alternative: physische Tele-Linse direkt anfordern wie das Panorama-Linsenpaar
    (`userSwitchToCamera(id, physicalId)`), Preis: keine Low-Light-Automatik. Eigener
