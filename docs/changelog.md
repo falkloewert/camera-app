@@ -795,3 +795,13 @@ Nachteile hat; Filmchen-Modus und Dual-Kamera hätten dagegen jeweils eigene UI-
   gebaut. Kickoff `docs/kickoff/redesign-sucher-overlays.md`. Offen: Zoom-Pille **„0,5" wechselt
   nicht mehr auf die Ultraweitwinkel-Linse** (Belege und Fix-Wege in SPEC 4.5) – die Mechanik
   selbst wurde nicht angefasst. Nächster Schritt des Redesigns: 7.3 (Farben/Blur/Schrift).
+
+- **2026-09-25 (Panorama-Nacharbeit, `8a26a0a2`):** Falk: „immernoch ein Bild zu kurz",
+  „vertikal gestretcht und verzogen", Enden „nicht zusammengestitcht". Fixes: 17 Bilder +
+  Außenkanten-Wächter (n·Schritt + Schritt/2), Gyro-Führung hält die Kippung vom Start,
+  `createProjectedBitmap()` resampelt auch waagerecht auf die Winkelspalten (tan/Winkel liefen
+  1,4° = 40 px auseinander – das war das Verzogene), `panorama()` kürzt auf genau 360° (17
+  Scheiben = 3,7° Überschuss, rechter Rand trug den linken doppelt), Photosphere-Angabe ohne
+  negative Crop-Werte. Panorama ist fest 4:3, Format-Zeile im Blatt im Panoramamodus
+  ausgeblendet (`ui/SettingsSheet`). Am Pixel 9 Pro abgenommen: Länge/Kippung/Runde ok, die
+  Naht am Ende nur „ok" – Restdrift als PM-Punkt 15 in SPEC 4.5.

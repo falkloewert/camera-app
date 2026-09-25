@@ -212,7 +212,7 @@ gleich zu Beginn des Feature-Chats.
 
 ---
 
-### 4.4 Panorama mit Weitwinkel-Option — Status: Fertig (2026-08-27)
+### 4.4 Panorama mit Weitwinkel-Option — Status: Fertig (2026-08-27), Nacharbeit 2026-09-25
 
 **Ziel:** Bei der normalen Pixel-Kamera ist im Panorama-Modus nur 1x-Zoom (Standardlinse)
 wählbar, nicht die Weitwinkellinse. Das soll in der eigenen App möglich sein.
@@ -246,6 +246,35 @@ wählbar, nicht die Weitwinkellinse. Das soll in der eigenen App möglich sein.
   nicht hier umgesetzt wurden, sind bereits als Feature 6 aufgenommen (siehe 4.5).
 
 **Komplexität/Risiko:** Niedrig-Mittel – wie eingeschätzt.
+
+**Nacharbeit (2026-09-25, `8a26a0a2`).** Falk beim Testen: „immernoch ein Bild zu kurz",
+„vertikal gestretcht und verzogen", und das Panorama ging zwar einmal herum, „aber der
+Stitcher hat die Enden nicht miteinander gestitcht". Ursachen und Fixes:
+- **Länge:** `max_panorama_pics_c` 16 → 17, und der Wächter misst die Außenkante der letzten
+  Scheibe (n·Schritt + Schritt/2) statt ihrer Mitte – vorher brach das Panorama zwei Bilder
+  vor der vollen Runde ab. Der Speicherdeckel bleibt: 17 × 1536×2048×4 = 214 MB liegen unter
+  dem Budget von `ImageSaver.computePanoramaSampleSize()`.
+- **Kippung:** die Gyro-Führung hält die Neigung vom Start (Drehung um die Lotrechte) statt
+  auf den Horizont zu ziehen; Kippung über zehn Bilder konstant ±0,2° (gemessen).
+- **Form:** `PanoramaProcessor.createProjectedBitmap()` zieht die Quellspalten auf die
+  Winkelspalten der Zylinderprojektion. Vorher wurde nur die Höhe um cos gestaucht und die
+  Breite 1:1 kopiert – über eine halbe Scheibe laufen tan und Winkel 1,4° = 40 px
+  auseinander, und der cos-Faktor ist an der Naht für beide Nachbarn verschieden. Das war
+  das vertikal Gestretchte. `drawBitmapMesh` wäre genauer, in Software aber unbrauchbar
+  langsam (17 Bilder nach 2:19 min CPU nicht durchgelaufen), daher stückweise Spalten.
+- **Runde:** `panorama()` kürzt das Ergebnis auf genau 360° – 17 Scheiben à 21,4° sind 3,7°
+  mehr als eine Runde, der rechte Rand trug den linken sonst noch einmal.
+- **Photosphere-Angabe:** `ImageSaver.savePanoramaBitmap()` rechnet den Bildwinkel als
+  Bilder·Schritt (auf 360° gedeckelt). Die alte Formel ergab `FullPanoWidthPixels` 10148 <
+  Bildbreite 11158 und `CroppedAreaLeftPixels` −505, womit Betrachter das Bild dehnten.
+- **Format:** `choosePanoramaResolution()` ignorierte das Foto-Format schon immer und nimmt
+  4:3 (53,5° Bildbreite in Schwenkrichtung statt 41,4° bei 16:9, am Gerät gemessen); die
+  Format-Zeile im Blatt ist im Panoramodus deshalb ausgeblendet (`ui/SettingsSheet`, siehe
+  `ui-spezifikation.md` 7.1). Das gespeicherte Format bleibt und gilt wieder für normale Fotos.
+
+Abgenommen 2026-09-25: Länge, Kippung und Runde in Ordnung (Falk). Die Naht am Ende ist
+„nicht sehr schön zusammengebaut, aber ok" – der Rest der Stitch-Verschiebung steht als
+PM-Punkt 15 in 4.5.
 
 ---
 
@@ -475,6 +504,12 @@ Verlauf und Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
     `assembleDebug`, `assembleDebugAndroidTest` und `compileDebugUnitTestJavaWithJavac` laufen;
     nur die Test-Tasks lassen sich nicht anlegen. Entscheidung nötig: Wrapper auf Gradle 9
     hochziehen oder ein JDK 21 für Gradle setzen.
+15. **Naht am Panorama-Ende** (2026-09-25, aus der Nacharbeit in 4.4): Falk „der Schnitt am
+    Ende nicht sehr schön zusammengebaut, aber ok" – so abgenommen. Übrig bleibt die
+    Restdrift der kumulierten Stitch-Verschiebung (`align_x` in
+    `PanoramaProcessor.computePanoramaTransforms()`); sie ließe sich über die letzten Bilder
+    auf null rampen, damit Anfang und Ende exakt aufeinandersitzen. Bewusst nicht mehr in
+    diesem Lauf gebaut – eigener kleiner Chat, nur wenn Falk es will.
 
 ---
 

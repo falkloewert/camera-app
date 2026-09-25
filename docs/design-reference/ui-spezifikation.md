@@ -199,7 +199,7 @@ einfache Vorzeichen statt Spiegel-Flags.
 | **Mehr Licht** | **fünf** Optionen in Falks Reihenfolge (Schritt E, 2026-09-22): nichts · auto nacht · auto blitz · nacht an · blitz an (`ms_block` · `ms_night_sight_auto` · `ms_flash_auto` · `ms_dark_mode` · `ms_flash_on`); genau **eine** ist markiert (Nacht auto > Nacht an > Blitz auto > Blitz an > nichts), Tippen setzt den Rest zurück. Alle Zustände schreibt `MainUI.applyLightSettings()`; im Video heißt die Zeile „Blitz" und bietet nur aus · auto · an (Taschenlampe). Wer `auto blitz` wählt, verliert das manuelle ISO |
 | **Timer** | vier Optionen: Aus · 3 s · 5 s · 10 s (`ms_timer_off/3/5/10`), `TimerPreferenceKey`; im Panoramamodus weggelassen – dort gibt es auch keinen Timer-Chip im Band |
 | **Makrofokus** | **nur zwei Optionen:** Aus · An (`focus_mode_continuous_picture` ↔ `focus_mode_macro`) |
-| **Verhältnis** | **nur zwei Optionen:** Breitbild (16:9) · Vollbild (4:3) |
+| **Verhältnis** | **nur zwei Optionen:** Breitbild (16:9) · Vollbild (4:3). Im **Panoramamodus entfällt die Zeile** (2026-09-25): das Panorama nimmt immer 4:3 auf (`MyApplicationInterface.choosePanoramaResolution()`), die Zeile böte also eine Wahl an, die nicht befolgt wird. Das gespeicherte Format bleibt und gilt wieder für normale Fotos |
 
 **Ausdrücklich NICHT übernommen:**
 - **"Top-Foto"** – beruht auf Google-KI, gibt es in dieser App nicht.
