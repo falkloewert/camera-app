@@ -2341,29 +2341,6 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             switchPanoramaLens(widest_physical_id);
     }
 
-    /** Der Umschalter Waagerecht | Senkrecht (Falk 2026-10-06): schreibt nur die Preference; der
-     *  Rest (Führung, Bildwinkel, Stitcher) liest sie beim Start der Aufnahme. Kein Kamera-Neuaufbau
-     *  nötig - die Achse ändert nichts an der Kamera, nur an der Schwenkführung und am Stitch. */
-    public void clickedPanoramaAxisHorizontal(View view) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "clickedPanoramaAxisHorizontal");
-        setPanoramaVertical(false);
-    }
-
-    public void clickedPanoramaAxisVertical(View view) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "clickedPanoramaAxisVertical");
-        setPanoramaVertical(true);
-    }
-
-    private void setPanoramaVertical(boolean vertical) {
-        PreferenceManager.getDefaultSharedPreferences(this).edit()
-                .putBoolean(PreferenceKeys.PanoramaVerticalPreferenceKey, vertical)
-                .apply();
-        // den Umschalter sofort nachziehen, statt auf das nächste showGUI() zu warten
-        mainUI.updatePanoramaAxisRow(View.VISIBLE);
-    }
-
     private void switchPanoramaLens(String target_physical_id) {
         if( preview.isOpeningCamera() ) {
             if( MyDebug.LOG )

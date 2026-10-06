@@ -601,20 +601,12 @@ public class MainUI {
         }
     }
 
-    /** Der Umschalter Waagerecht | Senkrecht (Falk 2026-10-06): zwei Einträge im Stil der
-     *  Zoom-Pille unter der Panorama-Objektivreihe. Der aktive Eintrag trägt den Salbei-Akzent
-     *  (ZoomStepper.applyPillStyle). Sichtbar ist er im Panorama-Modus - auch mit der Frontkamera,
-     *  die keine Objektivreihe hat, deshalb unabhängig von hasPhysicalCameras(). */
-    public void updatePanoramaAxisRow(int visibility) {
-        View row = main_activity.findViewById(R.id.panorama_axis_row);
-        if( row == null )
-            return;
-        boolean vertical = main_activity.getApplicationInterface().isPanoramaVertical();
-        TextView horizontal = main_activity.findViewById(R.id.panorama_axis_horizontal);
-        TextView verticalButton = main_activity.findViewById(R.id.panorama_axis_vertical);
-        ZoomStepper.applyPillStyle(main_activity, horizontal, !vertical);
-        ZoomStepper.applyPillStyle(main_activity, verticalButton, vertical);
-        row.setVisibility(visibility);
+    /** Die physische Lage des Geräts aus dem Orientierungssensor: 0 = hochkant, 90 = quer (linke
+     *  Kante oben), 270 = quer (rechte Kante oben), 180 = hochkant auf dem Kopf. Unter
+     *  lock_to_portrait liefert MainActivity.getSystemOrientation() immer PORTRAIT - hier lernt
+     *  die App trotzdem, wie das Gerät gehalten wird (für Glyphen und die Panorama-Achse). */
+    public int getCurrentOrientation() {
+        return current_orientation;
     }
 
     public void layoutUI() {
@@ -714,20 +706,12 @@ public class MainUI {
             // panorama_lens_row (containing the "wide" and "1x" buttons) sits centred above the
             // shutter, with a gap so the two don't visually merge (Falk confirmed he wants it
             // tied to the shutter rather than floating at a fixed screen spot). The gap between
-            // the two buttons is a divider set in the XML. Seit dem Umschalter Waagerecht|Senkrecht
-            // (Falk 2026-10-06) hängt sie über diesem statt direkt über dem Auslöser: der
-            // Umschalter sitzt unter der Zoom-Pille.
-            view = main_activity.findViewById(R.id.panorama_axis_row);
-            view_id = view.getId();
-            resetView(cs, view);
-            centerHorizontally(cs, view_id);
-            placeAbove(cs, view_id, R.id.take_photo, (int) (16 * scale + 0.5f));
-
+            // the two buttons is a divider set in the XML.
             view = main_activity.findViewById(R.id.panorama_lens_row);
             view_id = view.getId();
             resetView(cs, view);
             centerHorizontally(cs, view_id);
-            placeAbove(cs, view_id, R.id.panorama_axis_row, (int) (8 * scale + 0.5f));
+            placeAbove(cs, view_id, R.id.take_photo, (int) (16 * scale + 0.5f));
 
             // The mode bar, below the shutter row. Its labels are plain TextViews that never
             // turn: when the device is held on its side they read sideways, printed on the
@@ -1932,7 +1916,6 @@ public class MainUI {
                 if( panorama_lens_buttons_shown ) {
                     panoramaLensRow.setVisibility(visibility);
                 }
-                updatePanoramaAxisRow(main_activity.getApplicationInterface().getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama ? visibility : View.GONE);
                 // die Kopfzeile gehört zum GUI wie die übrigen Bedienelemente (Schritt C) - sie
                 // trägt die beiden Chips (Auflösung, Bildrate) und die Zustandsanzeigen, die die
                 // alte Icon-Zeile hinterlassen hat
@@ -2043,9 +2026,6 @@ public class MainUI {
                 else {
                     panoramaLensRow.setVisibility(View.GONE);
                 }
-                // der Umschalter Waagerecht|Senkrecht gehört zum Panorama-Modus, nicht zur
-                // Objektivreihe: auch die Frontkamera (ohne physische Objektive) zeigt ihn
-                updatePanoramaAxisRow(main_activity.getApplicationInterface().getPhotoMode() == MyApplicationInterface.PhotoMode.Panorama ? visibility : View.GONE);
                 // the gallery thumbnail gives way to the photo snapshot button while recording
                 // video (both sit left of the shutter); switch_video is never shown any more
                 galleryButton.setVisibility(show_gui_video ? View.VISIBLE : View.GONE);

@@ -103,11 +103,6 @@ public class PreferenceKeys {
 
     public static final String PanoramaSaveExpoPreferenceKey = "preference_panorama_save";
 
-    /** Whether the panorama sweeps vertically (Senkrecht) around the transverse axis instead of
-     *  horizontally around the earth-vertical axis. Set from the viewfinder toggle in panorama
-     *  mode; also offered in the photo sheet. */
-    public static final String PanoramaVerticalPreferenceKey = "preference_panorama_vertical";
-
     public static final String ExpoBracketingNImagesPreferenceKey = "preference_expo_bracketing_n_images";
 
     public static final String ExpoBracketingStopsPreferenceKey = "preference_expo_bracketing_stops";

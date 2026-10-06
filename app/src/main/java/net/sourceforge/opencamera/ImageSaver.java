@@ -140,6 +140,7 @@ public class ImageSaver extends Thread {
         final List<float []> gyro_rotation_matrix; // used for panorama (one 3x3 matrix per jpeg_images entry), otherwise can be null
         boolean panorama_dir_left_to_right; // used for panorama
         boolean panorama_vertical; // used for panorama: sweep is vertical (around the transverse axis) instead of horizontal
+        boolean panorama_vertical_mirror; // used for panorama: reverse-landscape, so the sweep direction is mirrored in the normalised frames
         float camera_view_angle_x; // used for panorama
         float camera_view_angle_y; // used for panorama
         final boolean is_front_facing;
@@ -1702,26 +1703,17 @@ public class ImageSaver extends Thread {
                 Log.d(TAG, "panorama performance: time after rotating for exif: " + (System.currentTimeMillis() - time_s));
             }
 
-            // Senkrecht wird der liegende Zylinder des Stitchers wiederverwendet, indem jedes Bild
-            // 90 Grad im Uhrzeigersinn gedreht wird: die Schwenkrichtung (die lange Seite) wird zur
-            // breiten Seite, die liegende Achse zur schmalen. Das Ergebnis wird unten zurückgedreht.
             final boolean panorama_vertical = request.panorama_vertical;
-            if( panorama_vertical ) {
-                Matrix rotation_matrix = new Matrix();
-                rotation_matrix.postRotate(90.0f);
-                for(int i=0;i<bitmaps.size();i++) {
-                    Bitmap bitmap = bitmaps.get(i);
-                    Bitmap rotated_bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), rotation_matrix, true);
-                    if( rotated_bitmap != bitmap ) {
-                        bitmap.recycle();
-                        bitmaps.set(i, rotated_bitmap);
-                    }
-                }
-            }
 
-
+            // Senkrecht (Handy quer): die App ist portrait-gesperrt, also trägt jedes Bild den
+            // festen EXIF-Winkel der Hochformat-Sperre - nach rotateForExif sind die Scheiben
+            // dadurch hochkant normalisiert, und der senkrechte Schwenk läuft wie der waagerechte
+            // über die Bildbreite. Der Stitcher bleibt deshalb unverändert; erst das fertige Band
+            // wird um 90 Grad gedreht, damit aus dem liegenden Streifen ein stehender wird. In der
+            // gespiegelten Querlage (linke Kante oben) dreht es in die andere Richtung, damit oben
+            // oben bleibt.
             try {
-                panorama = panoramaProcessor.panorama(bitmaps, MyApplicationInterface.getPanoramaPicsPerScreen(), panorama_vertical ? request.camera_view_angle_x : request.camera_view_angle_y, request.panorama_crop);
+                panorama = panoramaProcessor.panorama(bitmaps, MyApplicationInterface.getPanoramaPicsPerScreen(), request.camera_view_angle_y, request.panorama_crop);
             }
             catch(OutOfMemoryError e) {
                 // Schritt E: der Stitcher braucht neben den Bildern noch seine eigenen Puffer - wird
@@ -1754,10 +1746,11 @@ public class ImageSaver extends Thread {
             if( MyDebug.LOG )
                 Log.d(TAG, "panorama: " + panorama);
             if( panorama_vertical ) {
-                // das gedreht gestitchte Band zurückdrehen: aus dem liegenden Streifen wird wieder
-                // ein stehender (oben = die Richtung, in die der positive Zielwinkel geführt hat)
+                // das gestitchte Band aufrichten: gegen den Uhrzeigersinn (rechte Kante oben) bzw.
+                // mit dem Uhrzeigersinn (linke Kante oben), damit die gespiegelte Querlage nicht
+                // auf dem Kopf landet
                 Matrix rotation_matrix = new Matrix();
-                rotation_matrix.postRotate(-90.0f);
+                rotation_matrix.postRotate(request.panorama_vertical_mirror ? 90.0f : -90.0f);
                 Bitmap rotated_bitmap = Bitmap.createBitmap(panorama, 0, 0, panorama.getWidth(), panorama.getHeight(), rotation_matrix, true);
                 if( rotated_bitmap != panorama ) {
                     panorama.recycle();
@@ -2405,10 +2398,11 @@ public class ImageSaver extends Thread {
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
 
-        // see code in MyApplicationInterface.setNextPanoramaPoint()
-        // Waagerecht schwenkt über die kurze Bildseite (getViewAngleY), senkrecht über die lange
-        // (getViewAngleX) - derselbe Winkel, mit dem die Führung und der Stitcher rechnen.
-        float camera_angle = vertical ? main_activity.getPreview().getViewAngleX(false) : main_activity.getPreview().getViewAngleY(false);
+        // see code in MyApplicationInterface.setNextPanoramaPoint(). Die Schwenkrichtung läuft in
+        // beiden Achsen über die kurze Bildseite (hochkant die Bildbreite, quer nach der
+        // EXIF-Drehung ebenfalls die Breite des normalisierten Bildes), der Bildwinkel ist also
+        // immer getViewAngleY.
+        float camera_angle = main_activity.getPreview().getViewAngleY(false); // angle spanned by one image across the sweep direction
         float angle_per_pic = camera_angle / MyApplicationInterface.getPanoramaPicsPerScreen(); // extra angle per extra pic
         // Falk 2026-09-25: der Bildwinkel des *Ergebnisses* ist bilder*Schritt, nicht
         // camera_angle + Schritt*(bilder-1). Die alte Formel lieferte bei 17 Bildern 395.8 Grad,

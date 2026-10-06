@@ -608,12 +608,27 @@ public class GyroSensor implements SensorEventListener {
                 getUpVector(upVector);
                 float sin_tol = (float)Math.sin(this.uprightAngleTol);
 
-                // (a) Rolllage: die Rechts-Achse des Handys muss waagerecht bleiben
-                setVector(inVector, 1.0f, 0.0f, 0.0f); // vector pointing in "right" direction
-                transformVector(tempVector, currentRotationMatrix, inVector);
-                float sin_roll = tempVector[0]*upVector[0] + tempVector[1]*upVector[1] + tempVector[2]*upVector[2];
-                if( Math.abs(sin_roll) > sin_tol ) {
-                    is_upright = (sin_roll < 0) ? 1 : -1;
+                // (a) Rolllage. Waagerecht muss die Rechts-Achse des Handys waagerecht bleiben.
+                // Senkrecht (Handy quer) läuft die Schwenkachse entlang der Hoch-Achse (y) des
+                // Handys - die bleibt beim Kippen fest, während die Rechts-Achse absichtlich kippt.
+                // Geprüft wird deshalb die Hoch-Achse gegen ihren Startanteil an der Erdvertikalen:
+                // erst Rollen um die Blickachse dreht sie aus der Startlage heraus.
+                if( panorama_vertical ) {
+                    setVector(inVector, 0.0f, 1.0f, 0.0f); // vector pointing in "up" direction (device top)
+                    transformVector(tempVector, currentRotationMatrix, inVector);
+                    float sin_roll = tempVector[0]*upVector[0] + tempVector[1]*upVector[1] + tempVector[2]*upVector[2];
+                    float sin_roll_start = upVector[1]; // dot((0,1,0), up) at start (identity)
+                    if( Math.abs(sin_roll - sin_roll_start) > sin_tol ) {
+                        is_upright = (sin_roll - sin_roll_start < 0) ? 1 : -1;
+                    }
+                }
+                else {
+                    setVector(inVector, 1.0f, 0.0f, 0.0f); // vector pointing in "right" direction
+                    transformVector(tempVector, currentRotationMatrix, inVector);
+                    float sin_roll = tempVector[0]*upVector[0] + tempVector[1]*upVector[1] + tempVector[2]*upVector[2];
+                    if( Math.abs(sin_roll) > sin_tol ) {
+                        is_upright = (sin_roll < 0) ? 1 : -1;
+                    }
                 }
 
                 // (b) Neigung: unverändert gegenüber dem Start der Aufnahme. Beim senkrechten

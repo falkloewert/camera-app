@@ -262,9 +262,6 @@ public class PreferenceSubPhoto extends PreferenceSubScreen {
 
             pref = findPreference("preference_panorama_save");
             pg.removePreference(pref);
-
-            pref = findPreference("preference_panorama_vertical");
-            pg.removePreference(pref);
         }
 
         if( !using_android_l ) {

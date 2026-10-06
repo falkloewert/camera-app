@@ -135,6 +135,13 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     public final static int max_panorama_pics_c = 17; // if we increase this, review against memory requirements under MainActivity.supportsPanorama()
     private boolean panorama_pic_accepted; // whether the last panorama picture was accepted, or else needs to be retaken
     private boolean panorama_dir_left_to_right = true; // direction of panorama (set after we've captured two images)
+    // Die Panorama-Achse wird beim Start der Aufnahme aus der physischen Geräte-Ausrichtung
+    // bestimmt (Falk 2026-10-06): hochkant = waagerecht (Gier um die Erdvertikale), quer =
+    // senkrecht (Pitch um die Querachse). panorama_vertical_mirror unterscheidet die beiden
+    // Querlagen (linke Kante oben): dort ist die Schwenkrichtung im normalisierten Bild gespiegelt,
+    // also werden Scheiben-Reihenfolge und Ergebnis-Drehung entsprechend gespiegelt.
+    private boolean panorama_vertical;
+    private boolean panorama_vertical_mirror;
 
     private File last_video_file = null;
     private Uri last_video_file_uri = null;
@@ -2262,6 +2269,14 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     void startPanorama() {
         if( MyDebug.LOG )
             Log.d(TAG, "startPanorama");
+        // Achse aus der physischen Lage bestimmen (Falk 2026-10-06): die App ist portrait-gesperrt,
+        // MainActivity.getSystemOrientation() liefert dort immer PORTRAIT - deshalb kommt die Lage
+        // aus dem Orientierungssensor (MainUI.getCurrentOrientation()).
+        int device_orientation = main_activity.getMainUI().getCurrentOrientation();
+        panorama_vertical = device_orientation == 90 || device_orientation == 270;
+        panorama_vertical_mirror = device_orientation == 90; // linke Kante oben
+        if( MyDebug.LOG )
+            Log.d(TAG, "panorama vertical: " + panorama_vertical + ", mirror: " + panorama_vertical_mirror);
         gyroSensor.startRecording();
         n_panorama_pics = 0;
         panorama_pic_accepted = false;
@@ -2280,7 +2295,13 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         if( MyDebug.LOG )
             Log.d(TAG, "finishPanorama");
 
-        imageSaver.getImageBatchRequest().panorama_dir_left_to_right = this.panorama_dir_left_to_right;
+        boolean dir_left_to_right = this.panorama_dir_left_to_right;
+        if( panorama_vertical && panorama_vertical_mirror ) {
+            // Querlage mit linker Kante oben: die Schwenkrichtung liegt im normalisierten Bild
+            // gespiegelt vor, also kehrt sich auch die Scheiben-Reihenfolge um.
+            dir_left_to_right = !dir_left_to_right;
+        }
+        imageSaver.getImageBatchRequest().panorama_dir_left_to_right = dir_left_to_right;
 
         stopPanorama(false);
 
@@ -2314,12 +2335,12 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     private void setNextPanoramaPoint(boolean repeat) {
         if( MyDebug.LOG )
             Log.d(TAG, "setNextPanoramaPoint");
-        // Senkrecht schwenkt ueber die lange Bildseite (Hoch-/Runterziehen), waagerecht ueber die
-        // kurze; der jeweilige Bildwinkel ist getViewAngleX bzw. getViewAngleY (Preview rechnet
-        // beide aus dem aktuellen Bildformat). Fuehrung und Stitcher lesen denselben Winkel, die
-        // Annahme des Stitchers ueber die Schrittweite bleibt also die, die der Nutzer gefuehrt wird.
-        boolean vertical = isPanoramaVertical();
-        float camera_angle = vertical ? main_activity.getPreview().getViewAngleX(false) : main_activity.getPreview().getViewAngleY(false);
+        // Die Schwenkrichtung läuft in beiden Achsen über die kurze Bildseite: hochkant ist das
+        // die Bildbreite (waagerechter Schwenk), quer nach der EXIF-Drehung ebenfalls die Breite
+        // des normalisierten Hochformat-Bildes (senkrechter Schwenk). Der Bildwinkel ist deshalb
+        // in beiden Fällen getViewAngleY - Preview rechnet ihn aus dem aktuellen Bildformat.
+        boolean vertical = panorama_vertical;
+        float camera_angle = main_activity.getPreview().getViewAngleY(false);
         if( !repeat )
             n_panorama_pics++;
         if( MyDebug.LOG )
@@ -2479,13 +2500,6 @@ public class MyApplicationInterface extends BasicApplicationInterface {
 
     static float getPanoramaPicsPerScreen() {
         return panorama_pics_per_screen;
-    }
-
-    /** Whether the panorama sweeps vertically (Senkrecht) around the transverse axis. Read live
-     *  from the preference: the viewfinder toggle that writes it is hidden while a panorama is
-     *  being recorded, so the value cannot change mid-capture. */
-    public boolean isPanoramaVertical() {
-        return sharedPreferences.getBoolean(PreferenceKeys.PanoramaVerticalPreferenceKey, false);
     }
 
     @Override
@@ -3931,7 +3945,8 @@ public class MyApplicationInterface extends BasicApplicationInterface {
                 if( photo_mode == PhotoMode.Panorama ) {
                     imageSaver.getImageBatchRequest().camera_view_angle_x = main_activity.getPreview().getViewAngleX(false);
                     imageSaver.getImageBatchRequest().camera_view_angle_y = main_activity.getPreview().getViewAngleY(false);
-                    imageSaver.getImageBatchRequest().panorama_vertical = isPanoramaVertical();
+                    imageSaver.getImageBatchRequest().panorama_vertical = panorama_vertical;
+                    imageSaver.getImageBatchRequest().panorama_vertical_mirror = panorama_vertical_mirror;
                 }
             }
 
