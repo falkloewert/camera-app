@@ -937,6 +937,12 @@
     <string name="switch_multi_camera">Zwischen mehreren Kameras wechseln</string>
     <string name="panorama_lens_main">1x</string>
     <string name="panorama_lens_wide">Weitwinkel</string>
+    <string name="panorama_axis_horizontal">Waagerecht</string>
+    <string name="panorama_axis_vertical">Senkrecht</string>
+    <string name="panorama_axis_horizontal_cd">Panorama quer schwenken</string>
+    <string name="panorama_axis_vertical_cd">Panorama hoch und runter schwenken</string>
+    <string name="preference_panorama_vertical">Panorama senkrecht</string>
+    <string name="preference_panorama_vertical_summary">Hoch und runter schwenken für ein senkrechtes Panorama statt quer</string>
     <string name="mode_bar_photo">Foto</string>
     <string name="preference_multi_cam_button">Tasten für mehrere Kameras</string>
     <string name="preference_multi_cam_button_summary">Falls aktiviert, werden verschiedene Tasten verwendet, um zwischen (mehreren) Front- und Rück-Kameras zu wechseln. Falls deaktiviert, rotiert die Taste zum Wechsel der Kamera durch alle Kameras hindurch.</string>

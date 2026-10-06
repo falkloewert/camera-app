@@ -1025,6 +1025,12 @@
     <string name="lens">Lens</string>
     <string name="panorama_lens_main">1x</string>
     <string name="panorama_lens_wide">Wide</string>
+    <string name="panorama_axis_horizontal">Horizontal</string>
+    <string name="panorama_axis_vertical">Vertical</string>
+    <string name="panorama_axis_horizontal_cd">Panorama sweeps sideways</string>
+    <string name="panorama_axis_vertical_cd">Panorama sweeps up and down</string>
+    <string name="preference_panorama_vertical">Panorama vertical</string>
+    <string name="preference_panorama_vertical_summary">Sweep up and down for a vertical panorama instead of sideways</string>
     <string name="zoom_stepper">Zoom stepper</string>
     <string name="mode_bar">Mode selector</string>
     <string name="mode_bar_photo">Photo</string> <!-- mode bar entry for the ordinary photo mode, as the Pixel Camera labels it -->

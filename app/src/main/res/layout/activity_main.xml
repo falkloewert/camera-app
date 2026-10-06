@@ -393,6 +393,49 @@
             />
     </LinearLayout>
 
+    <!-- Der Umschalter Waagerecht | Senkrecht (Falk 2026-10-06): im Panorama-Modus unter der
+         Objektiv-Reihe, im Stil der Zoom-Pille (ZoomStepper.applyPillStyle, gesetzt in
+         MainUI.updatePanoramaAxisRow()). Wie die Beschriftungen des Modus-Karussells drehen die
+         beiden Einträge nicht mit - sie sind auf die feste Hochformat-Anordnung gedruckt. -->
+    <LinearLayout
+        android:id="@+id/panorama_axis_row"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/pill_background"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/panorama_axis_horizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/md_dark_on_surface_variant"
+            android:textSize="14sp"
+            android:contentDescription="@string/panorama_axis_horizontal_cd"
+            android:text="@string/panorama_axis_horizontal"
+            android:onClick="clickedPanoramaAxisHorizontal"
+            />
+
+        <TextView
+            android:id="@+id/panorama_axis_vertical"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textColor="@color/md_dark_on_surface_variant"
+            android:textSize="14sp"
+            android:contentDescription="@string/panorama_axis_vertical_cd"
+            android:text="@string/panorama_axis_vertical"
+            android:onClick="clickedPanoramaAxisVertical"
+            />
+    </LinearLayout>
+
     <ImageButton
         android:id="@+id/pause_video"
         android:layout_width="70dp"

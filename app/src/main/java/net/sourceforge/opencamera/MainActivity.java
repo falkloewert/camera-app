@@ -2341,6 +2341,29 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             switchPanoramaLens(widest_physical_id);
     }
 
+    /** Der Umschalter Waagerecht | Senkrecht (Falk 2026-10-06): schreibt nur die Preference; der
+     *  Rest (Führung, Bildwinkel, Stitcher) liest sie beim Start der Aufnahme. Kein Kamera-Neuaufbau
+     *  nötig - die Achse ändert nichts an der Kamera, nur an der Schwenkführung und am Stitch. */
+    public void clickedPanoramaAxisHorizontal(View view) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "clickedPanoramaAxisHorizontal");
+        setPanoramaVertical(false);
+    }
+
+    public void clickedPanoramaAxisVertical(View view) {
+        if( MyDebug.LOG )
+            Log.d(TAG, "clickedPanoramaAxisVertical");
+        setPanoramaVertical(true);
+    }
+
+    private void setPanoramaVertical(boolean vertical) {
+        PreferenceManager.getDefaultSharedPreferences(this).edit()
+                .putBoolean(PreferenceKeys.PanoramaVerticalPreferenceKey, vertical)
+                .apply();
+        // den Umschalter sofort nachziehen, statt auf das nächste showGUI() zu warten
+        mainUI.updatePanoramaAxisRow(View.VISIBLE);
+    }
+
     private void switchPanoramaLens(String target_physical_id) {
         if( preview.isOpeningCamera() ) {
             if( MyDebug.LOG )
@@ -5829,13 +5852,10 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         // in theory this works, but problem that currently we'd end up doing the processing on the UI thread, so risk ANR
         if( applicationInterface.isImageCaptureIntent() )
             return false;
-        // No panorama with the selfie camera (Falk, 2026-09-17): the mode bar doesn't offer it,
-        // and while the front camera is open a panorama preference simply counts as the
-        // ordinary photo - MyApplicationInterface.getPhotoMode() falls back to Standard for any
-        // mode the current camera doesn't support. Switching back to the rear camera brings
-        // panorama back.
-        if( preview != null && preview.getCameraController() != null && preview.getCameraController().getFacing() == CameraController.Facing.FACING_FRONT )
-            return false;
+        // Selfie-Panorama (Falk 2026-10-06): die Frontkamera ist zugelassen; die Sperre von
+        // 2026-09-17 ist gefallen. Die Front-Vorschau ist gespiegelt - die Stitch-Reihenfolge
+        // (panorama_dir_left_to_right) wird aber aus dem Gyro in Weltkoordinaten bestimmt und
+        // stimmt deshalb weiterhin.
         // require 256MB just to be safe, due to the large number of images that may be created
         // remember to update the FAQ "Why isn't Panorama supported on my device?" if this changes
         return large_heap_memory >= 256 && applicationInterface.getGyroSensor().hasSensors();
