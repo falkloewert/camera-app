@@ -276,6 +276,14 @@ Abgenommen 2026-09-25: Länge, Kippung und Runde in Ordnung (Falk). Die Naht am 
 „nicht sehr schön zusammengebaut, aber ok" – der Rest der Stitch-Verschiebung steht als
 PM-Punkt 15 in 4.5.
 
+**Nacharbeit (2026-10-07, senkrecht + Selfie).** Falk korrigierte den Umschalter-Wunsch: keine
+Wahl in der Oberfläche, die Achse folgt automatisch der Geräte-Orientierung – hochkant schwenkt
+waagerecht (Gier), quer senkrecht (Pitch) – aus dem Orientierungssensor (`OrientationEventListener`),
+weil das Fenster im Panorama-Modus portrait-gesperrt ist. Selfie-Panorama: `supportsPanorama()`
+lässt die Frontkamera wieder zu. Senkrecht projiziert der Stitcher um die liegende Achse (Zeilen
+statt Spalten), die Photosphere-Angabe trägt die Achse (Pitch 0..180°), das Schwenk-Limit ist
+180°. Auto-Auslöser und Rolllage-Check sind achsenabhängig. Abgenommen 2026-10-07 (Falk).
+
 ---
 
 ### 4.5 Material-3-Redesign (absorbiert: Modernes Kamera-UI)

@@ -834,3 +834,9 @@ Nachteile hat; Filmchen-Modus und Dual-Kamera hätten dagegen jeweils eigene UI-
   `formatRatio()` formatiert fest deutsch. Ponytail-Fund 3 erledigt (`applyModeBarStyle` →
   `applyPillStyle`). Drei eigene Entscheidungen: Karussell inaktiv dunkler als die Zoom-Pille,
   Blatt-Reiter bleiben weiß, Auslöser-Scrim unverändert.
+
+- **2026-10-07 (Panorama senkrecht + Selfie):** Kickoff `docs/kickoff/panorama-vertikal-selfie.md`,
+  am Pixel 9 Pro abgenommen. Selfie-Panorama: `supportsPanorama()` ohne `FACING_FRONT`-Sperre.
+  Achse automatisch aus Geräte-Orientierung (hochkant→waagerecht, quer→senkrecht), kein Umschalter;
+  senkrecht projiziert der Stitcher um die liegende Achse, Photosphere-Angabe trägt die Achse
+  (Pitch 0..180°), Schwenk-Limit 180°. Commits `0aa6154d`, `ff8b5800`, `61c78f4`, `5565f6e7`.
