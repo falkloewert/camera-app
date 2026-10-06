@@ -9,7 +9,6 @@ import android.content.res.ColorStateList;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.os.Looper;
@@ -535,7 +534,7 @@ public class SettingsSheet {
             TextView tab = new TextView(main_activity);
             tab.setText(tab_labels[i]);
             tab.setTextSize(TAB_SP);
-            tab.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            tab.setTypeface(AppFont.at(main_activity, AppFont.WEIGHT_MEDIUM));
             tab.setGravity(Gravity.CENTER);
             tab.setBackgroundResource(selected_tab == i ? R.drawable.settings_sheet_tab_active : R.drawable.settings_sheet_tab_inactive);
             tab.setTextColor(ContextCompat.getColor(main_activity, selected_tab == i ?
@@ -1888,7 +1887,7 @@ public class SettingsSheet {
                 case MP: {
                     // the number over "MP", both lines the same size, on the chip
                     paint.setStyle(Paint.Style.FILL);
-                    paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+                    paint.setTypeface(AppFont.at(main_activity, AppFont.WEIGHT_SEMIBOLD));
                     paint.setTextSize(sp(8.5f));
                     drawChip(canvas, w, h, new String [] { text, "MP" }, dp(3.5f), dp(2.5f));
                     break;
@@ -1897,7 +1896,7 @@ public class SettingsSheet {
                     // the frame rate over the reference's little gauge: three thin strokes and one
                     // wide one, all the same height
                     paint.setStyle(Paint.Style.FILL);
-                    paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+                    paint.setTypeface(AppFont.at(main_activity, AppFont.WEIGHT_SEMIBOLD));
                     paint.setTextSize(sp(15.0f));
                     float cap = paint.getTextSize() * 0.72f;
                     float gauge_height = dp(5.5f), gauge_gap = dp(3.0f);
@@ -1918,7 +1917,7 @@ public class SettingsSheet {
                 case RAW:
                 case RAW_OFF: {
                     paint.setStyle(Paint.Style.FILL);
-                    paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+                    paint.setTypeface(AppFont.at(main_activity, AppFont.WEIGHT_SEMIBOLD));
                     paint.setTextSize(sp(6.0f));
                     canvas.drawText(text, w / 2, h * 0.68f, paint);
                     if( glyph == Glyph.RAW_OFF ) {
@@ -1935,7 +1934,7 @@ public class SettingsSheet {
                     paint.setStrokeWidth(dp(1.5f));
                     canvas.drawCircle(w / 2, h / 2, dp(10.0f), paint);
                     paint.setStyle(Paint.Style.FILL);
-                    paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+                    paint.setTypeface(AppFont.at(main_activity, AppFont.WEIGHT_SEMIBOLD));
                     // the A fills the circle: cap height centred on the circle's centre (Falk,
                     // 2026-09-21: the letter was too small)
                     paint.setTextSize(sp(12.0f));
@@ -1945,7 +1944,7 @@ public class SettingsSheet {
                 case TEXT: {
                     // the video resolution's short name ("FHD") on the chip
                     paint.setStyle(Paint.Style.FILL);
-                    paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+                    paint.setTypeface(AppFont.at(main_activity, AppFont.WEIGHT_SEMIBOLD));
                     paint.setTextSize(sp(8.5f));
                     drawChip(canvas, w, h, new String [] { text }, dp(3.5f), dp(5.0f));
                     break;
@@ -1954,7 +1953,7 @@ public class SettingsSheet {
                     // the short name of a mode ("AUTO", "NORM", "HDR") on the chip - a size
                     // smaller than TEXT's, four letters still fit the 24 dp the glyph gets
                     paint.setStyle(Paint.Style.FILL);
-                    paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+                    paint.setTypeface(AppFont.at(main_activity, AppFont.WEIGHT_SEMIBOLD));
                     paint.setTextSize(sp(7.0f));
                     drawChip(canvas, w, h, new String [] { text }, dp(3.5f), dp(4.0f));
                     break;

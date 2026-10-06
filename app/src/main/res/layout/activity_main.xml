@@ -736,7 +736,7 @@
         android:background="@drawable/pill_selected_background"
         android:textColor="@color/md_dark_surface"
         android:textSize="13sp"
-        android:textStyle="bold"
+        android:textFontWeight="600"
         android:importantForAccessibility="no"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
@@ -799,7 +799,7 @@
                     android:text="−"
                     android:textColor="@color/settings_sheet_button_glyph"
                     android:textSize="14sp"
-                    android:textStyle="bold"
+                    android:textFontWeight="600"
                     android:importantForAccessibility="no"
                     />
             </FrameLayout>
@@ -840,7 +840,7 @@
                     android:text="+"
                     android:textColor="@color/settings_sheet_button_glyph"
                     android:textSize="14sp"
-                    android:textStyle="bold"
+                    android:textFontWeight="600"
                     android:importantForAccessibility="no"
                     />
             </FrameLayout>
@@ -910,7 +910,7 @@
         android:background="@drawable/pill_selected_background"
         android:textColor="@color/md_dark_surface"
         android:textSize="13sp"
-        android:textStyle="bold"
+        android:textFontWeight="600"
         android:importantForAccessibility="no"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"

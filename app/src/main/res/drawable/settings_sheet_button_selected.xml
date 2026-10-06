@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Gewaehlter Options-Knopf des Einstellungen-Blattes: weisser Kreis 40 x 40 dp
-     (Kickoff redesign-einstellungen-blatt-benchmark.md 2.2). -->
+<!-- Gewaehlter Options-Knopf des Einstellungen-Blattes: Kreis 40 x 40 dp
+     (Kickoff redesign-einstellungen-blatt-benchmark.md 2.2), seit Schritt N im Salbei-Akzent
+     statt in Weiss (ui-spezifikation.md 7.3). -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">
     <solid android:color="@color/settings_sheet_button_selected" />

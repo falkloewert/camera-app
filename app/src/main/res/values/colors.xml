@@ -25,16 +25,27 @@
          near-white text, muted gray for secondary text, selection via full white fill rather
          than a saturated accent, gold focus ring. Approximate values from the Pixel Camera
          screenshot analysis - can be refined once real M3 components land in phase 2/3. -->
-    <color name="md_dark_surface">#1B1B1B</color>
+    <color name="md_dark_surface">#000000</color>
     <color name="md_dark_surface_variant">#2C2C2C</color>
     <color name="md_dark_on_surface">#F2F2F2</color>
-    <color name="md_dark_on_surface_variant">#ABABAB</color>
-    <color name="md_dark_primary">#B0A695</color>
-    <color name="md_dark_on_primary">#1B1B1B</color>
-    <!-- Hintergrund der Zoom-Stufen-Leiste: deutlich deckender als icons_background (das ist
-         fuer Icon-Buttons bewusst fast durchsichtig), sonst sind die inaktiven Stufen ueber
-         hellen Motiven nicht lesbar. -->
-    <color name="zoom_stepper_background">#99000000</color>
+    <color name="md_dark_on_surface_variant">#C4C7C5</color>
+    <!-- Der aktive Akzent: fester Salbei-Ton statt des frueheren #F2F2F2 und statt Material-You-
+         DynamicColors - das Theme ist seit Phase 1 fest dunkel, die App soll immer gleich
+         aussehen (Schritt N, ui-spezifikation.md 7.3). Er fuellt Auswahl-Flaechen (aktive
+         Zoom-Stufe, Modus-Karussell, Blaetter-Knoepfe), nicht Text; auf ihm steht dunkle
+         Schrift. Das frueher hier definierte, nie benutzte md_dark_primary #B0A695 ist weg. -->
+    <color name="md_dark_accent">#D3E8D8</color>
+    <color name="md_dark_on_accent">#000000</color>
+    <!-- Inaktive Eintraege des Modus-Karussells - dunkler als der uebrige Sekundaertext
+         (md_dark_on_surface_variant), weil die Leiste ueber dem Sucherbild liegt. -->
+    <color name="mode_bar_inactive">#8E918F</color>
+    <!-- Alle Ueberlagerungs-Flaechen ueber der Vorschau: Zoom-Pille samt Zoom-Badge, Massband-
+         Behaelter im Pro-Blatt, Chips der Tempo-Leiste, Staerke-Leiste. rgba(20,20,20,0.65) aus
+         ui-spezifikation.md 7.3, ohne Blur - echter Milchglas-Blur braucht einen
+         Snapshot-Umweg und ginge vor API 31 nicht (Recherche 2026-09-17, siehe 7.3).
+         Deutlich deckender als icons_background (das ist fuer Icon-Buttons bewusst fast
+         durchsichtig), sonst sind die inaktiven Stufen ueber hellen Motiven nicht lesbar. -->
+    <color name="zoom_stepper_background">#A6141414</color>
     <!-- Feinjustier-Rad (ui/ZoomWheel), Detail-Spec Abschnitt 5: Zahlen in 60 % Weiss
          (rgba(255,255,255,0.6)), die Striche in derselben Farbe, der statische Zeiger in
          der Mitte reinweiss. -->
@@ -54,6 +65,6 @@
     <color name="settings_sheet_value">#FFFFFF</color>
     <color name="settings_sheet_button">#1F1F1F</color>
     <color name="settings_sheet_button_glyph">#E2E2E2</color>
-    <color name="settings_sheet_button_selected">#FFFFFF</color>
-    <color name="settings_sheet_button_glyph_selected">#1B1B1B</color>
+    <color name="settings_sheet_button_selected">@color/md_dark_accent</color>
+    <color name="settings_sheet_button_glyph_selected">@color/md_dark_on_accent</color>
 </resources>

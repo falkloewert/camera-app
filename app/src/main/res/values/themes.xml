@@ -22,8 +22,15 @@
         <item name="colorOnSurface">@color/md_dark_on_surface</item>
         <item name="colorSurfaceVariant">@color/md_dark_surface_variant</item>
         <item name="colorOnSurfaceVariant">@color/md_dark_on_surface_variant</item>
-        <item name="colorPrimary">@color/md_dark_primary</item>
-        <item name="colorOnPrimary">@color/md_dark_on_primary</item>
+        <item name="colorPrimary">@color/md_dark_accent</item>
+        <item name="colorOnPrimary">@color/md_dark_on_accent</item>
+
+        <!-- Roboto Flex (SPEC 4.5, feste Entscheidung; OFL, Lizenztext liegt als
+             roboto_flex_OFL.txt im Repo-Wurzelverzeichnis). Als Theme-Vorgabe, damit sie
+             app-weit gilt und nicht an jedem TextView einzeln steht. Gewicht 600 statt
+             BOLD/700 setzt der Code ueber ui/AppFont. -->
+        <item name="android:fontFamily">@font/roboto_flex</item>
+        <item name="fontFamily">@font/roboto_flex</item>
     </style>
 
 </resources>

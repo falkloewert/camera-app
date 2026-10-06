@@ -625,16 +625,24 @@ das aus Abschnitt 2 (Konflikt K3, dort endgültig entschieden).
 
 | Element | Ist | Soll (Detail-Spec) |
 |---|---|---|
-| Kopf-/Fußfläche | `windowBackground` = `#1B1B1B` (`md_dark_surface`; Kommentar in `colors.xml`: „not pure black") | `#000000` |
-| Overlay-Container (Zoom-Pille, Ruler, Chips) | `#99000000`, kein Blur | `rgba(20,20,20,0.65)` + Blur 20 px |
-| Aktiver Akzent | `#F2F2F2`; `md_dark_primary` `#B0A695` definiert, aber ungenutzt; kein `DynamicColors` | Material-You-Pastell `#C2E7D9`–`#D3E8D8` bzw. `#E2E3E0`, dynamisch |
-| Inaktive Icons / Sekundärtext | `#F2F2F2` bzw. Weiß | `#C4C7C5` bzw. `rgba(255,255,255,0.7)`; Modus-Karussell inaktiv `#8E918F` |
+| Kopf-/Fußfläche | ~~`#1B1B1B`~~ `#000000` (`md_dark_surface`, auch `windowBackground`) | `#000000` |
+| Overlay-Container (Zoom-Pille, Ruler, Chips) | ~~`#99000000`~~ `rgba(20,20,20,0.65)` = `#A6141414` (`zoom_stepper_background`), **kein Blur** | `rgba(20,20,20,0.65)` + Blur 20 px |
+| Aktiver Akzent | ~~`#F2F2F2`; `md_dark_primary` `#B0A695` ungenutzt~~ fester Salbei `#D3E8D8` (`md_dark_accent`), `md_dark_primary` entfernt; kein `DynamicColors` | Material-You-Pastell `#C2E7D9`–`#D3E8D8` bzw. `#E2E3E0`, dynamisch |
+| Inaktive Icons / Sekundärtext | ~~`#F2F2F2` bzw. Weiß~~ `#C4C7C5` (`md_dark_on_surface_variant`); Modus-Karussell + Tempo-Chips inaktiv `#8E918F` (`mode_bar_inactive`) | `#C4C7C5` bzw. `rgba(255,255,255,0.7)`; Modus-Karussell inaktiv `#8E918F` |
 | Nivellierung dynamisch | ~~Grün `#14e715`~~ Signalgelb `#FEE75C` (Schritt L) | Signalgelb `#FEE75C` / `#F9AB00` – erledigt |
 | Fokus | ~~Yellow 500 `#FFEB3B`, Rechteck~~ Signalgelb `#FEE75C`, Ring 1,5 dp (Schritt L) | Weiß 1,5 dp Ring (Detail-Spec) / dünn goldgelb (Screenshot) – K9, entschieden: goldgelb |
 | Video-Rot | ~~`#F44336`~~ `#E53935` (erledigt, Audit-Schritt 1) | `#E53935` |
-| Schriftfamilie | keine deklariert (kein `fontFamily`, kein `res/font/`) | Google Sans / Roboto Flex. Google Sans ist nicht frei lizenziert → Roboto Flex (OFL) als Font-Ressource bündeln oder Systemschrift bewusst akzeptieren – Entscheidung Falk |
-| Schriftgewicht 600 | `Typeface.BOLD` = 700 | 600 über `Typeface.create(tf, 600, false)` (API 28+, hier verfügbar) |
-| Dezimal-Komma | `Locale.getDefault()` in `ZoomStepper.formatRatio()` – stimmt nur, weil das Gerät auf `de` steht | ausdrücklich deutsch formatieren, oder bewusst so lassen und im Code vermerken |
+| Schriftfamilie | ~~keine deklariert~~ **Roboto Flex** (OFL) als `res/font/roboto_flex.ttf`, app-weit über das Theme gesetzt; Lizenztext `roboto_flex_OFL.txt` | Google Sans / Roboto Flex. Google Sans ist nicht frei lizenziert → Roboto Flex (OFL) als Font-Ressource bündeln oder Systemschrift bewusst akzeptieren – Entscheidung Falk |
+| Schriftgewicht 600 | ~~`Typeface.BOLD` = 700~~ 600 über `ui/AppFont` (`Typeface.create(tf, 600, false)`) bzw. `android:textFontWeight="600"`; Reiter 500 | 600 über `Typeface.create(tf, 600, false)` (API 28+, hier verfügbar) |
+| Dezimal-Komma | ~~`Locale.getDefault()`~~ fest `Locale.GERMANY` in `ZoomStepper.formatRatio()` | ausdrücklich deutsch formatieren, oder bewusst so lassen und im Code vermerken |
+
+**Erledigt (Schritt N, 2026-10-06, am Pixel 9 Pro abgenommen).** Offen bleibt allein der echte
+Blur (Zeile 2, „+ Blur 20 px"): braucht API 31+ und einen Snapshot-Umweg, siehe unten – bewusst
+als spätere Verbesserung zurückgestellt. Drei Abweichungen von der Soll-Spalte, weil die
+Referenz sie nicht hergibt und der Kickoff sie offenließ (so abgenommen): das Modus-Karussell
+ist inaktiv dunkler (`#8E918F`) als die Zoom-Pille (`#C4C7C5`), die Reiter des
+Einstellungen-Blattes bleiben weiß statt im Akzent, und der Scrim hinter der Auslöser-Zeile
+bleibt `#99000000`.
 
 **Zu Blur – geklärt durch Recherche-Agent (2026-09-17), Details siehe unten:**
 `View.setRenderEffect(RenderEffect.createBlurEffect(…))` (Android 12+/API 31+) zeichnet

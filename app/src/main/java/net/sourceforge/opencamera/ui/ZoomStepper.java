@@ -6,7 +6,6 @@ import net.sourceforge.opencamera.R;
 import net.sourceforge.opencamera.cameracontroller.CameraController;
 import net.sourceforge.opencamera.preview.Preview;
 
-import android.graphics.Typeface;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -14,6 +13,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import androidx.annotation.ColorRes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -261,12 +262,15 @@ public class ZoomStepper implements ZoomWheel.Listener {
      *  "0,5"), one decimal below 10x ("6,7") and none from 10x up ("12"), and the "×" only
      *  where asked for (the selected step, the wheel's badge). */
     static String formatRatio(float ratio, boolean with_sign) {
+        // Ausdruecklich deutsch statt Locale.getDefault(): die Stufen heissen "0,5" und "2,8",
+        // nicht "0.5" und "2.8" - das galt bisher nur, weil das Geraet auf de steht
+        // (ui-spezifikation.md 7.3).
         String number;
         if( ratio >= 9.95f || Math.abs(ratio - Math.round(ratio)) < 0.05f ) {
-            number = String.format(Locale.getDefault(), "%.0f", ratio);
+            number = String.format(Locale.GERMANY, "%.0f", ratio);
         }
         else {
-            number = String.format(Locale.getDefault(), "%.1f", ratio);
+            number = String.format(Locale.GERMANY, "%.1f", ratio);
             if( number.startsWith("0") )
                 number = number.substring(1);
         }
@@ -363,20 +367,28 @@ public class ZoomStepper implements ZoomWheel.Listener {
         applyPillStyle(main_activity, button, selected);
     }
 
-    /** Der Stil der Pille: ausgewählt = helle Pille mit dunkler Schrift, sonst helle Schrift auf
+    /** Der Stil der Pille: ausgewählt = Akzent-Pille mit dunkler Schrift, sonst helle Schrift auf
      *  dem dunklen Band. Die Panorama-Objektivreihe trägt denselben Stil (MainUI.showGUI), damit
      *  beide gleich aussehen (Falk, Schritt G Punkt 10: "die blase ist bei panorama noch nicht im
-     *  gleichen stil wie sonnst"). */
-    static void applyPillStyle(MainActivity main_activity, Button button, boolean selected) {
+     *  gleichen stil wie sonnst"). Das Modus-Karussell und die Tempo-Chips hängen ebenfalls hier
+     *  dran (MainUI.applyModeBarStyle) - sie hatten den Stil vorher Zeile für Zeile doppelt
+     *  (Ponytail-Review 2026-09-18, Fund 3). Sie unterscheiden sich nur in der Farbe der
+     *  inaktiven Einträge, die deshalb als Parameter hereinkommt. */
+    static void applyPillStyle(MainActivity main_activity, TextView button, boolean selected) {
+        applyPillStyle(main_activity, button, selected, R.color.md_dark_on_surface_variant);
+    }
+
+    static void applyPillStyle(MainActivity main_activity, TextView button, boolean selected,
+                               @ColorRes int inactive_color) {
         if( selected ) {
             button.setBackgroundResource(R.drawable.pill_selected_background);
-            button.setTextColor(main_activity.getResources().getColor(R.color.md_dark_surface, null));
-            button.setTypeface(null, Typeface.BOLD);
+            button.setTextColor(main_activity.getResources().getColor(R.color.md_dark_on_accent, null));
+            button.setTypeface(AppFont.at(main_activity, AppFont.WEIGHT_SEMIBOLD));
         }
         else {
             button.setBackgroundColor(android.graphics.Color.TRANSPARENT);
-            button.setTextColor(main_activity.getResources().getColor(R.color.md_dark_on_surface, null));
-            button.setTypeface(null, Typeface.NORMAL);
+            button.setTextColor(main_activity.getResources().getColor(inactive_color, null));
+            button.setTypeface(AppFont.at(main_activity, AppFont.WEIGHT_REGULAR));
         }
     }
 

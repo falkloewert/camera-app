@@ -16,7 +16,6 @@ import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
-import android.graphics.Typeface;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.camera2.CameraExtensionCharacteristics;
@@ -1542,17 +1541,13 @@ public class MainUI {
             hideVideoSpeedBar(); // the bar belongs to these two modes only, and not to a running recording
     }
 
+    /** Der Stil der Eintraege in Modus-Karussell und Tempo-Leiste. Der Stil selbst steht in
+     *  {@link ZoomStepper#applyPillStyle} - hier stand er vorher Zeile fuer Zeile ein zweites Mal
+     *  (Ponytail-Review 2026-09-18, Fund 3). Nur die inaktive Farbe ist eine andere: die Leisten
+     *  liegen ueber dem Sucherbild und sind deshalb dunkler als die Zoom-Pille
+     *  (ui-spezifikation.md 7.3). */
     private void applyModeBarStyle(TextView view, boolean selected) {
-        if( selected ) {
-            view.setBackgroundResource(R.drawable.pill_selected_background);
-            view.setTextColor(main_activity.getResources().getColor(R.color.md_dark_surface, null));
-            view.setTypeface(null, Typeface.BOLD);
-        }
-        else {
-            view.setBackgroundColor(Color.TRANSPARENT);
-            view.setTextColor(main_activity.getResources().getColor(R.color.md_dark_on_surface, null));
-            view.setTypeface(null, Typeface.NORMAL);
-        }
+        ZoomStepper.applyPillStyle(main_activity, view, selected, R.color.mode_bar_inactive);
     }
 
     /* ---- Zeitraffer & Zeitlupe (SPEC 4.6) ---------------------------------------------------- */

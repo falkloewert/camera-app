@@ -822,3 +822,15 @@ Nachteile hat; Filmchen-Modus und Dual-Kamera hätten dagegen jeweils eigene UI-
   dem Rad-Commit (`e9a95d90`) unverändert, die 13 Commits seit `beacee07` fassen den Zoom-/
   Linsen-Pfad nicht an, 16:9-Standard (`88409de0`) entlastet. **Kein Code geändert.** Nicht
   geprüft: Rad-/Pinch-Zoom über 1× ↔ 0,5 (Falk: Rad bleibt wie es ist), Video, Panorama.
+
+- **2026-10-06 (Schritt N – Farben, Blur, Schrift; letzter Redesign-Schritt):** Kickoff
+  `docs/kickoff/redesign-farben-schrift.md`, am Pixel 9 Pro abgenommen („alles wie gewollt"),
+  Redesign-Restliste aus `ui-spezifikation.md` 7.3 damit leer. Kopf-/Fußfläche rein schwarz;
+  alle Überlagerungsflächen auf `rgba(20,20,20,0.65)` (Zoom-Pille, Badges, Maßband, Tempo-Chips,
+  Stärke-Leiste), **ohne Blur** (braucht API 31+, bleibt spätere Verbesserung). Aktiver Akzent
+  durchgehend Salbei `#D3E8D8` mit schwarzer Schrift, `md_dark_primary` entfernt; inaktiv
+  `#C4C7C5`, Karussell/Tempo-Chips `#8E918F`. Schrift **Roboto Flex** (OFL) app-weit übers
+  Theme, `BOLD` durch Gewicht 600 ersetzt (`ui/AppFont`, XML `textFontWeight`).
+  `formatRatio()` formatiert fest deutsch. Ponytail-Fund 3 erledigt (`applyModeBarStyle` →
+  `applyPillStyle`). Drei eigene Entscheidungen: Karussell inaktiv dunkler als die Zoom-Pille,
+  Blatt-Reiter bleiben weiß, Auslöser-Scrim unverändert.

@@ -42,7 +42,6 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.graphics.Typeface;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Handler;
@@ -373,7 +372,7 @@ public class DrawPreview {
         // see testHDRRestart
 
         p.setAntiAlias(true);
-        p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+        p.setTypeface(AppFont.at(main_activity, AppFont.WEIGHT_SEMIBOLD));
         p.setStrokeCap(Paint.Cap.ROUND);
         scale_dp = getContext().getResources().getDisplayMetrics().density;
         scale_font = getContext().getResources().getDisplayMetrics().scaledDensity;

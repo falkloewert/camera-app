@@ -365,7 +365,10 @@ Verhältnis (`Preview.pickSizeForRequirements()`; die Nacht-Erweiterung kann 16:
 2688×1512, vorher wurde daraus 4:3). Nicht möglich: echte Nacht im Weitwinkel-Panorama – die
 Nacht-Erweiterung läuft nur auf der Hauptkamera, der Mond setzt das Objektiv deshalb auf 1×.
 
-**Offen:** nur noch `ui-spezifikation.md` 7.3 (Farben/Blur/Schrift) und die Punkte 13/14 unten.
+**Offen:** **Schritt N (Farben/Blur/Schrift, `ui-spezifikation.md` 7.3) gebaut und am
+2026-10-06 von Falk am Pixel 9 Pro abgenommen** („alles wie gewollt") – damit ist die
+Redesign-Restliste aus 7.3 leer. Übrig bleiben nur die Punkte 13/14 unten (Pixel-Rundungen,
+Gradle/JDK) und der bewusst zurückgestellte echte Blur (braucht API 31+).
 Dock (7.1 Punkt 3), Karussell (7.2) und die **Sucher-Overlays samt Sucher-Lage (Schritt L,
 2026-09-24)** sind gebaut und abgenommen, siehe unten.
 
