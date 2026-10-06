@@ -115,6 +115,11 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     // Anfang. Bei 1x/4:3 bindet die Bildzahl (17 Bilder = 353 Grad Aussenkante), bei 0.5x diese
     // Grenze.
     private final static float max_panorama_sweep_deg = 360f;
+    // Senkrecht schwenkt ueber die Neigung (Pitch): die volle Runde hat dort nur 180 Grad (von
+    // gerade nach unten bis gerade nach oben). Darueber hinaus wiederholt die Aufnahme den Anfang,
+    // genau wie beim waagerechten Panorama jenseits der 360 Grad - dieselbe Deckelung wie in der
+    // Photosphere-Angabe (ImageSaver.savePanoramaBitmap()).
+    private final static float max_panorama_sweep_deg_vertical = 180f;
     private int n_capture_images = 0; // how many calls to onPictureTaken() since the last call to onCaptureStarted()
     private int n_capture_images_raw = 0; // how many calls to onRawPictureTaken() since the last call to onCaptureStarted()
     private int n_panorama_pics = 0;
@@ -2332,9 +2337,11 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         angle /= panorama_pics_per_screen;
         // angle ist die Mitte des naechsten Bildes, also n_panorama_pics * Schritt; seine Scheibe
         // reicht einen halben Schritt weiter (Schritt = angle / n_panorama_pics). Erst wenn diese
-        // Aussenkante ueber 360 Grad liegt, traegt das Bild schon wieder den Anfang.
+        // Aussenkante ueber die volle Runde liegt, traegt das Bild schon wieder den Anfang:
+        // waagerecht nach 360 Grad Gieren, senkrecht nach 180 Grad Neigung.
         float sweep_deg = Math.abs((float) Math.toDegrees(angle));
-        if( sweep_deg + sweep_deg/(2.0f * n_panorama_pics) > max_panorama_sweep_deg ) {
+        float max_sweep = vertical ? max_panorama_sweep_deg_vertical : max_panorama_sweep_deg;
+        if( sweep_deg + sweep_deg/(2.0f * n_panorama_pics) > max_sweep ) {
             if( MyDebug.LOG )
                 Log.d(TAG, "reached max panorama sweep");
             finishPanorama();
