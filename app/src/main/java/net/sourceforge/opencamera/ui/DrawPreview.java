@@ -3070,13 +3070,14 @@ public class DrawPreview {
                         angle_scale_y *= preview.getZoomRatio();
                         float distance_x = angle_scale_x * (float) Math.tan(angle_x); // angle_scale is already in pixels rather than dps
                         float distance_y = angle_scale_y * (float) Math.tan(angle_y); // angle_scale is already in pixels rather than dps
-                        // Selfie (Falk 2026-10-07): die Vorschau der Frontkamera ist horizontal
-                        // gespiegelt, die Marke wird aber in ungespiegelten Sucherkoordinaten
-                        // gezeichnet. Horizontal spiegeln, damit der Punkt der tatsaechlichen
-                        // Schwenkrichtung folgt - gilt fuer den waagerechten wie den senkrechten
-                        // Schwenk (dort ist angle_x ~ 0, also nichts zu spiegeln).
+                        // Selfie (Falk 2026-10-07): die Frontkamera zeigt in die Gegenrichtung
+                        // zur Rueckkamera und die Vorschau ist horizontal gespiegelt - die Marke
+                        // wird aber in ungespiegelten Sucherkoordinaten gezeichnet. Beide Achsen
+                        // spiegeln, damit der Punkt der tatsaechlichen Schwenkrichtung folgt
+                        // (horizontal war schon korrekt, vertikal fehlte noch).
                         if( camera_controller.getFacing() == CameraController.Facing.FACING_FRONT ) {
                             distance_x = -distance_x;
+                            distance_y = -distance_y;
                         }
                         p.setColor(Color.WHITE);
                         drawGyroSpot(canvas, 0.0f, 0.0f, -1.0f, 0.0f, 48, true); // draw spot for the centre of the screen, to help the user orient the device
