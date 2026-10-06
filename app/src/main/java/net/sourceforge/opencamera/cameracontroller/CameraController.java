@@ -1,7 +1,6 @@
 package net.sourceforge.opencamera.cameracontroller;
 
 import net.sourceforge.opencamera.MyDebug;
-import net.sourceforge.opencamera.preview.MediaCodecVideoRecorder.VideoSurfaceSource;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -767,13 +766,6 @@ public abstract class CameraController {
      * @param want_photo_video_recording Whether support for taking photos whilst video recording is required. If this feature isn't supported, the option has no effect.
      */
     public abstract void initVideoRecorderPostPrepare(MediaRecorder video_recorder, boolean want_photo_video_recording) throws CameraControllerException;
-    /** Call to initialise video recording for the MediaCodec/MediaMuxer path, should be called
-     *  after the recorder has been prepared, but before the camera starts producing frames.
-     *  Default implementation is unsupported (old Camera API has no persistent surface).
-     */
-    public void initVideoRecorderPostPrepareSurface(VideoSurfaceSource video_source, boolean want_photo_video_recording) throws CameraControllerException {
-        throw new CameraControllerException();
-    }
     public abstract String getParametersString();
     public boolean captureResultIsAEScanning() {
         return false;

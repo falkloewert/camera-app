@@ -24,7 +24,6 @@ import net.sourceforge.opencamera.preview.camerasurface.MyTextureView;
 import net.sourceforge.opencamera.ui.SelfieLightView;
 
 import java.io.File;
-import java.io.FileDescriptor;
 //import java.io.FileOutputStream;
 import java.io.IOException;
 //import java.io.OutputStream;
@@ -203,7 +202,6 @@ public class Preview implements SurfaceHolder.Callback, TextureView.SurfaceTextu
     private boolean has_permissions = true; // whether we have permissions necessary to operate the camera (camera, storage); assume true until we've been denied one of them
     private boolean is_video;
     private volatile MediaRecorder video_recorder; // must be volatile for test project reading the state
-    private volatile MediaCodecVideoRecorder media_codec_video_recorder; // MediaCodec/MediaMuxer path (Camera2, non-high-speed)
     private volatile boolean video_start_time_set; // must be volatile for test project reading the state
     private long video_start_time; // system time when the video recording was started, or last resumed if it was paused
     private long video_accumulated_time; // this time should be added to (System.currentTimeMillis() - video_start_time) to find the true video duration, that takes into account pausing/resuming, as well as any auto-restarts from max filesize
@@ -1247,10 +1245,6 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
     public void stopVideo(boolean from_restart) {
         if( MyDebug.LOG )
             Log.d(TAG, "stopVideo()");
-        if( media_codec_video_recorder != null ) {
-            stopVideoMediaCodec(from_restart);
-            return;
-        }
         if( video_recorder == null ) {
             // no need to do anything if not recording
             // (important to exit, otherwise we'll momentarily switch the take photo icon to video mode in MyApplicationInterface.stoppingVideo() when opening the settings in landscape mode
@@ -1351,7 +1345,7 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
     private void restartVideo(boolean due_to_max_filesize) {
         if( MyDebug.LOG )
             Log.d(TAG, "restartVideo()");
-        if( video_recorder != null || media_codec_video_recorder != null ) {
+        if( video_recorder != null ) {
             if( due_to_max_filesize ) {
                 long last_time = System.currentTimeMillis() - video_start_time;
                 video_accumulated_time += last_time;
@@ -1547,7 +1541,7 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
             if( MyDebug.LOG ) {
                 Log.d(TAG, "close camera_controller");
             }
-            if( video_recorder != null || media_codec_video_recorder != null ) {
+            if( video_recorder != null ) {
                 stopVideo(false);
             }
             // make sure we're into continuous video mode for closing
@@ -5090,7 +5084,7 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
         }
         boolean old_is_video = is_video;
         if( this.is_video ) {
-            if( video_recorder != null || media_codec_video_recorder != null ) {
+            if( video_recorder != null ) {
                 stopVideo(false);
             }
             this.is_video = false;
@@ -6240,11 +6234,6 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
                 Log.d(TAG, "bit rate " + profile.videoBitRate);
             }
 
-            if( using_android_l && !video_high_speed && profile.fileFormat == MediaRecorder.OutputFormat.MPEG_4 ) {
-                startVideoRecordingMediaCodec(profile, max_filesize_restart);
-                return;
-            }
-
             boolean enable_sound = applicationInterface.getShutterSoundPref();
             if( MyDebug.LOG )
                 Log.d(TAG, "enable_sound? " + enable_sound);
@@ -6478,215 +6467,6 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
         }
     }
 
-    /** Starts video recording via the MediaCodec/MediaMuxer engine (Camera2, non-high-speed, MP4).
-     *  Mirrors the MediaRecorder path in startVideoRecording() for the shared bookkeeping
-     *  (max filesize/duration, restart counters, UI callbacks).
-     */
-    private void startVideoRecordingMediaCodec(final VideoProfile profile, final boolean max_filesize_restart) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "startVideoRecordingMediaCodec");
-
-        boolean enable_sound = applicationInterface.getShutterSoundPref();
-        camera_controller.enableShutterSound(enable_sound); // Camera2 API can disable video sound too
-
-        if( profile.no_audio_permission ) {
-            showToast(null, R.string.permission_record_audio_not_available, true);
-        }
-
-        boolean store_location = applicationInterface.getGeotaggingPref();
-        Location location = null;
-        if( store_location && applicationInterface.getLocation() != null ) {
-            location = applicationInterface.getLocation();
-        }
-
-        final MediaCodecVideoRecorder local_video_recorder = new MediaCodecVideoRecorder();
-        local_video_recorder.setCallback(new MediaCodecVideoRecorder.Callback() {
-            @Override
-            public void onInfo(int what, int extra) {
-                final int final_what = what;
-                final int final_extra = extra;
-                Activity activity = (Activity)Preview.this.getContext();
-                activity.runOnUiThread(new Runnable() {
-                    public void run() {
-                        onVideoInfo(final_what, final_extra);
-                    }
-                });
-            }
-            @Override
-            public void onError(int what, int extra) {
-                final int final_what = what;
-                final int final_extra = extra;
-                Activity activity = (Activity)Preview.this.getContext();
-                activity.runOnUiThread(new Runnable() {
-                    public void run() {
-                        onVideoError(final_what, final_extra);
-                    }
-                });
-            }
-        });
-
-        boolean told_app_starting = false; // true if we called applicationInterface.startingVideo()
-        try {
-            ApplicationInterface.VideoMaxFileSize video_max_filesize = applicationInterface.getVideoMaxFileSizePref();
-            long max_filesize = video_max_filesize.max_filesize;
-            video_restart_on_max_filesize = video_max_filesize.auto_restart; // note, we set this even if max_filesize==0
-
-            long video_max_duration = applicationInterface.getVideoMaxDurationPref();
-            if( max_filesize_restart ) {
-                if( video_max_duration > 0 ) {
-                    video_max_duration -= video_accumulated_time;
-                    if( video_max_duration < min_safe_restart_video_time ) {
-                        video_max_duration = min_safe_restart_video_time;
-                    }
-                }
-            }
-            else {
-                video_accumulated_time = 0;
-            }
-
-            applicationInterface.cameraInOperation(true, true);
-            told_app_starting = true;
-            applicationInterface.startingVideo();
-
-            // muxer output: FILE method writes to a path, SAF/MEDIASTORE/URI to the opened descriptor
-            String file_path = null;
-            FileDescriptor file_descriptor = null;
-            if( videoFileInfo.video_method == ApplicationInterface.VideoMethod.FILE ) {
-                file_path = videoFileInfo.video_filename;
-            }
-            else {
-                if( videoFileInfo.video_pfd_saf == null ) {
-                    throw new IOException("no file descriptor for video");
-                }
-                file_descriptor = videoFileInfo.video_pfd_saf.getFileDescriptor();
-            }
-
-            local_video_recorder.start(profile, file_path, file_descriptor, getImageVideoRotation(), location,
-                    video_max_duration, max_filesize);
-
-            // from here on, failures must tear down the engine
-            this.media_codec_video_recorder = local_video_recorder;
-
-            boolean want_photo_video_recording = supportsPhotoVideoRecording() && applicationInterface.usePhotoVideoRecording();
-            camera_controller.initVideoRecorderPostPrepareSurface(new MediaCodecVideoRecorder.VideoSurfaceSource() {
-                @Override
-                public Surface getVideoSurface() {
-                    return local_video_recorder.getVideoSurface();
-                }
-            }, want_photo_video_recording);
-
-            videoRecordingStarted(max_filesize_restart);
-        }
-        catch(IOException e) {
-            MyDebug.logStackTrace(TAG, "failed to save video (MediaCodec)", e);
-            this.media_codec_video_recorder = local_video_recorder;
-            if( told_app_starting ) {
-                applicationInterface.stoppingVideo();
-            }
-            applicationInterface.onFailedCreateVideoFileError();
-            local_video_recorder.stop();
-            this.media_codec_video_recorder = null;
-            applicationInterface.deleteUnusedVideo(videoFileInfo.video_method, videoFileInfo.video_uri, videoFileInfo.video_filename);
-            videoFileInfo = new VideoFileInfo();
-            applicationInterface.cameraInOperation(false, true);
-            this.reconnectCamera(true);
-        }
-        catch(CameraControllerException e) {
-            MyDebug.logStackTrace(TAG, "camera exception starting video recorder (MediaCodec)", e);
-            this.media_codec_video_recorder = local_video_recorder;
-            if( told_app_starting ) {
-                applicationInterface.stoppingVideo();
-            }
-            failedToStartVideoRecorderMediaCodec(profile);
-        }
-        catch(NoFreeStorageException e) {
-            MyDebug.logStackTrace(TAG, "nofreestorageexception starting video recorder (MediaCodec)", e);
-            this.media_codec_video_recorder = local_video_recorder;
-            if( told_app_starting ) {
-                applicationInterface.stoppingVideo();
-            }
-            local_video_recorder.stop();
-            this.media_codec_video_recorder = null;
-            applicationInterface.deleteUnusedVideo(videoFileInfo.video_method, videoFileInfo.video_uri, videoFileInfo.video_filename);
-            videoFileInfo = new VideoFileInfo();
-            applicationInterface.cameraInOperation(false, true);
-            this.reconnectCamera(true);
-            this.showToast(null, R.string.video_no_free_space);
-        }
-    }
-
-    private void failedToStartVideoRecorderMediaCodec(VideoProfile profile) {
-        applicationInterface.onVideoRecordStartError(profile);
-        if( media_codec_video_recorder != null ) {
-            media_codec_video_recorder.stop();
-            media_codec_video_recorder = null;
-        }
-        video_recorder_is_paused = false;
-        applicationInterface.deleteUnusedVideo(videoFileInfo.video_method, videoFileInfo.video_uri, videoFileInfo.video_filename);
-        videoFileInfo = new VideoFileInfo();
-        applicationInterface.cameraInOperation(false, true);
-        this.reconnectCamera(true);
-    }
-
-    private void stopVideoMediaCodec(boolean from_restart) {
-        if( MyDebug.LOG )
-            Log.d(TAG, "stopVideoMediaCodec()");
-        applicationInterface.stoppingVideo();
-        if( flashVideoTimerTask != null ) {
-            flashVideoTimerTask.cancel();
-            flashVideoTimerTask = null;
-        }
-        if( batteryCheckVideoTimerTask != null ) {
-            batteryCheckVideoTimerTask.cancel();
-            batteryCheckVideoTimerTask = null;
-        }
-        if( !from_restart ) {
-            remaining_restart_video = 0;
-        }
-        if( media_codec_video_recorder != null ) { // check again, just to be safe
-            if( MyDebug.LOG )
-                Log.d(TAG, "stop video recording (MediaCodec)");
-            try {
-                media_codec_video_recorder.stop();
-            }
-            catch(RuntimeException e) {
-                // stop() can fail if called too soon after starting - indicates a corrupt file
-                if( MyDebug.LOG )
-                    Log.d(TAG, "runtime exception when stopping video (MediaCodec)");
-                videoFileInfo.close();
-                applicationInterface.deleteUnusedVideo(videoFileInfo.video_method, videoFileInfo.video_uri, videoFileInfo.video_filename);
-                videoFileInfo = new VideoFileInfo();
-                if( nextVideoFileInfo != null )
-                    nextVideoFileInfo.close();
-                nextVideoFileInfo = null;
-                if( !video_start_time_set || System.currentTimeMillis() - video_start_time > 2000 ) {
-                    VideoProfile profile = getVideoProfile();
-                    applicationInterface.onVideoRecordStopError(profile);
-                }
-            }
-            media_codec_video_recorder = null;
-            videoRecordingStoppedMediaCodec();
-        }
-    }
-
-    private void videoRecordingStoppedMediaCodec() {
-        if( MyDebug.LOG )
-            Log.d(TAG, "reset media_codec_video_recorder");
-        video_recorder_is_paused = false;
-        applicationInterface.cameraInOperation(false, true);
-        reconnectCamera(false); // n.b., if something went wrong with video, then we reopen the camera - which may fail (or simply not reopen, e.g., if app is now paused)
-        videoFileInfo.close();
-        applicationInterface.stoppedVideo(videoFileInfo.video_method, videoFileInfo.video_uri, videoFileInfo.video_filename);
-        if( nextVideoFileInfo != null ) {
-            if( MyDebug.LOG )
-                Log.d(TAG, "delete unused next video file");
-            nextVideoFileInfo.close();
-            applicationInterface.deleteUnusedVideo(nextVideoFileInfo.video_method, nextVideoFileInfo.video_uri, nextVideoFileInfo.video_filename);
-        }
-        videoFileInfo = new VideoFileInfo();
-        nextVideoFileInfo = null;
-    }
-
     private void videoRecordingStarted(boolean max_filesize_restart) {
         if( MyDebug.LOG )
             Log.d(TAG, "video recorder started");
@@ -6816,10 +6596,7 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
             if( video_recorder_is_paused ) {
                 if( MyDebug.LOG )
                     Log.d(TAG, "resuming...");
-                if( media_codec_video_recorder != null )
-                    media_codec_video_recorder.resume();
-                else
-                    video_recorder.resume();
+                video_recorder.resume();
                 video_recorder_is_paused = false;
                 video_start_time = System.currentTimeMillis();
                 this.showToast(pause_video_toast, R.string.video_resume, true);
@@ -6827,10 +6604,7 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
             else {
                 if( MyDebug.LOG )
                     Log.d(TAG, "pausing...");
-                if( media_codec_video_recorder != null )
-                    media_codec_video_recorder.pause();
-                else
-                    video_recorder.pause();
+                video_recorder.pause();
                 video_recorder_is_paused = true;
                 long last_time = System.currentTimeMillis() - video_start_time;
                 video_accumulated_time += last_time;
@@ -9576,7 +9350,7 @@ private boolean has_flash_unit; // whether the camera has a flash, before any se
     }
 
     public boolean isVideoRecording() {
-        return (video_recorder != null || media_codec_video_recorder != null) && video_start_time_set;
+        return video_recorder != null && video_start_time_set;
     }
 
     public boolean isVideoRecordingPaused() {
