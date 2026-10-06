@@ -2309,7 +2309,12 @@ public class MyApplicationInterface extends BasicApplicationInterface {
     private void setNextPanoramaPoint(boolean repeat) {
         if( MyDebug.LOG )
             Log.d(TAG, "setNextPanoramaPoint");
-        float camera_angle_y = main_activity.getPreview().getViewAngleY(false);
+        // Senkrecht schwenkt ueber die lange Bildseite (Hoch-/Runterziehen), waagerecht ueber die
+        // kurze; der jeweilige Bildwinkel ist getViewAngleX bzw. getViewAngleY (Preview rechnet
+        // beide aus dem aktuellen Bildformat). Fuehrung und Stitcher lesen denselben Winkel, die
+        // Annahme des Stitchers ueber die Schrittweite bleibt also die, die der Nutzer gefuehrt wird.
+        boolean vertical = isPanoramaVertical();
+        float camera_angle = vertical ? main_activity.getPreview().getViewAngleX(false) : main_activity.getPreview().getViewAngleY(false);
         if( !repeat )
             n_panorama_pics++;
         if( MyDebug.LOG )
@@ -2320,9 +2325,9 @@ public class MyApplicationInterface extends BasicApplicationInterface {
             finishPanorama();
             return;
         }
-        float angle = (float) Math.toRadians(camera_angle_y) * n_panorama_pics;
+        float angle = (float) Math.toRadians(camera_angle) * n_panorama_pics;
         if( n_panorama_pics > 1 && !panorama_dir_left_to_right ) {
-            angle = - angle; // for right-to-left
+            angle = - angle; // for right-to-left, bzw. runter-nach-hoch beim senkrechten Schwenk
         }
         angle /= panorama_pics_per_screen;
         // angle ist die Mitte des naechsten Bildes, also n_panorama_pics * Schritt; seine Scheibe
@@ -2335,21 +2340,22 @@ public class MyApplicationInterface extends BasicApplicationInterface {
             finishPanorama();
             return;
         }
-        panoramaTargetPoint(target_point, angle);
-        setNextPanoramaPoint(target_point[0], target_point[1], target_point[2]);
+        panoramaTargetPoint(target_point, angle, vertical);
+        setNextPanoramaPoint(target_point[0], target_point[1], target_point[2], vertical);
 
         if( n_panorama_pics == 1 ) {
-            // also set target for right-to-left
-            panoramaTargetPoint(target_point, -angle);
+            // also set target for the other direction (right-to-left bzw. runter-nach-hoch)
+            panoramaTargetPoint(target_point, -angle, vertical);
             gyroSensor.addTarget(target_point[0], target_point[1], target_point[2]);
             drawPreview.addGyroDirectionMarker(target_point[0], target_point[1], target_point[2]);
         }
     }
 
     /** Der Zielpunkt für den nächsten Panorama-Schritt: die Blickrichtung beim ersten Bild, um
-     *  {@code angle} (Bogenmaß) um die Erdvertikale gedreht (Falk 2026-09-25). Die Erdvertikale
-     *  kommt aus dem Beschleunigungsmesser (GyroSensor.getUpVector()), nicht aus der Hoch-Achse des
-     *  Handys: war das Handy beim Start schräg, ist beides verschieden.
+     *  {@code angle} (Bogenmaß) gedreht. Waagerecht dreht das um die Erdvertikale (Falk 2026-09-25),
+     *  senkrecht um die Querachse (senkrecht auf Blickrichtung UND Erdvertikale).
+     *  Die Erdvertikale kommt aus dem Beschleunigungsmesser (GyroSensor.getUpVector()), nicht aus
+     *  der Hoch-Achse des Handys: war das Handy beim Start schräg, ist beides verschieden.
      *  Upstream legte den Zielpunkt in die Horizontalebene des Bezugssystems (y = 0), also in die
      *  Ebene senkrecht zur Hoch-Achse beim Start. Bei schräg begonnenem Panorama ist das nicht die
      *  Horizontebene der Welt: die Führung zog die Aufnahme damit im Verlauf nach oben zum Horizont
@@ -2358,17 +2364,41 @@ public class MyApplicationInterface extends BasicApplicationInterface {
      *  gehen weiterhin durch eine reine Drehung um die Erdvertikale auseinander hervor - genau das,
      *  was die Projektion des Stitchers annimmt.
      *  Für ein gerade gehaltenes Handy (up = (0,1,0), Blick = (0,0,-1)) ergibt das exakt die
-     *  bisherige Formel (sin(angle), 0, -cos(angle)) samt Drehrichtung.
+     *  bisherige Formel (sin(angle), 0, -cos(angle)) samt Drehrichtung; senkrecht dreht der positive
+     *  Winkel dann nach oben (um +x).
      */
-    private void panoramaTargetPoint(float [] out, float angle) {
+    private void panoramaTargetPoint(float [] out, float angle, boolean vertical) {
         float [] v0 = new float[3];
         float [] up = new float[3];
         gyroSensor.getStartVector(v0);
         gyroSensor.getUpVector(up);
-        // Achse = -up: reproduziert für ein gerade gehaltenes Handy die bisherige Drehrichtung
-        float nx = -up[0];
-        float ny = -up[1];
-        float nz = -up[2];
+        float nx, ny, nz;
+        if( vertical ) {
+            // Querachse = v0 x up: senkrecht auf Blickrichtung und Erdvertikale. Für ein gerade
+            // gehaltenes Handy ist das +x, und der positive Winkel kippt die Blickrichtung nach
+            // oben - dieselbe Vereinbarung wie waagerecht (positiv = "vorwärts" der Schwenkrichtung).
+            nx = v0[1] * up[2] - v0[2] * up[1];
+            ny = v0[2] * up[0] - v0[0] * up[2];
+            nz = v0[0] * up[1] - v0[1] * up[0];
+            float mag = (float) Math.sqrt(nx*nx + ny*ny + nz*nz);
+            if( mag > 1.0e-5f ) {
+                nx /= mag;
+                ny /= mag;
+                nz /= mag;
+            }
+            else {
+                // Blick fast senkrecht nach oben/unten: die Querachse ist unbestimmt; gerade halten annehmen.
+                nx = 1.0f;
+                ny = 0.0f;
+                nz = 0.0f;
+            }
+        }
+        else {
+            // Achse = -up: reproduziert für ein gerade gehaltenes Handy die bisherige Drehrichtung
+            nx = -up[0];
+            ny = -up[1];
+            nz = -up[2];
+        }
         float cos = (float) Math.cos(angle);
         float sin = (float) Math.sin(angle);
         float dot = nx * v0[0] + ny * v0[1] + nz * v0[2];
@@ -2381,7 +2411,7 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         out[2] = v0[2] * cos + cz * sin + nz * dot * (1.0f - cos);
     }
 
-    private void setNextPanoramaPoint(float x, float y, float z) {
+    private void setNextPanoramaPoint(float x, float y, float z, boolean vertical) {
         if( MyDebug.LOG )
             Log.d(TAG, "setNextPanoramaPoint : " + x + " , " + y + " , " + z);
 
@@ -2394,7 +2424,7 @@ public class MyApplicationInterface extends BasicApplicationInterface {
         final float upright_angle_tol = 3.0f * 0.017452406437f;
         //final float upright_angle_tol = 2.0f * 0.017452406437f;
         final float too_far_angle = 45.0f * 0.01745329252f;
-        gyroSensor.setTarget(x, y, z, target_angle, upright_angle_tol, too_far_angle, new GyroSensor.TargetCallback() {
+        gyroSensor.setTarget(x, y, z, target_angle, upright_angle_tol, too_far_angle, vertical, new GyroSensor.TargetCallback() {
             @Override
             public void onAchieved(int indx) {
                 if( MyDebug.LOG ) {
@@ -2442,6 +2472,13 @@ public class MyApplicationInterface extends BasicApplicationInterface {
 
     static float getPanoramaPicsPerScreen() {
         return panorama_pics_per_screen;
+    }
+
+    /** Whether the panorama sweeps vertically (Senkrecht) around the transverse axis. Read live
+     *  from the preference: the viewfinder toggle that writes it is hidden while a panorama is
+     *  being recorded, so the value cannot change mid-capture. */
+    public boolean isPanoramaVertical() {
+        return sharedPreferences.getBoolean(PreferenceKeys.PanoramaVerticalPreferenceKey, false);
     }
 
     @Override
@@ -3887,6 +3924,7 @@ public class MyApplicationInterface extends BasicApplicationInterface {
                 if( photo_mode == PhotoMode.Panorama ) {
                     imageSaver.getImageBatchRequest().camera_view_angle_x = main_activity.getPreview().getViewAngleX(false);
                     imageSaver.getImageBatchRequest().camera_view_angle_y = main_activity.getPreview().getViewAngleY(false);
+                    imageSaver.getImageBatchRequest().panorama_vertical = isPanoramaVertical();
                 }
             }
 

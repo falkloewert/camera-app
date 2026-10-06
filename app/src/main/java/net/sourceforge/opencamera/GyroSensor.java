@@ -47,8 +47,13 @@ public class GyroSensor implements SensorEventListener {
     // Die Rolllage (is_upright) und die Neigung werden getrennt geprüft: is_upright behält seine
     // Bedeutung für den Dreh-Hinweis im Sucher (zu weit im/gegen den Uhrzeigersinn), die Neigung
     // braucht einen eigenen Wert, weil ein schräg begonnenes Panorama sie halten soll statt sie
-    // aufzugeben.
+    // aufzugeben. pitch_ok heißt beim senkrechten Schwenk eigentlich "Gieren konstant" - die
+    // Neigung (Pitch) ändert sich dort ja absichtlich.
     private boolean pitch_ok = true;
+
+    // Ob der Schwenk senkrecht (um die Querachse) statt waagerecht (um die Erdvertikale) läuft.
+    // Bestimmt, welche der beiden Bedingungen in onSensorChanged() die Aufnahme freigibt.
+    private boolean panorama_vertical;
 
     private boolean has_original_rotation_matrix;
     private final float [] originalRotationMatrix = new float[9];
@@ -264,7 +269,7 @@ public class GyroSensor implements SensorEventListener {
         return this.is_recording;
     }
 
-    void setTarget(float target_x, float target_y, float target_z, float targetAngle, float uprightAngleTol, float tooFarAngle, TargetCallback targetCallback) {
+    void setTarget(float target_x, float target_y, float target_z, float targetAngle, float uprightAngleTol, float tooFarAngle, boolean vertical, TargetCallback targetCallback) {
         this.hasTarget = true;
         this.targetVectors.clear();
         addTarget(target_x, target_y, target_z);
@@ -272,6 +277,7 @@ public class GyroSensor implements SensorEventListener {
         this.uprightAngleTol = uprightAngleTol;
         this.tooFarAngle = tooFarAngle;
         this.targetCallback = targetCallback;
+        this.panorama_vertical = vertical;
         this.has_lastTargetAngle = false;
         this.lastTargetAngle = 0.0f;
         if( !has_start_vector ) {
@@ -610,14 +616,38 @@ public class GyroSensor implements SensorEventListener {
                     is_upright = (sin_roll < 0) ? 1 : -1;
                 }
 
-                // (b) Neigung: unverändert gegenüber dem Start der Aufnahme
+                // (b) Neigung: unverändert gegenüber dem Start der Aufnahme. Beim senkrechten
+                // Schwenk ändert sich die Neigung (Pitch) absichtlich - dort muss stattdessen die
+                // waagerechte Blickrichtung (Gieren) konstant bleiben, sonst laufen die Scheiben
+                // schief aufeinander.
                 setVector(inVector, 0.0f, 0.0f, -1.0f); // vector pointing behind the device's screen
                 transformVector(tempVector, currentRotationMatrix, inVector);
-                float sin_pitch = tempVector[0]*upVector[0] + tempVector[1]*upVector[1] + tempVector[2]*upVector[2];
                 getStartVector(startVectorTmp);
-                float sin_pitch_start = startVectorTmp[0]*upVector[0] + startVectorTmp[1]*upVector[1] + startVectorTmp[2]*upVector[2];
-                if( Math.abs(sin_pitch - sin_pitch_start) > sin_tol ) {
-                    pitch_ok = false;
+                if( panorama_vertical ) {
+                    float view_up = tempVector[0]*upVector[0] + tempVector[1]*upVector[1] + tempVector[2]*upVector[2];
+                    float start_up = startVectorTmp[0]*upVector[0] + startVectorTmp[1]*upVector[1] + startVectorTmp[2]*upVector[2];
+                    // horizontaler Anteil der Blickrichtung (senkrecht zur Erdvertikale)
+                    float hx = tempVector[0] - view_up*upVector[0];
+                    float hy = tempVector[1] - view_up*upVector[1];
+                    float hz = tempVector[2] - view_up*upVector[2];
+                    float sx = startVectorTmp[0] - start_up*upVector[0];
+                    float sy = startVectorTmp[1] - start_up*upVector[1];
+                    float sz = startVectorTmp[2] - start_up*upVector[2];
+                    float h_mag = (float)Math.sqrt(hx*hx + hy*hy + hz*hz);
+                    float s_mag = (float)Math.sqrt(sx*sx + sy*sy + sz*sz);
+                    if( h_mag > 1.0e-5f && s_mag > 1.0e-5f ) {
+                        float cos_yaw = (hx*sx + hy*sy + hz*sz) / (h_mag*s_mag);
+                        if( cos_yaw < (float)Math.cos(this.uprightAngleTol) ) {
+                            pitch_ok = false;
+                        }
+                    }
+                }
+                else {
+                    float sin_pitch = tempVector[0]*upVector[0] + tempVector[1]*upVector[1] + tempVector[2]*upVector[2];
+                    float sin_pitch_start = startVectorTmp[0]*upVector[0] + startVectorTmp[1]*upVector[1] + startVectorTmp[2]*upVector[2];
+                    if( Math.abs(sin_pitch - sin_pitch_start) > sin_tol ) {
+                        pitch_ok = false;
+                    }
                 }
 
                 float cos_angle = tempVector[0] * targetVector[0] + tempVector[1] * targetVector[1] + tempVector[2] * targetVector[2];

@@ -139,6 +139,7 @@ public class ImageSaver extends Thread {
         final double level_angle; // in degrees
         final List<float []> gyro_rotation_matrix; // used for panorama (one 3x3 matrix per jpeg_images entry), otherwise can be null
         boolean panorama_dir_left_to_right; // used for panorama
+        boolean panorama_vertical; // used for panorama: sweep is vertical (around the transverse axis) instead of horizontal
         float camera_view_angle_x; // used for panorama
         float camera_view_angle_y; // used for panorama
         final boolean is_front_facing;
@@ -1701,9 +1702,26 @@ public class ImageSaver extends Thread {
                 Log.d(TAG, "panorama performance: time after rotating for exif: " + (System.currentTimeMillis() - time_s));
             }
 
+            // Senkrecht wird der liegende Zylinder des Stitchers wiederverwendet, indem jedes Bild
+            // 90 Grad im Uhrzeigersinn gedreht wird: die Schwenkrichtung (die lange Seite) wird zur
+            // breiten Seite, die liegende Achse zur schmalen. Das Ergebnis wird unten zurückgedreht.
+            final boolean panorama_vertical = request.panorama_vertical;
+            if( panorama_vertical ) {
+                Matrix rotation_matrix = new Matrix();
+                rotation_matrix.postRotate(90.0f);
+                for(int i=0;i<bitmaps.size();i++) {
+                    Bitmap bitmap = bitmaps.get(i);
+                    Bitmap rotated_bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), rotation_matrix, true);
+                    if( rotated_bitmap != bitmap ) {
+                        bitmap.recycle();
+                        bitmaps.set(i, rotated_bitmap);
+                    }
+                }
+            }
+
 
             try {
-                panorama = panoramaProcessor.panorama(bitmaps, MyApplicationInterface.getPanoramaPicsPerScreen(), request.camera_view_angle_y, request.panorama_crop);
+                panorama = panoramaProcessor.panorama(bitmaps, MyApplicationInterface.getPanoramaPicsPerScreen(), panorama_vertical ? request.camera_view_angle_x : request.camera_view_angle_y, request.panorama_crop);
             }
             catch(OutOfMemoryError e) {
                 // Schritt E: der Stitcher braucht neben den Bildern noch seine eigenen Puffer - wird
@@ -1735,6 +1753,17 @@ public class ImageSaver extends Thread {
             }
             if( MyDebug.LOG )
                 Log.d(TAG, "panorama: " + panorama);
+            if( panorama_vertical ) {
+                // das gedreht gestitchte Band zurückdrehen: aus dem liegenden Streifen wird wieder
+                // ein stehender (oben = die Richtung, in die der positive Zielwinkel geführt hat)
+                Matrix rotation_matrix = new Matrix();
+                rotation_matrix.postRotate(-90.0f);
+                Bitmap rotated_bitmap = Bitmap.createBitmap(panorama, 0, 0, panorama.getWidth(), panorama.getHeight(), rotation_matrix, true);
+                if( rotated_bitmap != panorama ) {
+                    panorama.recycle();
+                    panorama = rotated_bitmap;
+                }
+            }
             bitmaps.clear();
             System.gc();
 
@@ -2122,7 +2151,7 @@ public class ImageSaver extends Thread {
                         Bitmap.CompressFormat compress_format = getBitmapCompressFormat(request.image_format);
                         if( request.process_type == Request.ProcessType.PANORAMA && compress_format == Bitmap.CompressFormat.JPEG ) {
                             // panorama xmp only supported for JPEG format
-                            savePanoramaBitmap(bitmap, compress_format, request.image_quality, request.jpeg_images.size(), outputStream);
+                            savePanoramaBitmap(bitmap, compress_format, request.image_quality, request.jpeg_images.size(), request.panorama_vertical, outputStream);
                         }
                         else {
                             bitmap.compress(compress_format, request.image_quality, outputStream);
@@ -2359,7 +2388,7 @@ public class ImageSaver extends Thread {
         return success;
     }
 
-    private void savePanoramaBitmap(Bitmap bitmap, Bitmap.CompressFormat compress_format, int quality, int n_pics, OutputStream outputStream) throws IOException {
+    private void savePanoramaBitmap(Bitmap bitmap, Bitmap.CompressFormat compress_format, int quality, int n_pics, boolean vertical, OutputStream outputStream) throws IOException {
         // need to write to a temporary stream, so we can insert XMP tags
         ByteArrayOutputStream jpegStream = new ByteArrayOutputStream();
         bitmap.compress(compress_format, quality, jpegStream);
@@ -2377,33 +2406,52 @@ public class ImageSaver extends Thread {
         int height = bitmap.getHeight();
 
         // see code in MyApplicationInterface.setNextPanoramaPoint()
-        float camera_angle_y = main_activity.getPreview().getViewAngleY(false); // angle spanned by one image
-        float angle_per_pic = camera_angle_y / MyApplicationInterface.getPanoramaPicsPerScreen(); // extra angle per extra pic
+        // Waagerecht schwenkt über die kurze Bildseite (getViewAngleY), senkrecht über die lange
+        // (getViewAngleX) - derselbe Winkel, mit dem die Führung und der Stitcher rechnen.
+        float camera_angle = vertical ? main_activity.getPreview().getViewAngleX(false) : main_activity.getPreview().getViewAngleY(false);
+        float angle_per_pic = camera_angle / MyApplicationInterface.getPanoramaPicsPerScreen(); // extra angle per extra pic
         // Falk 2026-09-25: der Bildwinkel des *Ergebnisses* ist bilder*Schritt, nicht
-        // camera_angle_y + Schritt*(bilder-1). Die alte Formel lieferte bei 17 Bildern 395.8 Grad,
+        // camera_angle + Schritt*(bilder-1). Die alte Formel lieferte bei 17 Bildern 395.8 Grad,
         // also FullPanoWidthPixels 10148 < Bildbreite 11158 und ein negatives CroppedAreaLeftPixels -
         // eine Photosphere-Angabe, die kein Betrachter sinnvoll dehnen kann (das "vertikal
         // gestretcht"). Und mehr als eine Runde ergibt keinen Sinn: PanoramaProcessor.panorama()
         // kuerzt das Bild auf genau 360 Grad.
         float total_angle = angle_per_pic * n_pics;
-        if( total_angle > 360.0f )
-            total_angle = 360.0f;
-        float n_pics_for_360 = 360.0f/total_angle;
-        int full_width = (int)(width * n_pics_for_360 + 0.5f);
+        int full_width, full_height, cropped_left, cropped_top;
+        if( vertical ) {
+            // Senkrecht spannt das Bild die Neigung (Pitch, 0..180 Grad) auf, die Querrichtung
+            // (Gieren) ist ein fester, schmaler Ausschnitt. Die volle Kugel der Photosphere ist
+            // 360 Grad Gieren mal 180 Grad Neigung: die Bildhoehe wird auf die 180 Grad gedehnt,
+            // die Breite auf den vollen 360-Grad-Umfang.
+            if( total_angle > 180.0f )
+                total_angle = 180.0f;
+            float n_pics_for_180 = 180.0f/total_angle;
+            full_height = (int)(height * n_pics_for_180 + 0.5f);
+            full_width = full_height * 2; // full resolution is 360x180 degrees
+            full_width = Math.max(full_width, width); // just in case!
+            full_height = Math.max(full_height, height); // just in case!
+            cropped_top = (full_height - height)/2;
+            cropped_left = (full_width - width)/2;
+        }
+        else {
+            if( total_angle > 360.0f )
+                total_angle = 360.0f;
+            float n_pics_for_360 = 360.0f/total_angle;
+            full_width = (int)(width * n_pics_for_360 + 0.5f);
 
-        //int full_height = (int)(height * n_pics_for_360 * 0.5f + 0.5f);
-        //float camera_angle_x = main_activity.getPreview().getViewAngleX(false); // angle spanned by one image
-        //int full_height = (int)(height * (180.0f/camera_angle_x) + 0.5f);
-        int full_height = full_width/2; // full resolution is 360x180 degrees, and don't want to preserve aspect ratio
-        full_height = Math.max(full_height, height); // just in case!
+            //int full_height = (int)(height * n_pics_for_360 * 0.5f + 0.5f);
+            //float camera_angle_x = main_activity.getPreview().getViewAngleX(false); // angle spanned by one image
+            //int full_height = (int)(height * (180.0f/camera_angle_x) + 0.5f);
+            full_height = full_width/2; // full resolution is 360x180 degrees, and don't want to preserve aspect ratio
+            full_height = Math.max(full_height, height); // just in case!
 
-        int cropped_left = (full_width - width)/2;
-        int cropped_top = (full_height - height)/2;
+            cropped_left = (full_width - width)/2;
+            cropped_top = (full_height - height)/2;
+        }
         if( MyDebug.LOG ) {
-            Log.d(TAG, "camera_angle_y: " + camera_angle_y);
+            Log.d(TAG, "camera_angle: " + camera_angle);
             Log.d(TAG, "angle_per_pic: " + angle_per_pic);
             Log.d(TAG, "total_angle: " + total_angle);
-            Log.d(TAG, "n_pics_for_360: " + n_pics_for_360);
             Log.d(TAG, "width: " + width);
             Log.d(TAG, "full_width: " + full_width);
             Log.d(TAG, "height: " + height);
