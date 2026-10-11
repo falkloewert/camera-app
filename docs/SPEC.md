@@ -66,11 +66,11 @@ zu können (`git fetch upstream`).
 | 2 | Filmchen-Modus (Snapchat-Style Clip-Tagebuch) | Idee / Konzept | Mittel-Hoch |
 | 3 | Dual-Kamera (Selfie-Bubble, unabhängiger Zoom) | Idee / Konzept | Hoch (geräteabhängig) |
 | 4 | Panorama mit Weitwinkel-Option | **Fertig** | Niedrig-Mittel |
-| 5 | Kamera während Videoaufnahme umdrehen | Idee / Notiz (nice-to-have) | Niedrig |
+| 5 | Kamera während Videoaufnahme umdrehen | **Abgeblasen** (2026-10-11), für später gemerkt – siehe 4.7 | Niedrig (Einschätzung war zu optimistisch) |
 | 7 | Zeitraffer & Zeitlupe (Video-Modi wie in der Pixel-App, siehe 4.6) | **Fertig** (2026-09-21) | Mittel |
 | 8 | Doppeltippen auf den Sucher wechselt die Kamera (Selfie ↔ hinten) | Idee (2026-09-21) | Niedrig |
 | 9 | Serienbilder als Stapel in der Galerie statt einzelner Bilder | Idee (2026-09-21, Recherche nötig) | Mittel |
-| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile, Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen, Datei-Prüfung abgeschlossen), **Feinjustier-Rad** (2026-09-18), Einstellungen-Blätter + Pro-Panel (2026-09-21) und **Kopfzeile; alte Icon-Leiste + Drei-Punkte-Popup entfernt** (Schritt C, 2026-09-22) gebaut, dazu **Karussell, Licht-Zeile, Chips, Stärke im Pro-Panel** (Schritte D–K, abgenommen 2026-09-23) und **Sucher-Overlays: Fokus-Ring, Drittel-Raster, Wasserwaage, Sucher-Lage** (Schritt L, abgenommen 2026-09-24); offen: nur noch `ui-spezifikation.md` 7.3 (Farben/Blur/Schrift) | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
+| 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile, Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen, Datei-Prüfung abgeschlossen), **Feinjustier-Rad** (2026-09-18), Einstellungen-Blätter + Pro-Panel (2026-09-21) und **Kopfzeile; alte Icon-Leiste + Drei-Punkte-Popup entfernt** (Schritt C, 2026-09-22) gebaut, dazu **Karussell, Licht-Zeile, Chips, Stärke im Pro-Panel** (Schritte D–K, abgenommen 2026-09-23) und **Sucher-Overlays: Fokus-Ring, Drittel-Raster, Wasserwaage, Sucher-Lage** (Schritt L, abgenommen 2026-09-24) und **Farben/Blur/Schrift** (Schritt N, `ui-spezifikation.md` 7.3, abgenommen 2026-10-06) – damit ist die Redesign-Restliste leer, siehe 4.5 | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
 
 ### 3.1 Vereinbarte Reihenfolge (aktualisiert 2026-09-14: Material-3-Redesign vor Feature 5 vorgezogen)
 
@@ -82,7 +82,8 @@ nochmal überarbeitet werden müssen (Falks Begründung, von Claude bestätigt: 
 
 1. **Feature 4** – Panorama mit Weitwinkel-Option — **Fertig**
 2. **Feature 6** – Material-3-Redesign (siehe 4.5)
-3. **Feature 5** – Kamera während Videoaufnahme umdrehen
+3. ~~**Feature 5** – Kamera während Videoaufnahme umdrehen~~ — **abgeblasen 2026-10-11**
+   (MediaCodec-Weg zu instabil, siehe 4.7). Der nächste Punkt der Reihenfolge rückt nach.
 4. **Machbarkeits-Spike Dual-Kamera** – kein volles Feature, nur klären: unterstützt
    der Pixel 9 Pro zuverlässig gleichzeitigen Zugriff auf Front- und Rückkamera
    ("Concurrent Camera")?
@@ -578,6 +579,36 @@ in der Datei, Moduswahl bleibt statisch.
 
 **Komplexität/Risiko:** Mittel – UI klein; Risiko liegt in der HAL-Unterstützung für
 High-Speed und in der Datei-Semantik (Playback-Rate).
+
+---
+
+### 4.7 Kamera während Videoaufnahme umdrehen — Status: Abgeblasen (2026-10-11)
+
+**Ziel war:** während einer laufenden Videoaufnahme zwischen Front- und Rückkamera
+umschalten, ohne die Aufnahme zu unterbrechen (Feature 5, SPEC 3.1 Punkt 3; eigener
+Kickoff `docs/kickoff/video-kameraflip.md` von 2026-09-14).
+
+**Was gebaut wurde (2026-10-07, ein Tag Arbeit):** Weil die vorhandene Aufnahme-Kette
+(`Preview` + `MediaRecorder`) einen Kamerawechsel nicht übersteht, wurde der Anfang einer
+eigenen Aufnahme-Engine auf `MediaCodec` gebaut – Schritte 1–3, rund 890 Zeilen:
+`preview/MediaCodecVideoRecorder.java` (neu, 627 Zeilen), dazu Änderungen an
+`preview/Preview.java` (+238), `cameracontroller/CameraController.java` (+8) und
+`cameracontroller/CameraController2.java` (±33). Commit `25e8604d`.
+
+**Warum abgeblasen:** Der MediaCodec-Weg erwies sich als **zu instabil** (Falks Urteil
+nach dem Versuch). Der gesamte Code wurde in `a99399d9` wieder zurückgenommen – der
+Arbeitsbaum enthält davon nichts mehr, es gibt keine halbfertige Engine im Repo.
+
+**Für später gemerkt:** Der Ansatz ist nicht grundsätzlich falsch, aber der Aufwand für
+eine eigene, stabile Aufnahme-Engine steht in keinem Verhältnis zu dem, was das Feature
+im Alltag bringt. Wer es später wieder aufnimmt, sollte **nicht** bei `MediaCodec`
+ansetzen, sondern zuerst klären, ob ein Kamerawechsel nicht doch über die vorhandene
+Kette geht (zweite `MediaRecorder`-Instanz, Pause/Resume statt Neubau) oder ob die
+Aufnahme den Wechsel als Schnitt verträgt. Die Komplexitätseinschätzung „Niedrig" in
+Abschnitt 3 war zu optimistisch — sie bezog sich auf das UI, nicht auf die Aufnahme-Kette.
+
+**Nicht betroffen:** Der normale Kamerawechsel (ohne laufende Aufnahme) und die
+Videoaufnahme selbst funktionieren unverändert; es wurde nichts Bestehendes beschädigt.
 
 ---
 

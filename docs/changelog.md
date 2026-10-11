@@ -840,3 +840,13 @@ Nachteile hat; Filmchen-Modus und Dual-Kamera hätten dagegen jeweils eigene UI-
   Achse automatisch aus Geräte-Orientierung (hochkant→waagerecht, quer→senkrecht), kein Umschalter;
   senkrecht projiziert der Stitcher um die liegende Achse, Photosphere-Angabe trägt die Achse
   (Pitch 0..180°), Schwenk-Limit 180°. Commits `0aa6154d`, `ff8b5800`, `61c78f4`, `5565f6e7`.
+
+- **2026-10-11 (Feature 5 abgeblasen):** Kamera-Umschalten während laufender Videoaufnahme
+  wird nicht weiterverfolgt. Am 2026-10-07 war dafür eine eigene Aufnahme-Engine auf
+  `MediaCodec` begonnen worden (Schritte 1–3, ~890 Zeilen, `25e8604d`:
+  `preview/MediaCodecVideoRecorder.java` neu + `Preview`/`CameraController*`), sie erwies
+  sich als zu instabil und wurde in `a99399d9` vollständig zurückgenommen – im Repo liegt
+  davon nichts mehr. Für später gemerkt (SPEC 4.7): nicht wieder bei MediaCodec ansetzen,
+  erst prüfen, ob ein Wechsel über die vorhandene Kette geht. Komplexität war zu optimistisch
+  eingeschätzt. Nebenbei Dokumentation bereinigt: Redesign-Status in SPEC 3 stand noch auf
+  „Schritt N offen", obwohl am 2026-10-06 abgenommen.
