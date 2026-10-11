@@ -863,3 +863,10 @@ Nachteile hat; Filmchen-Modus und Dual-Kamera hätten dagegen jeweils eigene UI-
   vorhanden; der in Schritt L bewusst weggelassene Ring-Regler ist damit wieder aktuell).
   **20** Recherche, wie man eine fremde App reverse engineert, um Referenzwerte zu messen
   statt aus Screenshots zu schätzen.
+
+- **2026-10-11 (Nachtrag, PM-Punkt 17 verschärft):** Falk legt volle Auflösung als **harte
+  Anforderung** fest – „sonst will ich das gar nicht". Damit ist die Verkleinerung aus
+  Schritt E/F (`max_panorama_width_c` 2080) überholt und PM-Punkt 17 keine Abwägung mehr;
+  die Vorgabe bindet auch Feature 1 (360°-Stitching), wo dieselbe Speicherfrage mit mehr
+  Bildern auftritt. Weg muss volle Auflösung liefern (Rahmen auf Platte statt Heap,
+  streifenweise stitchen, oder `ImageReader`/`HardwareBuffer`), vorher messen.

@@ -534,16 +534,23 @@ Verlauf und Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
     `PanoramaProcessor.computePanoramaTransforms()`); sie ließe sich über die letzten Bilder
     auf null rampen, damit Anfang und Ende exakt aufeinandersitzen. Bewusst nicht mehr in
     diesem Lauf gebaut – eigener kleiner Chat, nur wenn Falk es will.
-17. **Panorama-Qualität: volle Auflösung statt Verkleinerung** (Falk 2026-10-11: „panorama
-    volle qualität behalten nicht kompremmieren, das wird aktuell schlechte quali"). Die
-    Ursache ist bekannt und steht schon im Code: `MyApplicationInterface.
-    max_panorama_width_c = 2080` und `ImageSaver.computePanoramaSampleSize()` verkleinern
-    jeden Rahmen, damit 17 Rahmen ins Speicherbudget passen (`max_panorama_pics_c`).
-    Das ist eine bewusste Entscheidung von Schritt E/F – sie kostet Bildschärfe statt
-    Panorama-Länge. Entscheidung nötig, was Vorrang hat: Wege wären (a) größere Rahmen und
-    kleinere Puffer, (b) die Rahmen nicht alle im Heap halten, sondern laufend auf die
-    Platte schreiben und erst am Ende stitchen, (c) weniger Bilder bei voller Auflösung.
-    **Erst messen** (echter Speicherbedarf je Weg, Dauer des Stitch am Gerät), dann wählen.
+17. **Panorama-Qualität: volle Auflösung statt Verkleinerung — harte Anforderung**
+    (Falk 2026-10-11: „panorama volle qualität behalten nicht kompremmieren, das wird
+    aktuell schlechte quali", nachgeschoben „ich möchte trotzdem volle quali bei pano und
+    später 360. Da müssen wir unbedingt einen Weg finden. **Sonst will ich das gar nicht**").
+    Das ist damit **keine Abwägung mehr**: Liefert der Weg keine volle Auflösung, fällt das
+    Panorama weg. Die Anforderung bindet auch **Feature 1 (360°-Stitching)** — dort wird
+    dieselbe Frage mit noch mehr Bildern auftreten, also jetzt gleich richtig lösen.
+    Ursache ist bekannt und steht im Code: `MyApplicationInterface.max_panorama_width_c =
+    2080` und `ImageSaver.computePanoramaSampleSize()` verkleinern jeden Rahmen, damit 17
+    Rahmen ins Speicherbudget passen (`max_panorama_pics_c`). Das war die Entscheidung von
+    Schritt E/F — sie kostet Bildschärfe statt Panorama-Länge und ist mit dieser Vorgabe
+    überholt. Wege, die volle Auflösung hergeben: (a) Rahmen nicht alle im Heap halten,
+    sondern laufend auf die Platte schreiben und erst am Ende stitchen, (b) in Streifen
+    stitchen und den Zwischenstand ablegen statt alle Rahmen gleichzeitig, (c) Speicher
+    über `ImageReader`/`HardwareBuffer` statt Java-Heap. **Erst messen** (echter
+    Speicherbedarf je Weg, Dauer des Stitch am Gerät, wie viele Rahmen wirklich
+    gleichzeitig gebraucht werden), dann bauen — aber das Ergebnis muss volle Auflösung sein.
 18. **Vertikales Panorama wird falsch verarbeitet** (Falk 2026-10-11): das Ergebnis liegt
     in der Galerie **quer und gestreckt**, es müsste hochkant und unverzerrt sein. Achtung:
     die senkrechte Aufnahme wurde am 2026-10-07 schon einmal abgenommen – der Fehler ist
