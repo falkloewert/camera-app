@@ -850,3 +850,16 @@ Nachteile hat; Filmchen-Modus und Dual-Kamera hätten dagegen jeweils eigene UI-
   erst prüfen, ob ein Wechsel über die vorhandene Kette geht. Komplexität war zu optimistisch
   eingeschätzt. Nebenbei Dokumentation bereinigt: Redesign-Status in SPEC 3 stand noch auf
   „Schritt N offen", obwohl am 2026-10-06 abgenommen.
+
+- **2026-10-11 (PM-Chat, vier neue Todos von Falk):** als PM-Punkte 17–20 in SPEC 4.4/4.5
+  festgehalten, damit sie nicht im Chat verloren gehen. **17** Panorama-Qualität: volle
+  Auflösung statt Verkleinerung (Ursache bekannt: `max_panorama_width_c` 2080 +
+  `computePanoramaSampleSize()`; erst Speicher/Dauer messen, dann zwischen größeren Rahmen,
+  Rahmen auf Platte statt Heap, oder weniger Bildern wählen). **18** senkrechtes Panorama
+  wird falsch verarbeitet – in der Galerie quer und gestreckt (die Abnahme vom 2026-10-07
+  gilt damit nur noch für waagerecht und Selfie; erst die Zielmarken-Spiegelungen
+  `33eccb13`/`13a70396` prüfen, dann Projektion und Photosphere-Angabe). **19** Fokus-Tippen
+  mit Helligkeit + Warm/Kalt wie in der Google-Kamera (neues Feature 10, Bausteine sind
+  vorhanden; der in Schritt L bewusst weggelassene Ring-Regler ist damit wieder aktuell).
+  **20** Recherche, wie man eine fremde App reverse engineert, um Referenzwerte zu messen
+  statt aus Screenshots zu schätzen.

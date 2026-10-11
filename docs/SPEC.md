@@ -70,6 +70,7 @@ zu können (`git fetch upstream`).
 | 7 | Zeitraffer & Zeitlupe (Video-Modi wie in der Pixel-App, siehe 4.6) | **Fertig** (2026-09-21) | Mittel |
 | 8 | Doppeltippen auf den Sucher wechselt die Kamera (Selfie ↔ hinten) | Idee (2026-09-21) | Niedrig |
 | 9 | Serienbilder als Stapel in der Galerie statt einzelner Bilder | Idee (2026-09-21, Recherche nötig) | Mittel |
+| 10 | Fokus-Tippen: Helligkeit + Warm/Kalt (Regler an der getippten Stelle, wie Google) | Idee (2026-10-11) – siehe PM-Punkt 19 | Mittel |
 | 6 | Material-3-Redesign (komplettes UI, absorbiert die alte Feature-6-Idee "Zoom-Stufen-Buttons + Moduswahl-Leiste") | **In Arbeit** – Theme/ConstraintLayout, Zoom-Stufen, Moduswahl, Auslöser-Zeile, Pixel-Drehmodell (Hochformat-Sperre, Glyphen drehen, Datei-Prüfung abgeschlossen), **Feinjustier-Rad** (2026-09-18), Einstellungen-Blätter + Pro-Panel (2026-09-21) und **Kopfzeile; alte Icon-Leiste + Drei-Punkte-Popup entfernt** (Schritt C, 2026-09-22) gebaut, dazu **Karussell, Licht-Zeile, Chips, Stärke im Pro-Panel** (Schritte D–K, abgenommen 2026-09-23) und **Sucher-Overlays: Fokus-Ring, Drittel-Raster, Wasserwaage, Sucher-Lage** (Schritt L, abgenommen 2026-09-24) und **Farben/Blur/Schrift** (Schritt N, `ui-spezifikation.md` 7.3, abgenommen 2026-10-06) – damit ist die Redesign-Restliste leer, siehe 4.5 | Hoch (app-weit, Design-Fundament für alle Folge-Features) |
 
 ### 3.1 Vereinbarte Reihenfolge (aktualisiert 2026-09-14: Material-3-Redesign vor Feature 5 vorgezogen)
@@ -284,6 +285,13 @@ weil das Fenster im Panorama-Modus portrait-gesperrt ist. Selfie-Panorama: `supp
 lässt die Frontkamera wieder zu. Senkrecht projiziert der Stitcher um die liegende Achse (Zeilen
 statt Spalten), die Photosphere-Angabe trägt die Achse (Pitch 0..180°), das Schwenk-Limit ist
 180°. Auto-Auslöser und Rolllage-Check sind achsenabhängig. Abgenommen 2026-10-07 (Falk).
+
+**Offen (2026-10-11, Falk am Gerät):** Die **Abnahme von 2026-10-07 gilt nur noch für
+„waagerecht" und Selfie.** Zwei Mängel sind aufgetreten, beide als PM-Punkte festgehalten:
+- **PM-Punkt 17:** die Panorama-Qualität ist zu schlecht, weil die Rahmen verkleinert werden
+  (`max_panorama_width_c` / `computePanoramaSampleSize()`).
+- **PM-Punkt 18:** das **senkrechte** Panorama wird falsch verarbeitet – in der Galerie liegt
+  es quer und gestreckt statt hochkant und unverzerrt.
 
 ---
 
@@ -526,6 +534,43 @@ Verlauf und Recherche: `docs/changelog.md` (Abschnitt „Verlauf 4.5").
     `PanoramaProcessor.computePanoramaTransforms()`); sie ließe sich über die letzten Bilder
     auf null rampen, damit Anfang und Ende exakt aufeinandersitzen. Bewusst nicht mehr in
     diesem Lauf gebaut – eigener kleiner Chat, nur wenn Falk es will.
+17. **Panorama-Qualität: volle Auflösung statt Verkleinerung** (Falk 2026-10-11: „panorama
+    volle qualität behalten nicht kompremmieren, das wird aktuell schlechte quali"). Die
+    Ursache ist bekannt und steht schon im Code: `MyApplicationInterface.
+    max_panorama_width_c = 2080` und `ImageSaver.computePanoramaSampleSize()` verkleinern
+    jeden Rahmen, damit 17 Rahmen ins Speicherbudget passen (`max_panorama_pics_c`).
+    Das ist eine bewusste Entscheidung von Schritt E/F – sie kostet Bildschärfe statt
+    Panorama-Länge. Entscheidung nötig, was Vorrang hat: Wege wären (a) größere Rahmen und
+    kleinere Puffer, (b) die Rahmen nicht alle im Heap halten, sondern laufend auf die
+    Platte schreiben und erst am Ende stitchen, (c) weniger Bilder bei voller Auflösung.
+    **Erst messen** (echter Speicherbedarf je Weg, Dauer des Stitch am Gerät), dann wählen.
+18. **Vertikales Panorama wird falsch verarbeitet** (Falk 2026-10-11): das Ergebnis liegt
+    in der Galerie **quer und gestreckt**, es müsste hochkant und unverzerrt sein. Achtung:
+    die senkrechte Aufnahme wurde am 2026-10-07 schon einmal abgenommen – der Fehler ist
+    entweder damals nicht aufgefallen oder beim Spiegeln der Zielmarke (`33eccb13`,
+    `13a70396`) entstanden. Beim Nachsehen zuerst dort prüfen, dann die Achsen-Projektion
+    in `PanoramaProcessor`/`createProjectedBitmap()` und die Bildwinkel-/Photosphere-Angabe
+    in `ImageSaver.savePanoramaBitmap()` (Pitch 0..180°) – die legt fest, wie Betrachter und
+    Galerie das Bild drehen und dehnen.
+19. **Fokus-Tippen: Helligkeit und Warm/Kalt** (Falk 2026-10-11, Feature 10 in Abschnitt 3).
+    Wie in der Google-Kamera: nach dem Tippen auf eine Stelle im Sucher erscheinen dort
+    Regler für Helligkeit (Belichtung) und Farbtemperatur (warm/kalt). Vor dem Bauen klären:
+    Die App hat die Bausteine schon (`exposure_compensation`, Weißabgleich-Temperatur,
+    AE-Sperre – alles im Foto-Blatt bzw. in `Preview`/`CameraController2`); offen ist, wie
+    die Regler an den vorhandenen Fokus-Ring andocken, ob sie nur fürs nächste Bild oder
+    dauerhaft gelten, und ob sie den Blatt-Wert überschreiben oder nur verschieben.
+    **Nicht verwechseln** mit dem in Schritt L bewusst weggelassenen Regler am Fokus-Ring
+    (`redesign-sucher-overlays.md`, „bewusst nicht gebaut") – das ist jetzt genau die
+    Anforderung, der alte Beschluss ist damit überholt.
+20. **Recherche: Apps reverse engineeren** (Falk 2026-10-11). Wie gehen Leute heute vor, um
+    das Verhalten einer fremden App im Detail zu verstehen – APK zerlegen, Ressourcen und
+    Drawables herausziehen, Decompiler (jadx/apktool), dynamische Analyse, Mitschnitte von
+    Kamera-/HAL-Aufrufen. Ziel: Referenzwerte **messen** statt aus Screenshots schätzen –
+    das Projekt macht das bisher nur über Bilder (`docs/design-reference/`). Reine
+    Recherche, kein Bauauftrag; Ergebnis als eigenes Dokument unter `docs/`. Zu beachten:
+    Die Pixel-Kamera ist Googles proprietäre App; Zerlegen zum Verstehen und für
+    Interoperabilität ist in Deutschland in engen Grenzen zulässig (§69e UrhG), das
+    Kopieren von Code oder Ressourcen in dieses GPL-Projekt hinein ist es nicht.
 
 ---
 
