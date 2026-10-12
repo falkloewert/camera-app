@@ -22,7 +22,7 @@ Zusammenfassungen – nur Ergebnis/Frage. Pro-Kontingent, jeder Token zählt.**
 **Zielgerät:** Google Pixel 9 Pro
 **Ziel-Android-Version:** Android 17 (API Level 37, stable seit 16. Juni 2026)
 
-**Hosting:** Codeberg-Repository (`codeberg.org/falkloewert/camera-app`, privat), sauber dokumentiert.
+**Hosting:** GitHub-Repository (`github.com/falkloewert/camera-app`, privat; bis 12.10.2026 Codeberg), sauber dokumentiert.
 
 **Basis-Repo (Upstream):** Open Camera, offizielles Quell-Repo auf SourceForge:
 `https://git.code.sf.net/p/opencamera/code` (Branch `master`, Lizenz GPLv3). Im lokalen

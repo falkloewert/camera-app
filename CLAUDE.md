@@ -2,7 +2,7 @@
 
 Fork von Open Camera (Java, GPLv3), Pixel 9 Pro, Android 17/API 37, nur Eigengebrauch.
 Master-Quelle: `docs/SPEC.md` (Feature-Chats: nur 2.1 + eigener Abschnitt 4.x).
-Historie: `docs/changelog.md`. Remotes: `origin` Codeberg (privat), `upstream` SourceForge.
+Historie: `docs/changelog.md`. Remotes: `origin` GitHub `falkloewert/camera-app` (privat, seit 12.10.2026; vorher Codeberg), `upstream` SourceForge.
 
 ## Token-Sparen (seit 2026-09-18, Pro-Kontingent)
 - Keine Erklärungen, keine Narration, keine Zusammenfassungen. Ergebnis oder Frage.
